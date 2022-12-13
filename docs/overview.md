@@ -5,7 +5,7 @@
 Spend more time writing markdown, with better quality, and less time on content delivery management. 
 
 ## What is it?
-The Markdown Enricher is a pre-processing tool that brings continuous integration and continuous delivery capabilities to markdown. Manage one set of source files, run Markdown Enricher on those files, and get customized sets of output to use wherever you need them.
+The Markdown Enricher is a pre-processing script that brings continuous integration and continuous delivery capabilities to markdown. Manage one set of source files, run Markdown Enricher on those files, and get customized sets of output to use wherever you need them.
 
 ## Why would writers want to use the Markdown Enricher?
 The [Markdown Enricher](https://github.com/IBM/md-enricher-for-cicd)'s best quality is that it helps writers get similar content to multiple places with some differences between them. Here are some other benefits.
