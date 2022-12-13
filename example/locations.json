@@ -1,0 +1,12 @@
+{
+    "markdown-enricher": {
+        "locations": [
+            {
+                "location": "staging"
+            },
+            {
+                "location": "prod"
+            }
+        ]
+    }
+}

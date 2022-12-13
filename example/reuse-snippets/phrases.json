@@ -1,0 +1,6 @@
+{
+
+"{[product-name]}":"<staging>New product name</staging><prod>Old product name</prod>",
+
+"{[version]}":"Version <staging>2.0</staging><prod>1.0</prod>"
+}

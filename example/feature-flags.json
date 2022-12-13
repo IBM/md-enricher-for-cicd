@@ -1,0 +1,10 @@
+[
+    {
+        "name": "new-feature",
+        "location": "staging"
+    },
+    {
+        "name": "old-feature",
+        "location": "prod"
+    }
+]
