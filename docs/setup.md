@@ -31,7 +31,7 @@ Create a JSON file with the following specifications.
 
 #### Config section
 
-`source_github_branch` is the only required key. For the other keys, if unspecified, the default values are used.
+`source_github_branch` is the only required key when running on each commit in Travis or Jenkins to differentiate the main branch that other development brances are made from. For the other keys, if unspecified, the default values are used.
 
 |Name|Default values|Description|
 |---|---|---|
@@ -147,8 +147,6 @@ CLI help:
 ```
 python3 <PATH>/md-enricher-for-cicd/start.py --help
 ```
-
-
 
 
 
