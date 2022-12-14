@@ -1,0 +1,8 @@
+*.log
+__pycache__
+.DS_Store
+content
+*.egg-info
+~$*.*
+.coverage
+example-output
