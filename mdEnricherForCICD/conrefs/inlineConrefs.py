@@ -63,12 +63,12 @@ def inlineConrefs(self, details, allInLinePhrasesUsed, conrefJSON, file_name, fo
             elif '.' in conrefUsed:
                 addToWarnings(str(conrefUsed) + ' is detected, but does not have a .md extension. '
                               'Convert the file to a markdown file or add the text to the ' + details["reuse_phrases_file"] +
-                              ' file instead.', folderAndFile, folderPath + file_name, details, self.log, self.location_name, '', '')
+                              ' file instead.', folderAndFile, folderPath + file_name, details, self.log, self.location_name, conrefUsed, topicContents)
         attempts = attempts + 1
 
     conrefErrors = list(dict.fromkeys(conrefErrors))
     for conrefError in conrefErrors:
-        if '<!--Do not transform-->' in conrefUsed:
+        if '<!--Do not transform-->' in conrefError:
             continue
         if ' ' in str(conrefError):
             conrefError = str(conrefError).split(' ', 1)[0]
@@ -76,6 +76,6 @@ def inlineConrefs(self, details, allInLinePhrasesUsed, conrefJSON, file_name, fo
             conrefError = str(conrefError).split('\n', 1)[0]
         addToWarnings(str(conrefError) + ' is detected, but was not found in ' + details["reuse_phrases_file"] +
                       '. Check for typos, remove the reference, or add to ' + details["reuse_phrases_file"] +
-                      '.', folderAndFile, folderPath + file_name, details, self.log, self.location_name, '', '')
+                      '.', folderAndFile, folderPath + file_name, details, self.log, self.location_name, conrefError, topicContents)
 
     return (allInLinePhrasesUsed, topicContents)

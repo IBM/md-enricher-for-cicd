@@ -1,4 +1,7 @@
-
+<!--
+# Copyright 2022 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+-->
 
 # Locations file
 
@@ -7,7 +10,7 @@
 
 |Name|Default values|Description|
 |---|---|---|
-|`source_github_branch`|`<branch-name>` |Required when running on each commit in Travis or Jenkins to differentiate the main branch that other development brances are made from. For the value, enter the name of the upstream branch, such as `main`, `master` or `source`. Not required for local builds.|
+|`source_github_branch`|String |Required when running on each commit in Travis or Jenkins to differentiate the main branch from other development branches that are made from it. For the value, enter the name of the upstream branch, such as `main`, `master` or `source`. Not required for local builds.|
 |`filetypes`|`.html, .json, .md, .yml, .yaml, .txt, toc`|Optional. The types of files that are processed by the Markdown Enricher.|
 |`img_output_filetypes`|`.gif, .GIF, .jpg, .JPG, .jpeg, .JPEG, .mp4, .MP4, .png, .PNG, .svg, .SVG`|Optional. Images that are referenced in content files and are stored in the `images` directory.|
 |`img_src_filetypes`|`.ai, .AI, .psd, .PSD, .sketch, .svg, .SVG`|Optional. Image source files that might not be referenced in content files. These source files must have the same file name as their output counterparts and must be stored in the `images` directory.|
@@ -20,16 +23,16 @@
 
 ## `locations` section
 
-|Name|Default values|Description|
+|Name|Value|Description|
 |---|---|---|
-|`location`|No default value.| Required. The name of the location. This name can be used as tags in content.|
-|`location_build`|`on`|Optional. You can choose to generate output (`on`) or not generate output (`off`) for a location to speed up the overall build. Even when not generating output, the location name must still be included in the locations file so that the tags can be handled appropriately.|
-|`location_output_action`|`none`| Optional. Allowed values: <ul><li>`none`: Output is generated and not merged into any Github branch. Use `none` when you want to generate output locally or you want to push the output to a location outside of Github.</li><li>`merge-automatically`: Output is generated and merged into the downstream location, if specified specified. Helpful for staging content.</li><li>`create-pr`: Output is generated and a pull request is created for you to review and merge into the downstream location specified. Helpful for production content.</li></ul>|
-|`location_github_url`|No default value.|Required when `location_output_action` is set to something other than `none`. The URL for the downstream location. Example: https://github.com/org/repo|
-|`location_github_branch`|No default value.|Required when `location_output_action` is set to something other than `none`. The name of the branch to push output to in the downstream location. Example: https://github.com/org/repo|
-|`location_comments`|`on`|Optional. HTML comments can be included (`on`) or excluded (`off`) in the output.|
-|`location_commit_summary_style`|`AuthorAndSummary`|Optional. The display of the Git commit summary when pushing output downstream. Allowed values:<ul><li>`AuthorAndSummary`</li><li>`AuthorOnly`</li><li>`IDOnly`</li><li>`IDAndSummary`</li><li>`IDAndAuthor`</li><li>`SummaryOnly`</li><li>Enter your own text.</li></ul>|
-|`location_contents`|None|Optional. Special handling of individual files and folders for a downstream location.|
+|`location`|String| Required. The name of the location. This name can be used as tags in content.|
+|`location_build`|<ul><li>`on` (default)</li><li>`off`</li></ul>|Optional. You can choose to generate output (`on`) or not generate output (`off`) for a location to speed up the overall build. Even when not generating output, the location name must still be included in the locations file so that the tags can be handled appropriately.|
+|`location_output_action`|<ul><li>`none` (default)</li><li>`merge-automatically`</li><li>`create-pr`</li></ul>| Optional. Allowed values: <ul><li>`none`: Output is generated and not merged into any Github branch. Use `none` when you want to generate output locally or you want to push the output to a location outside of Github.</li><li>`merge-automatically`: Output is generated and merged into the downstream location, if specified specified. Helpful for staging content.</li><li>`create-pr`: Output is generated and a pull request is created for you to review and merge into the downstream location specified. Helpful for production content.</li></ul>|
+|`location_github_url`|String|Required when `location_output_action` is set to something other than `none`. The URL for the downstream location. Example: `https://github.com/org/repo`|
+|`location_github_branch`|String|Required when `location_output_action` is set to something other than `none`. The name of the branch to push output to in the downstream location. Example: `main`|
+|`location_comments`|<ul><li>`on` (default)</li><li>`off`</li></ul>|Optional. HTML comments can be included (`on`) or excluded (`off`) in the output.|
+|`location_commit_summary_style`|<ul><li>`AuthorAndSummary` (default)</li><li>`AuthorOnly`</li><li>`IDOnly`</li><li>`IDAndSummary`</li><li>`IDAndAuthor`</li><li>`SummaryOnly`</li><li>Enter your own text.</li></ul>|Optional. The display of the Git commit summary when pushing output downstream. |
+|`location_contents`|JSON|Optional. Special handling of individual files and folders for a downstream location.|
 
 
 ## Example

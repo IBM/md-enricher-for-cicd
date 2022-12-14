@@ -189,7 +189,7 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
                         ' domain might not be available at the moment.', 'commits', '', details, log, 'pre-build', '', '')
             exitBuild(details, log)
 
-        # The difference between each try and except below is whether or not there is one file changed or more than
+        # The difference between each try and except below is whether there is one file changed or more than
         # one file changed in the JSON response of the diff
         try:
             # Multiple files

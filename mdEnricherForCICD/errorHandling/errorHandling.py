@@ -82,7 +82,7 @@ def writeIssue(issueType, issueTypeFile, message, folderAndFile, folderPlusFile,
 
                 if withinASnippet != 'False':
                     if '.md' in withinASnippet:
-                        folderAndFile = '/' + details["reuse_snippets_folder"] + '/' + withinASnippet
+                        folderAndFile = '/' + details["reuse_snippets_folder"] + withinASnippet
                     else:
                         folderAndFile = '/' + details["reuse_snippets_folder"] + '/' + details["reuse_phrases_file"]
 

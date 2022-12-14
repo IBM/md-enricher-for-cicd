@@ -1,4 +1,7 @@
-
+<!--
+# Copyright 2022 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+-->
 
 # Default tags
 
@@ -41,15 +44,15 @@ marked-it `toc.yaml` example:
     - topic4.md
 ```
 
-You must also add tags to the beginnging and end of the markdown file as well to prevent that content file from outputting. Markdown processors are not generally as picky as TOC files so line breaks that are left usually do not affect the formatting of the transformed content. However, when surrounding a whole file with tags, make sure to start the tag on the same line as the first line of the metadata frontmatter.
+You must also add tags to the beginning and end of the markdown file as well to prevent that content file from outputting. Markdown processors are not generally as picky as TOC files so line breaks that are left usually do not affect the formatting of the transformed content. However, when surrounding a whole file with tags, make sure to start the tag on the same line as the first line of the metadata frontmatter.
 
 Example metadata for marked-it:
 ```
 <staging>---
 
 copyright:
-  years: 2014, [{<!--Do not transform-->CURRENT_YEAR}]
-lastupdated: "[{<!--Do not transform-->LAST_UPDATED_DATE}]"
+  years: 2014, [{CURRENT_YEAR}]
+lastupdated: "[{LAST_UPDATED_DATE}]"
 
 keywords: keyword1, keyword 2
 

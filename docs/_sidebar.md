@@ -1,4 +1,7 @@
-
+<!--
+# Copyright 2022 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+-->
 
 - Getting started
   - [Overview](overview.md)
@@ -18,8 +21,8 @@
   - [Images](images.md)
   - [Comments](comments.md)
 - Reference
-  - [Environment variables](ref-env-vars.md.md)
-  - [Locations file](ref-locations.md.md)
+  - [Environment variables](ref-env-vars.md)
+  - [Locations file](ref-locations.md)
   - [Feature flag file](ref-feature-flags.md)
   - [Start command options](ref-start.md)
 - Troubleshooting

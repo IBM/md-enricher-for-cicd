@@ -116,6 +116,8 @@ def dates(self, details, source_files):
                     # For running markdown enricher on markdown enricher docs, don't replace the examples
                     if '{[<!--Do not transform-->' in topicContents:
                         topicContents = topicContents.replace('{[<!--Do not transform-->', '{[')
+                    if '[{<!--Do not transform-->' in topicContents:
+                        topicContents = topicContents.replace('[{<!--Do not transform-->', '[{')
 
                     with open(self.location_dir + folderPath + file_name, 'w+', encoding="utf8", errors="ignore") as fileName_open:
                         fileName_open.write(topicContents)

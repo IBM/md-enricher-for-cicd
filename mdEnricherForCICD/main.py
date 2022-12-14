@@ -519,11 +519,14 @@ def main(
     details.update({"source_github_url": source_github_url})
 
     if details["builder"] == 'travis':
-        if 'github.com' in details["source_github_domain"]:
-            build_domain = 'travis.com'
-        else:
-            build_domain = details["source_github_domain"].replace('github', 'travis')
-        build_url = "https://" + build_domain + "/" + details["source_github_org"] + "/" + details["source_github_repo"] + "/builds/" + details["build_id"]
+        try:
+            if 'github.com' in details["source_github_domain"]:
+                build_domain = 'travis.com'
+            else:
+                build_domain = details["source_github_domain"].replace('github', 'travis')
+            build_url = "https://" + build_domain + "/" + details["source_github_org"] + "/" + details["source_github_repo"] + "/builds/" + details["build_id"]
+        except Exception:
+            build_url = 'None'
     elif details["builder"] == 'jenkins':
         build_url = os.environ.get('build_url')
     else:
@@ -535,7 +538,7 @@ def main(
     if (('github.com' in details["source_github_url"]) and (not details["builder"] == 'local')):
         source_github_api_prefix = 'https://api.' + details["source_github_domain"]
         source_github_api_repos = source_github_api_prefix + '/repos/' + details["source_github_org"] + '/' + details["source_github_repo"]
-    elif (('github.com' not in details["source_github_url"]) and (not details["builder"] == 'local')):
+    elif (('github.com' not in details["source_github_url"]) and ('None' not in str(details["source_github_url"])) and (not details["builder"] == 'local')):
         source_github_api_prefix = 'https://' + details["source_github_domain"] + '/api/v3'
         source_github_api_repos = source_github_api_prefix + '/repos/' + details["source_github_org"] + '/' + details["source_github_repo"]
     else:

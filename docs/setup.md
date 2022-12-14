@@ -1,4 +1,7 @@
-
+<!--
+# Copyright 2022 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+-->
 
 
 # Set up
@@ -29,11 +32,11 @@ Note:
 
 ### `config` section
 
-`source_github_branch` is the only required key when running on each commit in Travis or Jenkins to differentiate the main branch that other development brances are made from. For the other keys, if unspecified, the default values are used.
+`source_github_branch` is the only required key when running on each commit in Travis or Jenkins to differentiate the main branch that other development branches are made from. For the other keys, if unspecified, the default values are used.
 
 |Name|Default values|Description|
 |---|---|---|
-|`source_github_branch`|`<branch-name>` |Required when running on each commit in Travis or Jenkins to differentiate the main branch that other development brances are made from. For the value, enter the name of the upstream branch, such as `main`, `master` or `source`. Not required for local builds.|
+|`source_github_branch`|String |Required when running on each commit in Travis or Jenkins to differentiate the main branch from other development branches that are made from it. For the value, enter the name of the upstream branch, such as `main`, `master` or `source`. Not required for local builds.|
 |`filetypes`|`.html, .json, .md, .yml, .yaml, .txt, toc`|Optional. The types of files that are processed by the Markdown Enricher.|
 |`img_output_filetypes`|`.gif, .GIF, .jpg, .JPG, .jpeg, .JPEG, .mp4, .MP4, .png, .PNG, .svg, .SVG`|Optional. Images that are referenced in content files and are stored in the `images` directory.|
 |`img_src_filetypes`|`.ai, .AI, .psd, .PSD, .sketch, .svg, .SVG`|Optional. Image source files that might not be referenced in content files. These source files must have the same file name as their output counterparts and must be stored in the `images` directory.|
@@ -47,16 +50,16 @@ Note:
 
 The `location` name is the only required key. For the other keys, if unspecified, the default values are used.
 
-|Name|Default values|Description|
+|Name|Value|Description|
 |---|---|---|
-|`location`|No default value.| Required. The name of the location. This name can be used as tags in content.|
-|`location_build`|`on`|Optional. You can choose to generate output (`on`) or not generate output (`off`) for a location to speed up the overall build. Even when not generating output, the location name must still be included in the locations file so that the tags can be handled appropriately.|
-|`location_output_action`|`none`| Optional. Allowed values: <ul><li>`none`: Output is generated and not merged into any Github branch. Use `none` when you want to generate output locally or you want to push the output to a location outside of Github.</li><li>`merge-automatically`: Output is generated and merged into the downstream location, if specified specified. Helpful for staging content.</li><li>`create-pr`: Output is generated and a pull request is created for you to review and merge into the downstream location specified. Helpful for production content.</li></ul>|
-|`location_github_url`|No default value.|Required when `location_output_action` is set to something other than `none`. The URL for the downstream location. Example: https://github.com/org/repo|
-|`location_github_branch`|No default value.|Required when `location_output_action` is set to something other than `none`. The name of the branch to push output to in the downstream location. Example: https://github.com/org/repo|
-|`location_comments`|`on`|Optional. HTML comments can be included (`on`) or excluded (`off`) in the output.|
-|`location_commit_summary_style`|`AuthorAndSummary`|Optional. The display of the Git commit summary when pushing output downstream. Allowed values:<ul><li>`AuthorAndSummary`</li><li>`AuthorOnly`</li><li>`IDOnly`</li><li>`IDAndSummary`</li><li>`IDAndAuthor`</li><li>`SummaryOnly`</li><li>Enter your own text.</li></ul>|
-|`location_contents`|None|Optional. Special handling of individual files and folders for a downstream location.|
+|`location`|String| Required. The name of the location. This name can be used as tags in content.|
+|`location_build`|<ul><li>`on` (default)</li><li>`off`</li></ul>|Optional. You can choose to generate output (`on`) or not generate output (`off`) for a location to speed up the overall build. Even when not generating output, the location name must still be included in the locations file so that the tags can be handled appropriately.|
+|`location_output_action`|<ul><li>`none` (default)</li><li>`merge-automatically`</li><li>`create-pr`</li></ul>| Optional. Allowed values: <ul><li>`none`: Output is generated and not merged into any Github branch. Use `none` when you want to generate output locally or you want to push the output to a location outside of Github.</li><li>`merge-automatically`: Output is generated and merged into the downstream location, if specified specified. Helpful for staging content.</li><li>`create-pr`: Output is generated and a pull request is created for you to review and merge into the downstream location specified. Helpful for production content.</li></ul>|
+|`location_github_url`|String|Required when `location_output_action` is set to something other than `none`. The URL for the downstream location. Example: `https://github.com/org/repo`|
+|`location_github_branch`|String|Required when `location_output_action` is set to something other than `none`. The name of the branch to push output to in the downstream location. Example: `main`|
+|`location_comments`|<ul><li>`on` (default)</li><li>`off`</li></ul>|Optional. HTML comments can be included (`on`) or excluded (`off`) in the output.|
+|`location_commit_summary_style`|<ul><li>`AuthorAndSummary` (default)</li><li>`AuthorOnly`</li><li>`IDOnly`</li><li>`IDAndSummary`</li><li>`IDAndAuthor`</li><li>`SummaryOnly`</li><li>Enter your own text.</li></ul>|Optional. The display of the Git commit summary when pushing output downstream. |
+|`location_contents`|JSON|Optional. Special handling of individual files and folders for a downstream location.|
 
 
 ### Example
@@ -114,7 +117,7 @@ For security, there are values that must be set in the environment variables.
 |Environment variable|Description|
 |----------|-----------|
 |`GH_USERNAME`|A Github user with proper authorizations for the upstream and downstream locations. Required when using the Markdown Enricher to clone or push output to a Github repository. Important: When choosing which user to use, keep in mind that if you want to have pull requests created to merge content downstream, that user will not be able to merge unless another person approves. To avoid this problem, use a functional ID rather than a contributor's ID. <ul><li>Upstream repos: This user must be given `write` access upstream to create a log branch in the upstream repo. </li><li>Downstream repos: This user must be given `write` access in each downstream location to push changed files. If branch protection is enabled and you want commits automatically merged into that repo, this user must be given `maintainer` or `admin` permission.</li></ul> |
-|`GH_TOKEN`|The personal access token for the `GH_USERNAME`. Required when using the Markdown Enricher to clone or push output to a Github repository. To create a token, log into Github and click your user icon > **Settings** > **Developer settings** > **Personal access tokens** > **Tokens** > **Generate new token**. Select the `repo` scope.|
+|`GH_TOKEN`|The personal access token for the `GH_USERNAME`. Required when using the Markdown Enricher to clone or push output to a Github repository. To create a token, log in to Github and click your user icon > **Settings** > **Developer settings** > **Personal access tokens** > **Tokens** > **Generate new token**. Select the `repo` scope.|
 |`SLACK_BOT_TOKEN`|Optional. Include to post error and warning messages to Slack via a Slack bot have failures to non-source branch be ephemeral and only visible to the user who made the commit. If you set this variable, you must also set the `SLACK_CHANNEL` variable and create a mapping of the Github to Slack IDs.|
 |`SLACK_CHANNEL`|Required with `SLACK_BOT_TOKEN`. The ID for the channel in Slack.|
 |`SLACK_WEBHOOK`|Optional. Include to post error and warning messages to Slack via incoming webhook.|
@@ -128,6 +131,7 @@ The `python start.py` command kicks things off. These are the available options 
 
 |Option|Description|
 |----------|-----------|
+|`--builder`| Optional. Include `--builder local` to force builds running in Travis or Jenkins to behave like a `local` build. Ensures that source Git repository information retrieval or output handling do not affect the outcome of the build. |
 |`--locations_file <path_to_locations_file>`|Required. The path to the JSON file of locations to create content for.|
 |`--output_dir <path_to_output_directory>`|Optional. The path to the output location.|
 |`--rebuild_all_files`|Optional. Force a rebuild of all files no matter what changes kicked off the build. This option is helpful when you're running the Markdown Enricher for the first time on new downstream branches.|

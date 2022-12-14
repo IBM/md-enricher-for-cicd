@@ -3,7 +3,7 @@ Our project welcomes external contributions.
 
 To contribute code or documentation, submit a [pull request](https://github.com/IBM/md-enricher-for-cicd/pulls).
 
-A good way to familiarize yourself with the codebase and contribution process is
+A good way to familiarize yourself with the code base and contribution process is
 to look for and tackle low-hanging fruit in the [issue tracker](https://github.com/IBM/md-enricher-for-cicd/issues).
 Before embarking on a more ambitious contribution, get in touch with us.
 
@@ -45,7 +45,7 @@ e.g.
 
 We have tried to make it as easy as possible to make contributions. This
 applies to how we handle the legal aspects of contribution. We use the
-same approach - the [Developer's Certificate of Origin 1.1 (DCO)](https://github.com/hyperledger/fabric/blob/master/docs/source/DCO1.1.txt) - that the Linux® Kernel [community](https://elinux.org/Developer_Certificate_Of_Origin)
+same approach - the [Developer's Certificate of Origin 1.1 (DCO)](https://github.com/hyperledger/fabric/blob/main/docs/source/DCO1.1.txt) - that the Linux® Kernel [community](https://elinux.org/Developer_Certificate_Of_Origin)
 uses to manage code contributions.
 
 We simply ask that when submitting a patch for review, the developer

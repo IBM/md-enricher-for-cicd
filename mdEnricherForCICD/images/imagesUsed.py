@@ -132,7 +132,7 @@ def imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContent
     # then if they're used in the files in the CLI/subrepo, then they'll get automatically copied over
 
     # Create the images dir in the downstream repo if it doesn't exist already
-    # TO DO: Handle all images wherever they are, regardless of whether or not there's a root images directory.
+    # TO DO: Handle all images wherever they are, regardless of whether there's a root images directory.
     # Probably should be if is anything in the self.image_files_list list
     # TO DO: Need to remove the imgOutputDir directory bit so that the path matches whatever is in source in the location
     # TO DO: If you remove an image in the markdown, the image does not get removed downstream from the images directory.

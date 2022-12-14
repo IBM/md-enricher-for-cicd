@@ -1,4 +1,7 @@
-
+<!--
+# Copyright 2022 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+-->
 
 # Try it out!
 
@@ -7,7 +10,7 @@ Try out the Markdown Enricher with example markdown files.
 1. Install [Python 3](https://www.python.org/downloads/).
 1. Clone the [Markdown Enricher](https://github.com/IBM/md-enricher-for-cicd) repository.
 1. In the cloned repository directory, review the contents of the `example` directory.
-    - `locations.json`: The output locations (`staging` and `prod`) and the customizations for each one. Note that there isn't much required for pre-processing the files without delivering the output anywhere, just the names of the locations and that no action is required with the output. [Learn more](locations.md).
+    - `locations.json`: The output locations (`staging` and `prod`) and the customizations for each one. Note that there isn't much required for pre-processing the files without delivering the output anywhere, just the names of the locations and that no action is required with the output. [Learn more](setup.md).
     - `feature-flags.json`: A configuration file that defines custom tags for marking up content to appear in the output for specific locations. [Learn more](feature-flags.md).
     - `reuse-snippets`: Files that can be referenced in content markdown files and reused as necessary. [Learn more](reuse.md).
     - Markdown files: Content files, which can be stored in subfolders.

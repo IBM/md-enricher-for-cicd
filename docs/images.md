@@ -1,9 +1,12 @@
-
+<!--
+# Copyright 2022 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+-->
 
 # Images
 As with all markdown content, adding images to your content is a two-step process:
 1. Upload an image and, if needed, its source file to the `images` directory in the source repo.
-1. Add the image name to the markdown file. You can specify images using markdown or HTML styling. Include the path as it will be in the output, not in the source. If the image path is part of a reuse snippet in files that will output to different directory levels, the Markdown Enricher attempta to adjust the filepath appropriately based on where they are located.
+1. Add the image name to the markdown file. You can specify images using markdown or HTML styling. Include the path as it will be in the output, not in the source. If the image path is part of a reuse snippet in files that will output to different directory levels, the Markdown Enricher attempts to adjust the filepath appropriately based on where they are located.
   * `![Image](images/image.png)`
   * `<img src="images/image.png" alt="Image" width="50%" height="50%">`
 

@@ -1,9 +1,13 @@
-
+<!--
+# Copyright 2022 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+-->
 
 # Start command options reference
 
 |Option|Description|
 |----------|-----------|
+|`--builder`| Optional. Include `--builder local` to force builds running in Travis or Jenkins to behave like a `local` build. Ensures that source Git repository information retrieval or output handling do not affect the outcome of the build. |
 |`--locations_file <path_to_locations_file>`|Required. The path to the JSON file of locations to create content for.|
 |`--output_dir <path_to_output_directory>`|Optional. The path to the output location.|
 |`--rebuild_all_files`|Optional. Force a rebuild of all files no matter what changes kicked off the build. This option is helpful when you're running the Markdown Enricher for the first time on new downstream branches.|

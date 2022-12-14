@@ -1,4 +1,7 @@
-
+<!--
+# Copyright 2022 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+-->
 
 # Running locally
 To test your content changes locally before committing them to the source repo or to test changes to the code base, you can run the Markdown Enricher on your local content.

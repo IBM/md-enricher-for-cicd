@@ -1,4 +1,7 @@
-
+<!--
+# Copyright 2022 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+-->
 # Notices
 
 When running the Markdown Enricher in Travis or Jenkins, the author of the commit is collected (`commit` > `author` > `name`) from the Github Enterprise API. This name is used to help teams of writers know who is responsible for which warnings and errors.

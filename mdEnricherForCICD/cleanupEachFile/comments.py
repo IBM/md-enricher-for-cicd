@@ -19,15 +19,24 @@ def comments(self, details, folderAndFile, topicContents):
                 (linkCheckerSkipText in topicContents) or
                 ('<style>' in topicContents) or
                 (self.location_comments == 'on') or
-                '<!--Do not transform-->' in topicContents):
+                ('<!--Do not transform-->' in topicContents) or
+                ('SPDX-License-Identifier' in topicContents) or
+                ('<!-Snippet' in topicContents)):
 
             commentList = re.findall('<!--(.*?)-->', topicContents, flags=re.DOTALL)
             for comment in commentList:
 
+                if 'SPDX-License-Identifier' in comment:
+                    self.log.debug('Not removing IBM Copyright.')
+
                 # If there's a heading in the section, just remove it to avoid having it added into the sitemap
-                if '# ' in comment:
+                elif '# ' in comment:
                     topicContents = topicContents.replace('<!--' + comment + '-->', '')
                     self.log.debug('Removing comment because a heading is in it. Avoiding including it in the sitemap.')
+
+                # Always remove the snippet insertion comments because they can screw up links and tables
+                elif comment.startswith('Snippet'):
+                    topicContents = topicContents.replace('<!--' + comment + '-->', '')
 
                 # For transforming on the md-enricher-for-cicd docs
                 # Do not remove so that the example code phrases to show the metadata variables won't be replaced
