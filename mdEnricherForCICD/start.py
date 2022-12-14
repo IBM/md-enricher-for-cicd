@@ -1,0 +1,107 @@
+#
+# Copyright 2022 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+#
+
+def start():
+    import argparse
+
+    # Create the parser
+    my_parser = argparse.ArgumentParser(description='Enrich your markdown content.')
+
+    # Add the arguments
+    my_parser.add_argument('--builder', action='store', type=str, help='Override the default builder',
+                           choices=['local'])
+
+    my_parser.add_argument('--ibm_cloud_docs', action='store_true', help='Identifies repos as IBM Cloud Docs repos.')
+
+    my_parser.add_argument('--ibm_docs', action='store_true', help='Identifies repos as IBM Docs repos.')
+
+    my_parser.add_argument('--ibm_cloud_docs_product_name_check', action='store_true',
+                           help='For IBM Cloud Docs repos, check product name replacements against the YAML file.')
+
+    my_parser.add_argument('--ibm_cloud_docs_sitemap_depth', action='store', type=str,
+                           help='For IBM Cloud Docs repos, if a sitemap is created, the depth of the title headings to include.',
+                           default='H3', choices=['H1', 'H2', 'H3', 'H4', 'off'])
+
+    my_parser.add_argument('--ibm_cloud_docs_sitemap_rebuild_always', action='store_true',
+                           help='Force the regeneration of the sitemap on every build. For services that reuse content in other repos.')
+
+    my_parser.add_argument('--locations_file', required=True, action='store', type=str,
+                           help='The path to the JSON file of locations to create content for.')
+
+    my_parser.add_argument('--output_dir', action='store', type=str, help='The path to the output location.')
+
+    my_parser.add_argument('--rebuild_all_files', action='store_true',
+                           help='Force a rebuild of all files no matter what changes kicked off the build.')
+
+    my_parser.add_argument('--slack_bot_token', action='store',
+                           help='The token for a Slack bot to post ephemeral and normal error messages to.')
+
+    my_parser.add_argument('--slack_channel', action='store',
+                           help='With the slack_bot_token, the Slack channel to post to.')
+
+    my_parser.add_argument('--slack_post_success', action='store_true',
+                           help='When True, posts errors, warnings, and successes to Slack. When False, posts errors and warnings to Slack.')
+
+    my_parser.add_argument('--slack_show_author', choices=[True, False], default=True,
+                           help='Includes the commit author\'s Github ID in the Slack post.')
+
+    my_parser.add_argument('--slack_user_mapping', action='store', type=str,
+                           help='The path to a JSON file that maps Github IDs to Slack IDs.')
+
+    my_parser.add_argument('--slack_webhook', action='store',
+                           help='The webhook for a Slack channel to post error messages to.')
+
+    my_parser.add_argument('--source_dir', required=True, action='store', type=str, help='The path to a cloned Github repo.')
+
+    my_parser.add_argument('--test_only', action='store_true',
+                           help='Performs a check without pushing the results anywhere.')
+
+    my_parser.add_argument('--validation', action='store', type=str,
+                           help='Check tags and image file paths.', default='on', choices=['on', 'off'])
+
+    # Execute the parse_args() method
+    args = my_parser.parse_args()
+
+    builder = args.builder
+    ibm_cloud_docs = args.ibm_cloud_docs
+    ibm_cloud_docs_product_name_check = args.ibm_cloud_docs_product_name_check
+    ibm_cloud_docs_sitemap_depth = args.ibm_cloud_docs_sitemap_depth
+    ibm_cloud_docs_sitemap_rebuild_always = args.ibm_cloud_docs_sitemap_rebuild_always
+    ibm_docs = args.ibm_docs
+    locations_file = args.locations_file
+    output_dir = args.output_dir
+    rebuild_all_files = args.rebuild_all_files
+    slack_bot_token = args.slack_bot_token
+    slack_channel = args.slack_channel
+    slack_post_success = args.slack_post_success
+    slack_show_author = args.slack_show_author
+    slack_user_mapping = args.slack_user_mapping
+    slack_webhook = args.slack_webhook
+    source_dir = args.source_dir
+    test_only = args.test_only
+    validation = args.validation
+
+    from main import main
+    main(builder,
+         ibm_cloud_docs,
+         ibm_cloud_docs_product_name_check,
+         ibm_cloud_docs_sitemap_depth,
+         ibm_cloud_docs_sitemap_rebuild_always,
+         ibm_docs,
+         locations_file,
+         output_dir,
+         rebuild_all_files,
+         slack_bot_token,
+         slack_channel,
+         slack_post_success,
+         slack_show_author,
+         slack_user_mapping,
+         slack_webhook,
+         source_dir,
+         test_only,
+         validation)
+
+
+start()
