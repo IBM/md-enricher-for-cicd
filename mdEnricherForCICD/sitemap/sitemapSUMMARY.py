@@ -23,7 +23,6 @@ def sitemapSUMMARY(self, details):
     self.log.debug("UPDATE SITEMAP")
     self.log.debug("-------------------------------------------------------------\n")
 
-    # TO DO: Need to remove
     self.CONTENT_REUSE_PAGES_FOLDER = 'reuse-pages'
     self.CONTENT_REUSE_SNIPPETS_FOLDER = 'reuse-snippets'
 

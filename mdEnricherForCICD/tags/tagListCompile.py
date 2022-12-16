@@ -78,7 +78,6 @@ def tagListCompile(self, details):
                             else:
                                 featureFlagDisplayList = [featureFlagDisplay]
 
-                            # TO DO: Loop over this twice because you can't process a list being actively updated?? There has to be a better way to do this
                             for featureFlagDisplayEntry in featureFlagDisplayList:
                                 if ((featureFlagDisplayEntry in tags_show) and (featureFlagName not in tags_show)):
                                     if featureFlagName not in tags_show:

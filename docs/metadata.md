@@ -36,7 +36,7 @@ Example output:
 
 copyright:
   years: 2014, [{CURRENT_YEAR}]
-lastupdated: "2022-12-14"
+lastupdated: "2022-12-16"
 
 keywords: keyword1, keyword2
 

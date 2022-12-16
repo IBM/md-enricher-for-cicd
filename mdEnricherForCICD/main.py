@@ -223,7 +223,6 @@ def main(
                         os.remove(self.location_dir + details["featureFlagFile"])
                         self.log.debug('Removing: ' + self.location_dir + details["featureFlagFile"])
 
-                    # TO DO: Fix this
                     locations_file_name = details["locations_file"].rsplit('/', 1)[1]
                     if os.path.isfile(self.location_dir + '/' + locations_file_name):
                         os.remove(self.location_dir + '/' + locations_file_name)
@@ -343,7 +342,6 @@ def main(
     time_start = time.time()
     details.update({"time_start": time_start})
 
-    # TO DO: Should the timezone be customizable or doesn't it matter to just calculate a time to run.
     time_zone = timezone('US/Eastern')
     details.update({"time_zone": time_zone})
     log.info('Build began: %s', str(datetime.now(details["time_zone"])))
@@ -370,7 +368,6 @@ def main(
         current_commit_id = os.environ.get('TRAVIS_COMMIT')
 
     # Anticipating that other builders could use the workspace variable
-    # TO DO: We are setting the markdown transform up as local, but also need to test using Jenkins as per commit builder.
     elif 'jenkins' in workspace:
         build_id = os.environ.get('build_id')
         build_number = os.environ.get('build_number')
@@ -378,7 +375,6 @@ def main(
             builder = 'jenkins'
         current_commit_summary = os.environ.get('GIT_COMMIT')
         current_commit_id = os.environ.get('GIT_COMMIT')
-        # TO DO: These aren't going to be accurate if there are multiple repos pulled into the build
     else:
         if builder is None:
             builder = 'local'
@@ -405,8 +401,6 @@ def main(
             source_github_url_bytes = subprocess.check_output(["git", "config", "--get", "remote.origin.url"])
             source_github_url = source_github_url_bytes.decode("utf-8")
         except Exception:
-            # TO DO: Do we really want this to only run on Git clones or run on anything to anywhere? Maybe for local builds this is not required?
-            # Tested 12/3/21
             addToErrors('The directory specified for the source_dir is not a clone of a Git repository. ' +
                         'This directory must be a Git clone.', 'start.py-command', '', details, log, 'pre-build', '', '')
             # Too many variables haven't been established yet to use the errorHandling exit build.
@@ -482,7 +476,6 @@ def main(
         sys.exit(0)
 
     # Delete the .git directory from the tool clone so those files get detected by the push later
-    # TO DO: This might need to apply to local too if things are pushed from local
     # This has to go after the remote origin URL get
     if not details["builder"] == 'local':
         if os.path.isdir(workspace + '/.git'):
@@ -719,12 +712,6 @@ def main(
                     log.debug(e)
 
         # log.info(json.dumps(source_files_location_list, indent=4))
-        # TO DO: This list might be too restrictive.
-        # What if there are other files than the feature-flags.json file in the root directory?
-        # Maybe it's OK? What if there are images outside of the images directory or the containers/openshift directory?
-        # It shouldn't be any images though unless they are in that directory.
-        # Maybe there just needs to be a requirement that there's a single images directory
-        # whether you're ibm cloud docs or not.
 
         # See if this is a location that should be iterated over
         # or skipped based on which files kicked off the build
@@ -777,8 +764,6 @@ def main(
 
             location_loop()
     log.info('\n\n')
-    # TO DO: Set this to local only? Should our Jenkins builds actually be local? Can this builder be overridden?
-    # Maybe if the output_action is none for everything, call this local?
     # if os.path.isfile(phraseUsageFile):
     # phraseCheck(details, log)
     # if os.path.isfile(snippetUsageFile):

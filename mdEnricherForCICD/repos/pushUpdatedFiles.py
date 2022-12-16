@@ -195,14 +195,12 @@ def pushUpdatedFiles(self, details, location_github_branch_push, source_files):
                         PRTitle = PR['title']
                         self.log.debug(str(PRNumber) + ': ' + PRTitle)
                 if self.location_github_branch_pr not in PRstring:
-                    # TO DO: This title needs to be customizable
                     g = {"title": "Next " + self.location_github_branch + " push", "body":
                          "See the Commits and Files changed tabs for more information about what is " +
                          "included in this pull request.",
                          "head": location_github_branch_push, "base": self.location_github_branch}
                     r = requests.post(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
                                       auth=(details["username"], details["token"]), data=json.dumps(g))
-                    # TO DO: Add a call to get the PR number that was created here and display it just like we do when the PR already exists?
                     self.log.info('Creating pull request for commit ' + details["current_commit_id"])
                     if r.status_code == 201:
                         self.log.info('SUCCESS!')
