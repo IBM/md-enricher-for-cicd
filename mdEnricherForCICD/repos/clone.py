@@ -121,7 +121,6 @@ def clone(self, details):
     # self.log.info('----------------------------------')
 
     # Get a list of all the branches in the repo
-    # TO DO: Need to loop over all, not just the first 100
     getBranches = requests.get(self.location_github_api_repos + "/branches?per_page=100", auth=(details["username"], details["token"]))
 
     try:

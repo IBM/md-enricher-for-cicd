@@ -72,7 +72,7 @@ git commit -s
 
 
 ## Testing
-[Run the Markdown Enricher locally](https://pages.github.com/IBM/md-enricher-for-cicd-docs/#/local) to test your code changes.
+[Run the Markdown Enricher locally](https://ibm.github.io/md-enricher-for-cicd/#/local) to test your code changes.
 
 ## Coding style guidelines
 flake8 and mypy are used to enforce coding styles.

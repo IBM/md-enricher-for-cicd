@@ -114,7 +114,6 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide
 
     TAGS_HIDE_AND_SHOW = tags_hide + tags_show
 
-    # TO DO: Remove the variable bits, since HTML codeblocks are out the door for IBM Cloud
     if not ('/' + details["reuse_snippets_folder"] + '/') in folderPath:
 
         # 1. Make sure there are an even number of code blocks. This will help determine if the problem is with the code blocks or code phrases.
@@ -122,7 +121,7 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide
         if not (instances % 2) == 0:
             addToWarnings('There are ' + str(instances) +
                           ' code block tags. This number is odd but should be even. ' +
-                          'Check if there is a code block missing closing ``` tags.', folderAndFile,
+                          'Check if there is a code block missing closing tags.', folderAndFile,
                           folderPath + file_name, details, self.log, self.location_name, '', '')
         else:
             # 2. Check for correct code ticks, because otherwise the results are inccurate.
@@ -149,8 +148,6 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide
             # Combine the code blocks and code phrases into one list
             mdCodeList = mdCodeblockList + mdInlineCodeList
 
-            # TO DO: Verify that this is still accurate: There are some instances of markdown within HTML tags.
-            # Those do seem to be working in the framework, so strip those out and don't make an error for them.
             htmlCodeList = []
             # pre and codeblocks aren't necessary because they both have code tags within them
             codeList = re.findall('<code(.*?)</code>', topicContents, flags=re.DOTALL)

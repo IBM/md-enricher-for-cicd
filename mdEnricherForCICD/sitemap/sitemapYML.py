@@ -7,8 +7,6 @@ def sitemapYML(self, details):
 
     try:
 
-        # TO DO: Headings for Registry don't have all the right H2 and H3s, though all of the content is there
-
         # !/usr/bin/env python
         import os
         import re
@@ -144,7 +142,6 @@ def sitemapYML(self, details):
                                             self.log.error('No file contents returned.')
 
                         elif tocFilenameNoSpaces.startswith('/'):
-                            # TO DO: Switch this back to the API to make it run faster
                             contentReuseList.append(tocFilenameNoSpaces)
                             tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
                             repoName = tocFilenameNoStartingSlash.split('/', 1)[0]
@@ -180,7 +177,6 @@ def sitemapYML(self, details):
                             number = 0
                             anchorList = re.findall('{: #sitemap_(.*?)}', content, flags=re.DOTALL)
                             # self.log.info(anchorList)
-                            # TO DO: Need a better loop here
                             for anchor in anchorList:
                                 revisedAnchor = '{: #sitemap_' + anchor + '}'
                                 if revisedAnchor in fileContents:
@@ -202,7 +198,6 @@ def sitemapYML(self, details):
                         addToErrors('Type not set.', '/sitemap.md', '', details, self.log, self.location_name, '', '')
                         titleNoSpaces = title
 
-                    # TO DO: ? are ok?
                     titleNoSpaces = titleNoSpaces.replace(':', '').replace('#', '').replace('(', '')
                     titleNoSpaces = titleNoSpaces.replace(')', '').replace('.', '').replace('/', '').replace('\\', '')
                     titleNoSpaces = titleNoSpaces.replace('--', '-').replace('`', '').replace('--', '-')
@@ -549,7 +544,6 @@ def sitemapYML(self, details):
                                                     indent = ''
                                                 findAnchor = True
                                             elif ((navtitle is False) and (nestedTOC is True)):
-                                                # TO DO: Remove all of these ifs?
                                                 if topicGroup == 1:
                                                     indent = ''
                                                 elif topicGroup == 2:

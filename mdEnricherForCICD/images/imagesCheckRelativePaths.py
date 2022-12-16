@@ -5,8 +5,6 @@
 
 def imagesCheckRelativePaths(self, details, file_name, folderAndFile, folderPath, topicContents):
 
-    # TO DO: Need better looping in here
-
     import re
 
     if ((not details["reuse_snippets_folder"] in folderAndFile)):
@@ -15,13 +13,10 @@ def imagesCheckRelativePaths(self, details, file_name, folderAndFile, folderPath
 
         if slashesCount > 1:
 
-            # Should thumbnails for the landing.json files be added too? Those files should be in the root directory anyhow, so this shouldn't apply.
-
             # Check the filepath for HTML images and image maps
             htmlImages = re.findall(r'<img.*?/>', topicContents)
             if not htmlImages == []:
                 for htmlImage in htmlImages:
-                    # TO DO: Should these be ignoring relatives???
                     if (("images/" in htmlImage) and ("../images" not in htmlImage)):
                         relativePathCount = slashesCount - 1
                         relativePath = relativePathCount*'../'

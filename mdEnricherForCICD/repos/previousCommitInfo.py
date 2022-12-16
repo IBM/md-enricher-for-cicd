@@ -115,7 +115,6 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
 
     # If this isn't the source branch, compare it against the source branch and if it matches,
     # it's a new branch and therefore, doesn't need to run on these files. Exit if there's no difference.
-    # TO DO: Verify that this should be only if test_only is true
     if details["test_only"] is True:
         checkBranchStatus = requests.get(details["source_github_api_repos"] + '/compare/' +
                                          details["source_github_branch"] + '...' + current_commit_id,
@@ -258,8 +257,6 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
                               'All of the files from the commit are being handled in this build, but deletions related ' +
                               'to file renames or removals might not happen as desired downstream on the files that ' +
                               'were over the first alphabetical 300.\n', 'commits', '', details, log, 'pre-build', '', '')
-                # TO DO: Should there be an additional loop for the files that were added that checks to see if the source
-                # file is still there? And if not, delete it downstream then too.
 
         # Summary of the information we got above
         log.info('Previous commit ID: ' + previous_commit_id)

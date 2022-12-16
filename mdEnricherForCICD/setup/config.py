@@ -55,7 +55,6 @@ def config(log, details, locations_config):
     try:
         img_output_filetypes = locations_config["img_output_filetypes"]
     except KeyError:
-        # TO DO: Remove the caps?
         img_output_filetypes = '.gif, .GIF, .jpg, .JPG, .jpeg, .JPEG, .mp4, .MP4, .png, .PNG, .svg, .SVG'
     finally:
         img_output_filetypes_list = img_output_filetypes.split(', ')
