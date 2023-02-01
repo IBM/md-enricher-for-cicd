@@ -5,6 +5,8 @@
 
 def sitemapSUMMARY(self, details):
 
+    # Create a sitemap from an IBM Docs SUMMARY.md file
+
     # !/usr/bin/env python
     import os
     import traceback

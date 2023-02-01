@@ -5,11 +5,9 @@
 
 def runThisBuild(details, all_files_dict, location_name, log, source_files_location_list):
 
+    # Compare what is in with commit with what is supposed to be run for this location
+
     runThisLocation = False
-
-    # log.info('source_files_location_list: ' + str(source_files_location_list))
-
-    # log.info('all_files_dict: ' + str(all_files_dict))
 
     if any(x in list(all_files_dict) for x in source_files_location_list):
         log.debug('Running this location because file is in the list for this location.')

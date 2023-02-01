@@ -12,14 +12,14 @@ import sys
 
 
 from cleanupEachFile.cleanupEachFile import cleanupEachFile
-from cleanupEachFile.dates import dates
+# from cleanupEachFile.dates import dates
 from errorHandling.errorHandling import addToWarnings
 from errorHandling.errorHandling import addToErrors
-# from errorHandling.flagCheck import flagCheck
+from errorHandling.flagCheck import flagCheck
 from errorHandling.jsonCheck import jsonCheck
 from errorHandling.loggingConfig import loggingConfig
-# from errorHandling.phraseCheck import phraseCheck
-# from errorHandling.snippetCheck import snippetCheck
+from errorHandling.phraseCheck import phraseCheck
+from errorHandling.snippetCheck import snippetCheck
 from errorHandling.validateArguments import validateArguments
 from repos.clone import clone
 from repos.previousCommitInfo import previousCommitInfo
@@ -230,14 +230,14 @@ def main(
 
                     # Update the copyright and last updated
                     # Comments are also handled via dates
-                    dates(self, details, source_files)
+                    # dates(self, details, source_files)
 
                     # If there is a sitemap.md, populate it with links
                     # This needs to happen after comments are handled
                     if ((sitemap_file in source_files) and
                             (not details["ibm_cloud_docs_sitemap_depth"] == 'off')):
                         if 'toc.yaml' in str(self.all_files_dict) and details["ibm_cloud_docs"] is True:
-                            sitemapYML(self, details)
+                            sitemapYML(self, details, source_files)
 
                         elif 'SUMMARY.md' in str(self.all_files_dict) and details["ibm_docs"] is True:
                             sitemapSUMMARY(self, details)
@@ -307,11 +307,6 @@ def main(
     details.update({"snippetUsageFile": snippetUsageFile})
     if os.path.isfile(snippetUsageFile):
         os.remove(snippetUsageFile)
-
-    flagUsageFile = details["output_dir"] + '/flagUsageFile.txt'
-    details.update({"flagUsageFile": flagUsageFile})
-    if os.path.isfile(flagUsageFile):
-        os.remove(flagUsageFile)
 
     # Import the logging config
     log = loggingConfig(details)
@@ -419,18 +414,34 @@ def main(
             current_github_branch_bytes = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
             current_github_branch = current_github_branch_bytes.decode("utf-8")
             current_github_branch = current_github_branch.replace('\n', '')
+        # Jenkins pipeline
+        # if 'HEAD' == current_github_branch:
+        # current_github_branch_bytes = subprocess.check_output(["git", "branch", "--show-current"])
+        # current_github_branch = current_github_branch_bytes.decode("utf-8")
+        # current_github_branch = current_github_branch.replace('\n', '')
         if 'origin/' in current_github_branch:
             current_github_branch = current_github_branch.split('origin/')[1]
         details.update({"current_github_branch": current_github_branch})
+        # log.info('current_github_branch: ' + current_github_branch)
     except Exception as e:
         addToErrors('The current branch name could not be found.', 'start.py-command', '', details, log, 'pre-build', '', '')
         log.info(str(e))
     validateArguments(details, log)
 
+    # Get the contents of the feature flags file
     if os.path.isfile((details["source_dir"]) + '/feature-flags.json'):
         details.update({"featureFlagFile": '/feature-flags.json'})
+        with open(details["source_dir"] + details["featureFlagFile"], 'r', encoding="utf8", errors="ignore") as featureFlagJson:
+            try:
+                featureFlags = json.load(featureFlagJson)
+            except Exception as e:
+                addToErrors('Information might not be formatted properly in feature flags file.' + str(e),
+                            details["featureFlagFile"], '', details, log, 'pre-build', '', '')
+            else:
+                details.update({"featureFlags": featureFlags})
     else:
         details.update({"featureFlagFile": 'None'})
+        details.update({"featureFlags": 'None'})
 
     # This has to come before the allfilesget
     log.info('Getting values from: %s', details["locations_file"])
@@ -477,10 +488,10 @@ def main(
 
     # Delete the .git directory from the tool clone so those files get detected by the push later
     # This has to go after the remote origin URL get
-    if not details["builder"] == 'local':
-        if os.path.isdir(workspace + '/.git'):
-            log.debug('Deleted: %s/.git', workspace)
-            shutil.rmtree(workspace + '/.git')
+    # if not details["builder"] == 'local':
+        # if os.path.isdir(workspace + '/.git'):
+        # log.debug('Deleted: %s/.git', workspace)
+        # shutil.rmtree(workspace + '/.git')
 
     # EX: https://DOMAIN/ORG/REPO.git
     if str(source_github_url).startswith('https'):
@@ -568,6 +579,7 @@ def main(
 
     all_tags = []
     all_locations = []
+    allSourceFiles = {}
 
     # Collect tags, location folders, but also verify that the locations are unique
     log.debug('Verifying that each location is unique.')
@@ -653,9 +665,9 @@ def main(
         if (details["ibm_cloud_docs"] is False) and ('ibm' in detail):
             log.debug('%s: %s', detail, str(details[detail]))
         else:
-            if (('token' not in detail) and ('webhook' not in detail) and ('username' not in detail) and ('slack' not in detail)):
+            if (('token' not in detail) and ('webhook' not in detail) and ('username' not in detail)):
                 log.info('%s: %s', detail, str(details[detail]))
-
+    # log.info(details["username"])
     for location in locations_json_list:
 
         (location_build, location_comments, location_commit_summary_style,
@@ -685,6 +697,8 @@ def main(
         conref_files_list = all_files_get_result[1]
         image_files_list = all_files_get_result[2]
         sitemap_file = all_files_get_result[3]
+        filesForOtherLocations = all_files_get_result[4]
+        allSourceFiles.update(all_files_dict)
 
         if source_files_original_list == {}:
             source_files_location_list = all_files_dict
@@ -760,15 +774,16 @@ def main(
             log.info('location_github_url: %s', str(location_github_url))
             log.info('location_name: %s', str(location_name))
             log.info('location_output_action: %s', str(location_output_action))
+            log.info('sitemap_file: %s', str(sitemap_file))
             log.info('remove_all_other_files_folders: ' + str(remove_all_other_files_folders))
 
             location_loop()
     log.info('\n\n')
-    # if os.path.isfile(phraseUsageFile):
-    # phraseCheck(details, log)
-    # if os.path.isfile(snippetUsageFile):
-    # snippetCheck(details, log, conref_files_list)
-    # if os.path.isfile(flagUsageFile):
-    # flagCheck(details, log)
+
+    if details["validation"] == 'on':
+        log.info('Validation is on')
+        phraseCheck(details, log, allSourceFiles, filesForOtherLocations)
+        snippetCheck(details, log, allSourceFiles, conref_files_list, filesForOtherLocations)
+        flagCheck(details, log, allSourceFiles, filesForOtherLocations)
 
     exitBuild(details, log)

@@ -5,11 +5,25 @@
 
 def pushUpdatedLogFile(details, log):
 
-    # Upload the log file to the root directory of the upstream repo
+    # Push the log file to the logs branch in the source repo
 
     import os  # for running OS commands like changing directories or listing files in directory
     import shutil
     import subprocess
+    import sys
+
+    def checkout():
+        log.info('Checking out branch: ' + details["log_branch"])
+        os.chdir(details["output_dir"] + '/' + details["log_branch"])
+        subprocess.call('git checkout -b ' + details["log_branch"] + ' --quiet', shell=True)
+        log.info('Cleaning up unneeded files in the ' + details["source_github_branch"] + ' branch to become the ' + details["log_branch"] + ' branch.')
+
+    def clone(branch):
+        subprocess.call('git clone --depth 1 -b ' + branch + " https://" + details["username"] + ":" + details["token"] + '@' +
+                        details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
+                        details["source_github_repo"] + ".git " + details["output_dir"] + '/' +
+                        details["log_branch"] + ' --quiet', shell=True)
+        log.info('Cloned the ' + branch + ' branch.')
 
     # from errorHandling.errorHandling import addToWarnings
     # from errorHandling.errorHandling import addToErrors
@@ -29,27 +43,21 @@ def pushUpdatedLogFile(details, log):
         # Clone the branch
         try:
             # Try cloning the log branch
-            subprocess.call('git clone --depth 1 -b ' + details["log_branch"] + " https://" + details["username"] + ":" + details["token"] + '@' +
-                            details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
-                            details["source_github_repo"] + ".git " + details["output_dir"] + '/' +
-                            details["log_branch"] + ' --quiet', shell=True)
-            os.chdir(details["output_dir"] + '/' + details["log_branch"])
-            log.info('Cloned the ' + details["log_branch"] + ' branch.')
+            clone(details["log_branch"])
             log.info('Cleaning up unneeded files in the ' + details["log_branch"] + ' branch.')
-        except Exception as e:
-            log.info(details["log_branch"] + ' could not be cloned: ' + str(e))
+        except Exception:
             # Try cloning the source branch and then checking out the log branch
-            subprocess.call('git clone --depth 1 -b ' + details["source_github_branch"] + " https://" + details["username"] + ":" + details["token"] + '@' +
-                            details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
-                            details["source_github_repo"] + ".git " + details["output_dir"] + '/' +
-                            details["log_branch"] + ' --quiet')
-            log.info('Cloned the ' + details["source_github_branch"] + ' branch.')
-            log.info('Checking out branch: ' + details["log_branch"])
-            os.chdir(details["output_dir"] + '/' + details["log_branch"])
-            subprocess.call('git checkout -b ' + details["log_branch"] + ' --quiet', shell=True)
-            log.info('Cleaning up unneeded files in the ' + details["source_github_branch"] + ' branch to become the ' + details["log_branch"] + ' branch.')
+            clone(details["source_github_branch"])
+            checkout()
 
-        os.chdir(details["output_dir"] + '/' + details["log_branch"])
+        if os.path.isdir(details["output_dir"] + '/' + details["log_branch"]):
+            os.chdir(details["output_dir"] + '/' + details["log_branch"])
+        else:
+            clone(details["source_github_branch"])
+            checkout()
+            if not os.path.isdir(details["output_dir"] + '/' + details["log_branch"]):
+                log.error('The ' + details["log_branch"] + ' directory does not exist. The ' + details["log_branch"] + ' branch could not be cloned.')
+                sys.exit(1)
 
         # Remove all files in the logs branch
         for fileOrFolder in os.listdir(details["output_dir"] + '/' + details["log_branch"]):
@@ -122,7 +130,9 @@ def pushUpdatedLogFile(details, log):
         except Exception:
             subprocess.call('git pull', shell=True)
             try:
+                log.info('Setting upstream origin ' + details["log_branch"] + '.')
                 subprocess.call('git push --set-upstream origin ' + details["log_branch"] + '  --quiet', shell=True)
+                log.info('Completed upstream origin')
             except Exception as e:
                 pushErrors(details, e, log)
         try:

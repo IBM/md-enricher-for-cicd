@@ -9,12 +9,36 @@ from sre_compile import isstring
 def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folderAndFile, source_files, location_contents_files, location_contents_folders):
 
     # Append the details about each file to the source_files dictionary
+
     from sourceFileList.checkLocationsPaths import checkLocationsPaths
     import os
 
     # folderAndFile = upstream folder and file location
     # folderPath = downstream folder location - starts and ends with slash
     # file_name = downstream file name - does not start with a slash
+
+    def addToDictionary(dictionary):
+        # Add each of these values to the dictionary for this file
+
+        if folderAndFile in dictionary:
+            del dictionary[folderAndFile]
+        dictionary[folderAndFile] = {}
+        dictionary[folderAndFile]['folderAndFile'] = folderAndFile
+        dictionary[folderAndFile]['file_name'] = returnedFileName
+        dictionary[folderAndFile]['folderPath'] = returnedFolderName
+        dictionary[folderAndFile]['fileStatus'] = fileStatus
+        dictionary[folderAndFile]['filePatch'] = filePatch
+        dictionary[folderAndFile]['fileNamePrevious'] = fileNamePrevious
+        log.debug('Adding: ' + folderAndFile)
+
+        if (os.path.isfile(details["source_dir"] + folderAndFile)) and (folderAndFile.endswith(tuple(details["filetypes"]))):
+            with open(details["source_dir"] + folderAndFile, 'r', encoding="utf8", errors="ignore") as fileName_write:
+                fileContents = fileName_write.read()
+                dictionary[folderAndFile]['fileContents'] = fileContents
+        else:
+            dictionary[folderAndFile]['fileContents'] = ''
+
+        return (dictionary)
 
     # Workaround
     if not isstring(self):
@@ -24,27 +48,6 @@ def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folde
     add, returnedFileName, returnedFolderName = checkLocationsPaths(folderAndFile, location_contents_files, location_contents_folders, log)
 
     if add is True:
-
-        # Add each of these values to the dictionary for this file
-
-        if folderAndFile in source_files:
-            del source_files[folderAndFile]
-        source_files[folderAndFile] = {}
-        source_files[folderAndFile]['folderAndFile'] = folderAndFile
-        source_files[folderAndFile]['file_name'] = returnedFileName
-        source_files[folderAndFile]['folderPath'] = returnedFolderName
-        source_files[folderAndFile]['fileStatus'] = fileStatus
-        source_files[folderAndFile]['filePatch'] = filePatch
-        source_files[folderAndFile]['fileNamePrevious'] = fileNamePrevious
-        log.debug('Adding: ' + folderAndFile)
-
-        if (os.path.isfile(details["source_dir"] + folderAndFile)) and (folderAndFile.endswith(tuple(details["filetypes"]))):
-            with open(details["source_dir"] + folderAndFile, 'r', encoding="utf8", errors="ignore") as fileName_write:
-                fileContents = fileName_write.read()
-                source_files[folderAndFile]['fileContents'] = fileContents
-        else:
-            source_files[folderAndFile]['fileContents'] = ''
-    else:
-        log.debug('Not adding: ' + folderAndFile)
+        source_files = addToDictionary(source_files)
 
     return (source_files)

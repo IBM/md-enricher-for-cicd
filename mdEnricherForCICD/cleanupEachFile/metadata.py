@@ -5,10 +5,11 @@
 
 def metadata(self, details, file_name, firstAnchor, folderAndFile, folderPath, topicContents):
 
-    # Replace the commonly used stuff at the top of the file that are not service-specific conrefs
+    # Replace the metadata variables
+    # Retrieve the dates from the previous version of the file, if possible, to get an accurate changed file list
 
-    import os
-    import re  # for doing finds within the topic content
+    # import os
+    # import re  # for doing finds within the topic content
 
     # Rather than us using our own metadata attributes list, we'll use the core team's. After everyone stops using this conref, remove this section.
     if '[{METADATA_ATTRIBUTES}]' in topicContents:
@@ -22,6 +23,7 @@ def metadata(self, details, file_name, firstAnchor, folderAndFile, folderPath, t
 
     # Get the year and date from the previous version of the file and re-insert it
     # If that file doesn't exist yet, don't replace these variables yet
+    '''
     if ((os.path.isfile(self.location_dir + folderPath + file_name)) and (details["ibm_cloud_docs"] is True)):
         with open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore") as fileName_open:
             locationTopicContents = fileName_open.read()
@@ -87,5 +89,5 @@ def metadata(self, details, file_name, firstAnchor, folderAndFile, folderPath, t
                                        locationCopyright)
                     except Exception as e:
                         self.log.debug('The copyright date could not be replaced yet: ' + str(e))
-
+    '''
     return (topicContents)

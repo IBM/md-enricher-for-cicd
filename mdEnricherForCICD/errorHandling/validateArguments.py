@@ -5,6 +5,8 @@
 
 def validateArguments(details, log):
 
+    # Validate that the source directory and locations file exist where they're supposed to be
+
     import os
     import sys
     # from errorHandling.errorHandling import addToWarnings

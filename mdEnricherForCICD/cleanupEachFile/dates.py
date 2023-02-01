@@ -5,14 +5,17 @@
 
 def dates(self, details, source_files):
 
+    # Update the values for the LAST_UPDATED_DATE and COPYRIGHT_YEAR variables
+
     from cleanupEachFile.comments import comments
     from datetime import datetime
     import os
     import re
     import subprocess
 
-    # For IBM Cloud Docs, this will update the date whether you use the LAST_UPDATED_DATE and COPYRIGHT_YEAR
-    # variables or not.
+    # When the location content is cloned originally, i.e. not a local build, and the marked-it frontmatter is used,
+    # the dates will always update whether you use the LAST_UPDATED_DATE and COPYRIGHT_YEAR variables or not.
+    # https://ibm.github.io/marked-it/#/yaml-frontmatter
 
     self.log.debug('Checking all dates')
 
@@ -88,8 +91,10 @@ def dates(self, details, source_files):
                         else:
                             self.log.debug('No dates to replace.')
                         # For running markdown enricher on markdown enricher docs, don't replace the examples
+                        # First curly brace then square bracket
                         if '{[<!--Do not transform-->' in topicContents:
                             topicContents = topicContents.replace('{[<!--Do not transform-->', '{[')
+                        # Second square bracket then curly brace
                         if '[{<!--Do not transform-->' in topicContents:
                             topicContents = topicContents.replace('[{<!--Do not transform-->', '[{')
                         with open(self.location_dir + '/' + filename, 'w+', encoding="utf8", errors="ignore") as fileName_open:

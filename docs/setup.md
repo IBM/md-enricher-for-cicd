@@ -1,10 +1,16 @@
 <!--
-# Copyright 2022 IBM Inc. All rights reserved
+# Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
+# Last updated: 2023-02-01
 -->
 
 
-# Set up
+# Setting up the Markdown Enricher
+
+
+## Terminology
+* **upstream**: The single repository, branch, or source where you manage what content is meant to go where.
+* **downstream**: One or more output repository, branch, or content locations. Do not make changes to content in this location.
 
 
 ## Prerequisites

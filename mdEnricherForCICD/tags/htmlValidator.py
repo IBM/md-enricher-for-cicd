@@ -5,6 +5,8 @@
 
 def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide, tags_show, topicContents):
 
+    # Check to make sure there are no unhandled tags left behind
+
     import re
 
     from errorHandling.errorHandling import addToWarnings
@@ -54,16 +56,15 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide
                     lineNumberList = lineNumberList + ', ' + lineAbbr
         '''
 
-        if errorTag == '`':
-            errorTag = 'code phrase'
-        # Check if the error is a defined tag, if so make it an error, otherwise warning
-        errorTagSlim = errorTag.replace('<', '').replace('>', '').replace('/', '')
-        if (errorTagSlim in tags_show) or (errorTagSlim in tags_hide):
-            addToErrors(errorTag + ' not removed or handled properly. ', folderAndFile, folderPath + file_name,
-                        details, self.log, self.location_name, errorTag, topicContentsCheck)
-        else:
-            addToWarnings(errorTag + ' not removed or handled properly. ', folderAndFile, folderPath + file_name,
-                          details, self.log, self.location_name, errorTag, topicContentsCheck)
+        if not errorTag == '`':
+            # Check if the error is a defined tag, if so make it an error, otherwise warning
+            errorTagSlim = errorTag.replace('<', '').replace('>', '').replace('/', '')
+            if (errorTagSlim in tags_show) or (errorTagSlim in tags_hide):
+                addToErrors(errorTag + ' not removed or handled properly. ', folderAndFile, folderPath + file_name,
+                            details, self.log, self.location_name, errorTag, topicContentsCheck)
+            else:
+                addToWarnings(errorTag + ' not removed or handled properly. ', folderAndFile, folderPath + file_name,
+                              details, self.log, self.location_name, errorTag, topicContentsCheck)
 
     def check(topicContents, folderPath, file_name, htmlCodeList, tag):
 
@@ -139,10 +140,28 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide
             # Check for uneven number of single ticks
             instancesSingle = topicContentsCodeCheck.count('`')
             if not (instancesSingle % 2) == 0:
-                addToWarnings('There are ' + str(instancesSingle) +
-                              ' code phrase tags. This number is odd but should be even. ' +
-                              'Check if there is a code phrase missing closing ` ticks.', folderAndFile,
-                              folderPath + file_name, details, self.log, self.location_name, '', '')
+                # Try to figure out where the errant code tick is
+                inlineCodePhrases = re.findall('`(.*?)`', topicContentsCodeCheck)
+                for phrase in inlineCodePhrases:
+                    topicContentsCodeCheck = topicContentsCodeCheck.replace('`' + phrase + '`', '')
+                topicContentsCodeCheckLines = topicContentsCodeCheck.split('\n')
+                for line in topicContentsCodeCheckLines:
+                    if '`' in line:
+                        head, sep, tail = line.partition('`')
+                        break
+                try:
+                    if (head[-10:] + "`" + tail[10]) in topicContents:
+                        errantPhrase = head[-10:] + "`" + tail[10]
+                    elif (not head[-10:] == '') and ((head[-10:] + "`") in topicContents):
+                        errantPhrase = head[-10:] + "`"
+                    elif (tail[10] == '') and (("`" + tail[10]) in topicContents):
+                        errantPhrase = "`" + tail[10]
+                    else:
+                        errantPhrase = ''
+                except Exception:
+                    errantPhrase = ''
+                addToWarnings('Missing code tick. Check for an incomplete code phrase in: ' + line, folderAndFile,
+                              folderPath + file_name, details, self.log, self.location_name, errantPhrase, topicContents)
 
             mdInlineCodeList = re.findall('`(.*?)`', topicContentsCodeCheck, flags=re.DOTALL)
             # Combine the code blocks and code phrases into one list

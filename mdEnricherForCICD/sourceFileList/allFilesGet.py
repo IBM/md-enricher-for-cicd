@@ -24,7 +24,9 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     conref_files_list = []
     image_files_list = []
     sitemap_file = 'None'
-    notHandling = []
+    # filesForOtherLocations to collect all file names from all locations
+    # for complete validation even when not all locations are built
+    filesForOtherLocations = []
 
     for (path, dirs, files) in os.walk(details["source_dir"]):
         # Allow the running of the example and docs directories, but not anything else
@@ -46,8 +48,18 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                 # Always ignore the locations file
                 if ((path + '/' + file) == (details["locations_file"])):
                     # log.debug('Not adding locations file to all files list: ' + file)
-                    notHandling.append(file)
+                    filesForOtherLocations.append(file)
                     log.debug('Not handling locations file: ' + file)
+
+                # Always ignore the user mapping file
+                elif ((path + '/' + file) == (details["slack_user_mapping"])):
+                    # log.debug('Not adding locations file to all files list: ' + file)
+                    filesForOtherLocations.append(file)
+                    log.debug('Not handling user mapping file: ' + file)
+
+                elif (((file == 'user-mapping.json') or (file == 'cloudoekeyrefs.yml') or (file == 'toc_schema.json')) and (details["ibm_cloud_docs"] is True)):
+                    filesForOtherLocations.append(file)
+                    log.debug('Not handling IBM Cloud files: ' + file)
 
                 # Keep files that are meant to be kept, no matter what type they are, and use the output location specified
                 elif (folder_name + file in location_contents_files_keep):
@@ -58,17 +70,17 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
 
                 # Remove files that are meant to be removed, no matter what type they are
                 elif (folder_name + file in location_contents_files_remove):
-                    notHandling.append(folder_name + file)
+                    filesForOtherLocations.append(folder_name + file)
                     log.debug('Not handling folders in location_contents_files_remove: ' + folder_name + file)
 
                 # Always ignore the .travis.yml file
                 elif file == '.travis.yml':
-                    notHandling.append(folder_name + file)
+                    filesForOtherLocations.append(folder_name + file)
                     log.debug('Not handling .travis.yml: ' + folder_name + file)
 
                 # If they start with a folder that's going to be removed, don't include them
                 elif (folder_name).startswith(tuple(location_contents_folders_remove_and_files)):
-                    notHandling.append(folder_name + file)
+                    filesForOtherLocations.append(folder_name + file)
                     log.debug('Not handling folders in location_contents_folders_remove_and_files: ' + folder_name + file)
 
                 # Include them if they the filetype is supported and all other files aren't removed
@@ -131,4 +143,4 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # log.info('\nIMAGE_FILES_LIST:')
     # log.info(image_files_list)
 
-    return (all_files_dict, conref_files_list, image_files_list, sitemap_file)
+    return (all_files_dict, conref_files_list, image_files_list, sitemap_file, filesForOtherLocations)

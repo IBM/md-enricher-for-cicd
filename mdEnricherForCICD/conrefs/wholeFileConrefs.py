@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def wholeFileConrefs(self, details, allSnippetsUsed, file_name, folderAndFile, folderPath, topicContents):
+def wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicContents):
 
     # Replace the conrefs that are in their own .md file.
     # Added the loop count just in case a conref .md file is being called
@@ -46,14 +46,12 @@ def wholeFileConrefs(self, details, allSnippetsUsed, file_name, folderAndFile, f
                     topicContents = topicContents.replace(snippet, '<!--Snippet ' + str(conrefFileName) + ' start-->' +
                                                           conrefFileContents + '<!--Snippet ' + str(conrefFileName) +
                                                           ' end-->')
-                    if snippet not in allSnippetsUsed:
-                        allSnippetsUsed.append(snippet)
             loopCount = loopCount + 1
             if (loopCount > 100) or ('.md]}' not in topicContents):
                 break
 
     if '.md]}' in topicContents:
-        errantMDConrefs = re.findall(r"\{\[.*?\.md\]\}", topicContents, re.DOTALL)
+        errantMDConrefs = re.findall(r"\{\[.*?\.md\]\}", topicContents)
         mdConrefErrors = ''
         mdConrefErrorsSlack = ''
         for errantMDConref in errantMDConrefs:
@@ -65,11 +63,12 @@ def wholeFileConrefs(self, details, allSnippetsUsed, file_name, folderAndFile, f
                     if '.md]}' in newLineSection:
                         errantMDConref = newLineSection
                         break
+            if ' ' in errantMDConref:
+                continue
             if errantMDConref not in mdConrefErrors:
                 mdConrefErrors = mdConrefErrors + ',' + errantMDConref
 
-                addToWarnings(errantMDConref + ' is detected in ' + folderAndFile +
-                              ', but a matching file could not be found in the ' + details["reuse_snippets_folder"] +
+                addToWarnings(errantMDConref + ' is detected, but a matching file could not be found in the ' + details["reuse_snippets_folder"] +
                               ' directory. Check if there is a .md file that is used in this file that does not ' +
                               'actually exist in the ' + details["reuse_snippets_folder"] + ' directory.', folderAndFile, folderPath + file_name,
                               details, self.log, self.location_name, errantMDConref, topicContents)
@@ -90,4 +89,4 @@ def wholeFileConrefs(self, details, allSnippetsUsed, file_name, folderAndFile, f
                                            + folderAndFile + "#L" + lineNumber + "|" + folderAndFile + ' L' + lineNumber +
                                            '>\n')
 
-    return (allSnippetsUsed, topicContents)
+    return (topicContents)

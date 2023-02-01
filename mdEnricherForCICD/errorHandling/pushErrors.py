@@ -4,6 +4,9 @@
 #
 
 def pushErrors(details, e, log):
+
+    # When pushing content downstream or log files to the log branch, handle these Git push errors
+
     from errorHandling.errorHandling import addToErrors
     from setup.exitBuild import exitBuild
 

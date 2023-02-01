@@ -4,6 +4,9 @@
 #
 
 def start():
+
+    # Process the command-line options
+
     import argparse
 
     # Create the parser
@@ -59,7 +62,7 @@ def start():
                            help='Performs a check without pushing the results anywhere.')
 
     my_parser.add_argument('--validation', action='store', type=str,
-                           help='Check tags and image file paths.', default='on', choices=['on', 'off'])
+                           help='Check tags and image file paths.', default='off', choices=['on', 'off'])
 
     # Execute the parse_args() method
     args = my_parser.parse_args()

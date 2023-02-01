@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def tagRemoval(self, details, allFlagsUsed, folderAndFile, folderPath, file_name, tags_hide, tags_show, topicContents):
+def tagRemoval(self, details, folderAndFile, folderPath, file_name, tags_hide, tags_show, topicContents):
 
-    # Finally actually remove the opening tags, closing tags, and maybe the content within them (like depending on staging vs. prod or main repo vs. subrepo)
+    # Remove the opening tags, closing tags, and maybe the content within them
 
     # Beautiful soup does not work for our purposes here because they don't preserve
     # newlines and they sort attributes alphabetically, both of which make it impossible to
@@ -48,8 +48,6 @@ def tagRemoval(self, details, allFlagsUsed, folderAndFile, folderPath, file_name
 
             # Remove tags and content that should not display. Example: <prod>Some text</prod>
             if openTag in topicContents or closedTag in topicContents:
-                if tagName not in allFlagsUsed:
-                    allFlagsUsed.append(tagName)
                 loopCount = 0
                 while loopCount < 6:
                     loopCount = loopCount + 1
@@ -88,8 +86,6 @@ def tagRemoval(self, details, allFlagsUsed, folderAndFile, folderPath, file_name
             closedTag = '</' + tagName + '>'
 
             if ((openTag in topicContents) or (closedTag in topicContents)):
-                if tagName not in allFlagsUsed:
-                    allFlagsUsed.append(tagName)
 
                 # Replace all of the tags but leave the content within them
                 topicContents = re.sub(openTag, '', topicContents, flags=re.DOTALL)
@@ -98,4 +94,4 @@ def tagRemoval(self, details, allFlagsUsed, folderAndFile, folderPath, file_name
     else:
         self.log.debug('No tags in this file to handle.')
 
-    return (allFlagsUsed, topicContents)
+    return (topicContents)

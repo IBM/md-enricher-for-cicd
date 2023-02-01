@@ -1,3 +1,9 @@
+<!--
+# Copyright 2022, 2023 IBM Inc. All rights reserved
+# SPDX-License-Identifier: Apache2.0
+# Last updated: 2023-02-01
+-->
+
 # Running in Jenkins
 
 1. Set up a webhook in the upstream repo to kick off the build on every commit.

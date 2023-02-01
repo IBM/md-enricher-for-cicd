@@ -3,7 +3,8 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-# Get the contents of the staging/prod repos.
+# Get the contents of the downstream repos
+
 def clone(self, details):
 
     # Clone the branch of the downstream repo being worked on

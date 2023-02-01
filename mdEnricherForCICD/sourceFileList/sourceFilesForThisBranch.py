@@ -9,7 +9,7 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
     # and calls another function to clean up the tagging in each file, if necessary
 
     from sourceFileList.addToList import addToList
-    import json
+    # import json
     import os  # for running OS commands like changing directories or listing files in directory
 
     from errorHandling.errorHandling import addToWarnings
@@ -118,74 +118,69 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
                     del source_files[source_file]
                     self.log.debug(source_file + ': Skipping feature flags file')
 
-                with open(details["source_dir"] + details["featureFlagFile"], 'r', encoding="utf8", errors="ignore") as featureFlagJson:
-                    try:
-                        featureFlags = json.load(featureFlagJson)
-                    except Exception as e:
-                        addToErrors('Information might not be formatted properly in feature flags file.' + str(e),
-                                    details["featureFlagFile"], '', details, self.log, self.location_name, '', '')
-                    else:
-                        # Verify that every feature flag has a location and gather then into a list.
-                        # Also use this list to see later if a feature flag was removed.
-                        for featureFlag in featureFlags:
-                            featureFlagName = featureFlag["name"]
+                # Verify that every feature flag has a location and gather then into a list.
+                # Also use this list to see later if a feature flag was removed.
+                if not details["featureFlags"] == 'None':
+                    for featureFlag in details["featureFlags"]:
+                        featureFlagName = featureFlag["name"]
 
-                            def displayFound(featureFlagName, featureFlagDisplay):
-                                self.log.debug('Display value for ' + featureFlagName + ': ' + featureFlagDisplay)
+                        def displayFound(featureFlagName, featureFlagDisplay):
+                            self.log.debug('Display value for ' + featureFlagName + ': ' + featureFlagDisplay)
 
-                            try:
-                                featureFlagDisplay = featureFlag["location"]
-                            except Exception:
-                                addToWarnings('No location value for the ' + featureFlagName + ' feature flag to parse.',
-                                              details["featureFlagFile"], '', details, self.log, self.location_name, featureFlagName, str(featureFlags))
-                            else:
-                                displayFound(featureFlagName, featureFlagDisplay)
-                                featureFlagList.append(featureFlagName + ':' + featureFlagDisplay)
-
-                        # Split the diff into sections so it can figure out which ones were changed, to know which ones to search other files for
-                        if '},' in featureFlag_diff:
-                            featureFlagDiffSections = featureFlag_diff.split('},')
+                        try:
+                            featureFlagDisplay = featureFlag["location"]
+                        except Exception:
+                            addToWarnings('No location value for the ' + featureFlagName + ' feature flag to parse.',
+                                          details["featureFlagFile"], '', details, self.log, self.location_name,
+                                          featureFlagName, str(details["featureFlags"]))
                         else:
-                            featureFlagDiffSections = [featureFlag_diff]
+                            displayFound(featureFlagName, featureFlagDisplay)
+                            featureFlagList.append(featureFlagName + ':' + featureFlagDisplay)
 
-                        # Gather a list of changed feature flags
-                        featureInFileText = ''
-                        for section in featureFlagDiffSections:
-                            if (('"name":' in section) and ('"location":' in section)):
-                                featureFlagDiffList = section.split('\n')
-                                for line in featureFlagDiffList:
-                                    if (('location' in line) and ('+' in line)):
-                                        featureFlagLocation = line.split('"')[3]
-                                        featureFlagsChangedList.append(featureFlagName + ':' + featureFlagLocation)
-                                    elif 'name' in line:
-                                        featureFlagName = line.split('"')[3]
-                                        # If there are some feature flags in the content that should have been removed
-                                        # because they are no longer in the JSON file, post to Slack.
-                                        if featureFlagName not in str(featureFlagList):
-                                            # Lines that start with - indicate that the feature flag has been removed from the JSON file
-                                            if line.startswith('-'):
-                                                for ALL_FILES_LISTEntry in self.all_files_dict:
-                                                    if os.path.isfile(details["source_dir"] + '/' + ALL_FILES_LISTEntry):
-                                                        fileName_open = open(details["source_dir"] + '/' +
-                                                                             ALL_FILES_LISTEntry, 'r', encoding="utf8",
-                                                                             errors="ignore")
-                                                        featureFlagTextCheck = fileName_open.read()
-                                                        fileName_open.close
-                                                        if ((('<' + featureFlagName + '>' in featureFlagTextCheck) or
-                                                                ('</' + featureFlagName + '>' in featureFlagTextCheck)) and
-                                                                (featureFlagName not in tags_hide) and
-                                                                (featureFlagName not in tags_show)):
-                                                            addToErrors('The ' + featureFlagName + ' tag was removed from ' +
-                                                                        'the feature flag file but is still used in ' +
-                                                                        ALL_FILES_LISTEntry + '.', details["featureFlagFile"], '',
-                                                                        details, self.log, self.location_name, featureFlagName + '>', featureFlagTextCheck)
-                                                            featureInFileText = (featureInFileText + featureFlagName +
-                                                                                 ": <https://" +
-                                                                                 details["source_github_domain"] + '/' +
-                                                                                 details["source_github_org"] + '/' +
-                                                                                 details["source_github_repo"] + '/' +
-                                                                                 "/edit/master/" + ALL_FILES_LISTEntry + "|"
-                                                                                 + ALL_FILES_LISTEntry + ">\n")
+                    # Split the diff into sections so it can figure out which ones were changed, to know which ones to search other files for
+                    if '},' in featureFlag_diff:
+                        featureFlagDiffSections = featureFlag_diff.split('},')
+                    else:
+                        featureFlagDiffSections = [featureFlag_diff]
+
+                    # Gather a list of changed feature flags
+                    featureInFileText = ''
+                    for section in featureFlagDiffSections:
+                        if (('"name":' in section) and ('"location":' in section)):
+                            featureFlagDiffList = section.split('\n')
+                            for line in featureFlagDiffList:
+                                if (('location' in line) and ('+' in line)):
+                                    featureFlagLocation = line.split('"')[3]
+                                    featureFlagsChangedList.append(featureFlagName + ':' + featureFlagLocation)
+                                elif 'name' in line:
+                                    featureFlagName = line.split('"')[3]
+                                    # If there are some feature flags in the content that should have been removed
+                                    # because they are no longer in the JSON file, post to Slack.
+                                    if featureFlagName not in str(featureFlagList):
+                                        # Lines that start with - indicate that the feature flag has been removed from the JSON file
+                                        if line.startswith('-'):
+                                            for ALL_FILES_LISTEntry in self.all_files_dict:
+                                                if os.path.isfile(details["source_dir"] + '/' + ALL_FILES_LISTEntry):
+                                                    fileName_open = open(details["source_dir"] + '/' +
+                                                                         ALL_FILES_LISTEntry, 'r', encoding="utf8",
+                                                                         errors="ignore")
+                                                    featureFlagTextCheck = fileName_open.read()
+                                                    fileName_open.close
+                                                    if ((('<' + featureFlagName + '>' in featureFlagTextCheck) or
+                                                            ('</' + featureFlagName + '>' in featureFlagTextCheck)) and
+                                                            (featureFlagName not in tags_hide) and
+                                                            (featureFlagName not in tags_show)):
+                                                        addToErrors('The ' + featureFlagName + ' tag was removed from ' +
+                                                                    'the feature flag file but is still used in ' +
+                                                                    ALL_FILES_LISTEntry + '.', details["featureFlagFile"], '',
+                                                                    details, self.log, self.location_name, featureFlagName + '>', featureFlagTextCheck)
+                                                        featureInFileText = (featureInFileText + featureFlagName +
+                                                                             ": <https://" +
+                                                                             details["source_github_domain"] + '/' +
+                                                                             details["source_github_org"] + '/' +
+                                                                             details["source_github_repo"] + '/' +
+                                                                             "/edit/master/" + ALL_FILES_LISTEntry + "|"
+                                                                             + ALL_FILES_LISTEntry + ">\n")
 
                 # Go through all of the source files and see if any removed feature flags are still used in there.
                 self.log.debug('featureFlagsChangedList: ' + str(featureFlagsChangedList))

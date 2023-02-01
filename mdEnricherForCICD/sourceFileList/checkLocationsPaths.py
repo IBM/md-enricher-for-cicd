@@ -5,7 +5,7 @@
 
 def checkLocationsPaths(folderAndFile, location_contents_files, location_contents_folders, log):
 
-    # Based on what is in the locations_contents file, parse the downstream paths of files and folders
+    # Based on what is in the locations_contents, parse the downstream paths of files and folders
 
     if folderAndFile.count("/") > 1:
         # /tagging-a-subrepo/a-test-subrepo.md
