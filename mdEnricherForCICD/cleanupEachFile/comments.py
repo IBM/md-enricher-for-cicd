@@ -5,6 +5,8 @@
 
 def comments(self, details, folderAndFile, topicContents):
 
+    # Handle HTML comments based on what is specified for the location's location_comments
+
     import re  # for doing finds within the topic content
 
     self.log.debug('Handling comments in ' + folderAndFile + '.')
@@ -29,6 +31,12 @@ def comments(self, details, folderAndFile, topicContents):
                 if 'SPDX-License-Identifier' in comment:
                     self.log.debug('Not removing IBM Copyright.')
 
+                # For transforming on the md-enricher-for-cicd docs
+                # Do not remove so that the example code phrases to show the metadata variables won't be replaced
+                elif 'Do not transform' in comment:
+                    self.log.debug('Not removing Do not transform signifiers.')
+                    # topicContents = topicContents.replace('<!--' + comment + '-->', '')
+
                 # If there's a heading in the section, just remove it to avoid having it added into the sitemap
                 elif '# ' in comment:
                     topicContents = topicContents.replace('<!--' + comment + '-->', '')
@@ -37,11 +45,6 @@ def comments(self, details, folderAndFile, topicContents):
                 # Always remove the snippet insertion comments because they can screw up links and tables
                 elif comment.startswith('Snippet'):
                     topicContents = topicContents.replace('<!--' + comment + '-->', '')
-
-                # For transforming on the md-enricher-for-cicd docs
-                # Do not remove so that the example code phrases to show the metadata variables won't be replaced
-                elif 'Do not transform' in comment:
-                    self.log.debug('Not removing <!--Do not transform-->.')
 
                 elif searchTermList in comment:
                     if details["source_github_branch"] == 'None':

@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-# Verify the JSON syntax passes in the files listed
-
 def jsonCheck(details, log, ISSUE_WARNINGS, json_files_list, location_dir):
-    # Import the json library
+
+    # Verify the JSON syntax in valid in md-enricher files and content files
+
     import json  # for sending data with and parsing data from requests
     import os  # for running OS commands like changing directories or listing files in directory
 

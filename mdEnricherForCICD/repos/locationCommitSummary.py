@@ -5,6 +5,8 @@
 
 def locationCommitSummary(self, details):
 
+    # Set the commit style for the location
+
     if self.location_commit_summary_style == 'AuthorAndSummary':
         LOCATION_COMMIT_SUMMARY = details["current_commit_author"] + ': ' + details["current_commit_summary"]
     elif self.location_commit_summary_style == 'AuthorOnly':

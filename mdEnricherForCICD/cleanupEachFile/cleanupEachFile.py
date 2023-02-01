@@ -5,7 +5,7 @@
 
 def cleanupEachFile(self, details, location_github_branch_push, source_files, tags_hide, tags_show):
 
-    # Loop through every file in the source_files dictionary and do the tag and conref replacements and whatever
+    # Loop through every file in the files for this location and do the tag and reuse replacements
 
     import json
     import os  # for running OS commands like changing directories or listing files in directory
@@ -15,7 +15,7 @@ def cleanupEachFile(self, details, location_github_branch_push, source_files, ta
     from errorHandling.errorHandling import addToErrors
     # from setup.exitBuild import exitBuild
 
-    def fileCleanUpLoop(self, details, allFlagsUsed, allInLinePhrasesUsed, allSnippetsUsed, conrefJSON, file_name,
+    def fileCleanUpLoop(self, details, conrefJSON, file_name,
                         fileNamePrevious, fileStatus, folderAndFile, folderPath, tags_hide, tags_show):
 
         # Open the source file for reading and get its contents
@@ -37,20 +37,14 @@ def cleanupEachFile(self, details, location_github_branch_push, source_files, ta
             if '.md]}' in topicContents:
                 # If they exist, replace all of the .md conrefs in the conref file
                 from conrefs.wholeFileConrefs import wholeFileConrefs
-                allSnippetsUsed, topicContents = wholeFileConrefs(self, details, allSnippetsUsed, file_name, folderAndFile, folderPath, topicContents)
-                if not allSnippetsUsed == []:
-                    self.log.debug('Snippets used:')
-                    self.log.debug(sorted(allSnippetsUsed))
+                topicContents = wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicContents)
             # Replace the conref phrases
             if not str(details["reuse_phrases_file"]) in file_name:
                 # Don't look for conref phrases in the conref phrases file or else it will replace the IDs that we need!!!
                 if ((']}' in topicContents) or ('{[' in topicContents)):
                     from conrefs.inlineConrefs import inlineConrefs
-                    allInLinePhrasesUsed, topicContents = inlineConrefs(self, details, allInLinePhrasesUsed, conrefJSON,
-                                                                        file_name, folderAndFile, folderPath, topicContents)
-                    if not allInLinePhrasesUsed == []:
-                        self.log.debug('Phrases used:')
-                        self.log.debug(sorted(allInLinePhrasesUsed))
+                    topicContents = inlineConrefs(self, details, conrefJSON,
+                                                  file_name, folderAndFile, folderPath, topicContents)
                 else:
                     self.log.debug('No inline snippets to handle.')
 
@@ -58,17 +52,8 @@ def cleanupEachFile(self, details, location_github_branch_push, source_files, ta
             from errorHandling.productConrefCheck import productConrefCheck
             productConrefCheck(self, details, file_name, folderAndFile, folderPath, topicContents)
 
-        # from tags.tagCheck import tagCheck
-        # allFlagsUsed = tagCheck(self, details, allFlagsUsed, file_name, folderAndFile, folderPath, tags_hide, tags_show, topicContents)
-        # if not allInLinePhrasesUsed == []:
-            # self.log.debug('Flags used:')
-            # self.log.debug(allFlagsUsed)
-
         from tags.tagRemoval import tagRemoval
-        allFlagsUsed, topicContents = tagRemoval(self, details, allFlagsUsed, folderAndFile, folderPath, file_name, tags_hide, tags_show, topicContents)
-        if not allFlagsUsed == []:
-            self.log.debug('Flags used:')
-            self.log.debug(sorted(allFlagsUsed))
+        topicContents = tagRemoval(self, details, folderAndFile, folderPath, file_name, tags_hide, tags_show, topicContents)
 
         if '```\n    ```' in topicContents:
             # Tested 1/6/21
@@ -77,7 +62,6 @@ def cleanupEachFile(self, details, location_github_branch_push, source_files, ta
                         'the codeblock aren\'t leaving behind the empty codeblock.', folderAndFile, folderPath + file_name, details, self.log,
                         self.location_name, '```\n    ```', topicContents)
 
-        # if details["ibm_cloud_docs"] is True:
         from images.imagesCheckRelativePaths import imagesCheckRelativePaths
         topicContents = imagesCheckRelativePaths(self, details, file_name, folderAndFile, folderPath, topicContents)
 
@@ -85,7 +69,7 @@ def cleanupEachFile(self, details, location_github_branch_push, source_files, ta
         topicContents = metadata(self, details, file_name, firstAnchor, folderAndFile, folderPath, topicContents)
 
         from cleanupEachFile.writeResult import writeResult
-        writeResult(self, details, file_name, folderAndFile, folderPath, location_github_branch_push, topicContents)
+        writeResult(self, details, file_name, folderAndFile, folderPath, topicContents)
 
         if folderAndFile.endswith('.json'):
             from errorHandling.jsonCheck import jsonCheck
@@ -95,12 +79,14 @@ def cleanupEachFile(self, details, location_github_branch_push, source_files, ta
             from errorHandling.ymlCheck import ymlCheck
             ymlCheck(details, self.log, 'True', [folderPath + file_name], [folderAndFile], self.location_dir, self.location_name)
 
-        if ((details["validation"] == 'on') and ('.json' not in folderAndFile)):
+        if '.json' not in folderAndFile:
+            # Tag validation happens no matter what the value is for the --validation flag because tag errors impact output
             from tags.htmlValidator import htmlValidator
             htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide, tags_show, topicContents)
 
         # Handle images
         if os.path.isdir(details["source_dir"] + '/images'):
+            # (details["validation"] == 'on') and
             from images.imagesUsed import imagesUsed
             imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContents)
 
@@ -109,30 +95,6 @@ def cleanupEachFile(self, details, location_github_branch_push, source_files, ta
     else:
         self.log.info('\n')
         self.log.info('Handling files for ' + self.location_name + '.')
-
-        if os.path.isfile(details["phraseUsageFile"]):
-            with open(details["phraseUsageFile"], 'r', encoding="utf8", errors="ignore") as conrefUsageFileOpen:
-                allInLinePhrasesUsedText = conrefUsageFileOpen.read()
-                allInLinePhrasesUsed = allInLinePhrasesUsedText.split(',')
-        else:
-            allInLinePhrasesUsed = []
-
-        if os.path.isfile(details["snippetUsageFile"]):
-            with open(details["snippetUsageFile"], 'r', encoding="utf8", errors="ignore") as snippetUsageFileOpen:
-                allSnippetsUsedText = snippetUsageFileOpen.read()
-                allSnippetsUsed = allSnippetsUsedText.split(',')
-        else:
-            allSnippetsUsed = []
-
-        if os.path.isfile(details["flagUsageFile"]):
-            with open(details["flagUsageFile"], 'r', encoding="utf8", errors="ignore") as flagUsageFileOpen:
-                allFlagsUsedText = flagUsageFileOpen.read()
-                allFlagsUsed = allFlagsUsedText.split(',')
-                if '' in allFlagsUsed:
-                    allFlagsUsed.remove('')
-
-        else:
-            allFlagsUsed = []
 
         if os.path.isfile(details["source_dir"] + '/' + details["reuse_snippets_folder"] + '/' + str(details["reuse_phrases_file"])):
             # Open the conrefs file
@@ -158,8 +120,8 @@ def cleanupEachFile(self, details, location_github_branch_push, source_files, ta
 
             self.log.debug('\n\n')
             self.log.debug('----------------------------------')
-
             self.log.info(folderAndFile)
+            self.log.debug('(' + self.location_name + ')')
             self.log.debug('----------------------------------')
             self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
                            ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious + ')')
@@ -241,7 +203,7 @@ def cleanupEachFile(self, details, location_github_branch_push, source_files, ta
                     # For Travis, only copy over the file that's being worked with
                     if ((os.path.isfile(details["source_dir"] + folderAndFile)) and
                             (folderAndFile in self.all_files_dict)):
-                        fileCleanUpLoop(self, details, allFlagsUsed, allInLinePhrasesUsed, allSnippetsUsed, conrefJSON, file_name, fileNamePrevious, fileStatus,
+                        fileCleanUpLoop(self, details, conrefJSON, file_name, fileNamePrevious, fileStatus,
                                         folderAndFile, folderPath, tags_hide, tags_show)
                     else:
                         self.log.debug('Not working with ' + folderAndFile + '. Does not exist in source dir: ' +
@@ -250,18 +212,3 @@ def cleanupEachFile(self, details, location_github_branch_push, source_files, ta
                         self.log.debug('file_name = ' + file_name)
                         self.log.debug('folderPath = ' + folderPath)
                         self.log.debug('fileNamePrevious = ' + fileNamePrevious)
-
-        # If every file is being generated, then create these test files
-        # For Travis and Jenkins where only a select few files are being generated, don't run these
-        if self.location_output_action == 'none':
-            allInLinePhrasesUsed = sorted(list(dict.fromkeys(allInLinePhrasesUsed)))
-            with open(details["phraseUsageFile"], 'w+', encoding="utf8", errors="ignore") as phraseUsageFileOpen:
-                phraseUsageFileOpen.write(",".join(allInLinePhrasesUsed))
-
-            allSnippetsUsed = sorted(list(dict.fromkeys(allSnippetsUsed)))
-            with open(details["snippetUsageFile"], 'w+', encoding="utf8", errors="ignore") as snippetUsageFileOpen:
-                snippetUsageFileOpen.write(",".join(allSnippetsUsed))
-
-            allFlagsUsed = sorted(list(dict.fromkeys(allFlagsUsed)))
-            with open(details["flagUsageFile"], 'w+', encoding="utf8", errors="ignore") as flagUsageFileOpen:
-                flagUsageFileOpen.write(",".join(allFlagsUsed))

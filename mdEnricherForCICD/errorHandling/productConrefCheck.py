@@ -5,7 +5,8 @@
 
 def productConrefCheck(self, details, file_name, folderAndFile, folderPath, topicContents):
 
-    # Import the json library
+    # Validate IBM Cloud product names formatting
+
     import re
 
     # from errorHandling.errorHandling import addToWarnings

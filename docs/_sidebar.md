@@ -1,14 +1,15 @@
 <!--
-# Copyright 2022 IBM Inc. All rights reserved
+# Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
+# Last updated: 2023-02-01
 -->
 
 - Getting started
   - [Overview](overview.md)
   - [Try it out!](try.md)
   - [Notices](notices.md)
-- Set up
-  - [Set up](setup.md)
+- Setting up
+  - [Setting up](setup.md)
   - [Running in Travis](travis.md)
   - [Running in Jenkins](jenkins.md)
   - [Running locally](local.md)

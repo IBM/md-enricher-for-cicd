@@ -4,6 +4,9 @@
 #
 
 def copySourceImage(self, details, imageFileName, imgOutputDir):
+
+    # Copy the source image downstream
+
     import os
     import shutil
     # If a supported image file is copied over, check for its source file to copy over too.
@@ -37,6 +40,9 @@ def copySourceImage(self, details, imageFileName, imgOutputDir):
 
 
 def copyImage(self, details, imageFileName):
+
+    # Copy the image downstream
+
     import os
     import shutil
     from errorHandling.errorHandling import addToWarnings

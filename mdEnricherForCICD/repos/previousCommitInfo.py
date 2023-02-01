@@ -5,8 +5,7 @@
 
 def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
 
-    # Get some info from the last commit and the difference between that one and the last commit the build ran on
-    # ultimately, get a list of files from the commit
+    # Get info from the last commit and the difference between that one and the last commit the build ran on
 
     import base64
     import re  # for doing finds within the topic content

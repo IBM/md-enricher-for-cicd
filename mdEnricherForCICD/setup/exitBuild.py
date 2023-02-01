@@ -4,6 +4,9 @@
 #
 
 def exitBuild(details, log):
+
+    # Compile end of build info and post to Slack, if specified
+
     from datetime import datetime
     import json
     import os
@@ -238,11 +241,6 @@ def exitBuild(details, log):
         errorLocation = source_github_org + '/' + source_github_repo
 
     # Output dir cleanup
-    tempFileList = [details["flagUsageFile"], details["phraseUsageFile"], details["snippetUsageFile"]]
-    for tempFile in tempFileList:
-        if os.path.isfile(tempFile):
-            os.remove(tempFile)
-            log.debug('Removing: ' + tempFile)
 
     if os.path.exists(details["error_file"]):
         if 'None' in errorList or 'None' in warningList:
@@ -283,7 +281,7 @@ def exitBuild(details, log):
 
         log.info('BUILD SUCCESSFUL WITH WARNINGS')
         log.info('\n\n')
-        sys.exit(0)
+        # sys.exit(0)
 
     else:
         if (details["slack_post_success"] is True):
@@ -295,4 +293,4 @@ def exitBuild(details, log):
 
         log.info('BUILD SUCCESSFUL')
         log.info('\n\n')
-        sys.exit(0)
+        # sys.exit(0)

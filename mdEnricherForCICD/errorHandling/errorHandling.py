@@ -4,20 +4,27 @@
 #
 
 def getSourceResults(log, outputContents, sourceContents):
+
+    # Get a diff of the source and output files
+
     import difflib
 
-    file1_contentsSplit = sourceContents.splitlines()
+    sourceContentsSplit = sourceContents.splitlines()
     topicContentsSplit = outputContents.splitlines()
     line_formatter = '{:3d}  {}'.format
-    file1_lines = [line_formatter(i, line) for i, line in enumerate(file1_contentsSplit, 1)]
-    file2_lines = [line_formatter(i, line) for i, line in enumerate(topicContentsSplit, 1)]
-    results = difflib.Differ().compare(file1_lines, file2_lines)
+    source_lines = [line_formatter(i, line) for i, line in enumerate(sourceContentsSplit, 1)]
+    output_lines = [line_formatter(i, line) for i, line in enumerate(topicContentsSplit, 1)]
+    results = difflib.Differ().compare(source_lines, output_lines)
     return (results)
 
 
 def checkResults(errantPhrase, errantPhraseFound, line, log, results):
+
+    # Get a line number of the issue from the source file, then write to the warnings or errors file
+
     sourceLineNumber = ''
     for resultLine in results:
+        # See if the whole line matches
         if (line in resultLine) and (resultLine.startswith('-')):
             lineRevised = resultLine.replace('-', '', 1)
             while lineRevised.startswith(' '):
@@ -25,6 +32,7 @@ def checkResults(errantPhrase, errantPhraseFound, line, log, results):
             sourceLineNumber = "#L" + (lineRevised.split(' ', 1)[0])
             errantPhraseFound = True
             break
+        # See if the errant phrase is in any removed line
         if errantPhraseFound is False:
             if (errantPhrase in resultLine) and (resultLine.startswith('-')):
                 lineRevised = resultLine.replace('-', '', 1)
@@ -33,11 +41,22 @@ def checkResults(errantPhrase, errantPhraseFound, line, log, results):
                 sourceLineNumber = "#L" + (lineRevised.split(' ', 1)[0])
                 errantPhraseFound = True
                 break
+        # Do not look in added lines because it will be in the output
+        # See if the errant phrase is in any line at all
+        if errantPhraseFound is False:
+            if errantPhrase in resultLine and (not resultLine.startswith('+')):
+                while resultLine.startswith(' '):
+                    resultLine = resultLine[1:]
+                sourceLineNumber = "#L" + (resultLine.split(' ', 1)[0])
+                errantPhraseFound = True
+                break
 
     return (errantPhraseFound, sourceLineNumber)
 
 
 def writeIssue(issueType, issueTypeFile, message, folderAndFile, folderPlusFile, details, log, stages, errantPhrase, topicContents):
+
+    # Figure out if the problem is in a reused file piece or not
 
     import os
     import re
@@ -46,6 +65,7 @@ def writeIssue(issueType, issueTypeFile, message, folderAndFile, folderPlusFile,
     # Get line numbers
     sourceLineNumber = ''
     outputLineNumber = ''
+    lineFound = ''
     if not topicContents == '' and not errantPhrase == '':
         # Get the line number of the problem in the output file
         errantPhraseFound = False
@@ -57,7 +77,7 @@ def writeIssue(issueType, issueTypeFile, message, folderAndFile, folderPlusFile,
                 errantPhraseFound = True
                 lineFound = line
         # Check which snippets are used, if the output line number is within a snippet, then use that as the source file
-        if errantPhraseFound is True:
+        if (errantPhraseFound is True) and ('{[' not in errantPhrase):
             if '<!--Snippet ' in topicContents:
                 linesTopicContents = "\n".join(linesAssignedNumbers)
                 snippetStarts = re.findall(r"<!--Snippet .*? start-->", linesTopicContents)
@@ -91,12 +111,12 @@ def writeIssue(issueType, issueTypeFile, message, folderAndFile, folderPlusFile,
 
             # Get a diff of the two files
             with open(details["source_dir"] + folderAndFile, "r") as file1:
-                file1_contents = file1.read()
+                sourceTopicContents = file1.read()
                 errantPhraseFound = False
                 while errantPhrase.startswith('../'):
                     errantPhrase = errantPhrase[3:]
-                if errantPhrase in file1_contents:
-                    results = getSourceResults(log, topicContents, file1_contents)
+                if errantPhrase in sourceTopicContents:
+                    results = getSourceResults(log, topicContents, sourceTopicContents)
                     errantPhraseFound = True
 
             if errantPhraseFound is True and sourceLineNumber == '':

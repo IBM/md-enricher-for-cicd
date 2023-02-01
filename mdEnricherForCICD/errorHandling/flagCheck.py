@@ -3,40 +3,50 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def flagCheck(details, log):
+def flagCheck(details, log, allSourceFiles, filesForOtherLocations):
 
-    import json
-    import os
+    # Check if all of the feature flags are used in the content
+
+    # import json
+    # import os
 
     from errorHandling.errorHandling import addToWarnings
 
-    if os.path.isfile(details["source_dir"] + details["featureFlagFile"]):
+    if not details["featureFlags"] == 'None':
+        flagsNotUsed = []
+        for featureFlag in details["featureFlags"]:
+            featureFlagName = featureFlag["name"]
+            if not featureFlagName == 'staging' and not featureFlagName == 'prod':
+                found = False
+                # First check all of the files used in the enabled builds
+                for entry in allSourceFiles:
+                    if (not details["featureFlagFile"] in entry) and (entry.endswith(tuple(details["filetypes"]))):
+                        try:
+                            fileContents = allSourceFiles[entry]['fileContents']
+                            if ('<' + featureFlagName + '>') in fileContents:
+                                log.debug('Confirmed feature flag ' + featureFlagName + ' usage in ' + entry + '.')
+                                found = True
+                                break
+                        except Exception:
+                            continue
+                # If it's not found, try the files from builds that might not have been enabled
+                if found is False:
+                    for entry in filesForOtherLocations:
+                        if (not details["featureFlagFile"] in entry) and (entry.endswith(tuple(details["filetypes"]))):
+                            with open(details["source_dir"] + entry, 'r', encoding="utf8", errors="ignore") as checkFile:
+                                fileContents = checkFile.read()
+                                if ('<' + featureFlagName + '>') in fileContents:
+                                    log.debug('Confirmed feature flag ' + featureFlagName + ' usage in ' + entry + '.')
+                                    found = True
+                                    break
+                if found is False:
+                    flagsNotUsed.append(featureFlagName)
+                    log.debug('Feature flag ' + featureFlagName + ' was not used in any content files.')
 
-        # Get the list of conrefs that were used across all of the builds
-        if os.path.isfile(details["flagUsageFile"]):
-            # Get the used conref list
-            with open(details["flagUsageFile"], 'r', encoding="utf8", errors="ignore") as flagUsageFileOpen:
-                usedFlagsText = flagUsageFileOpen.read()
-                usedFlags = usedFlagsText.split(',')
-
-            # Open the feature flags file and get all of those defined
-            flagList = []
-            with open(details["source_dir"] + details["featureFlagFile"], 'r', encoding="utf8", errors="ignore") as featureFlagJson:
-                featureFlags = json.load(featureFlagJson)
-                for featureFlag in featureFlags:
-                    featureFlagName = featureFlag["name"]
-                    flagList.append(featureFlagName)
-
-            # Compare the two lists
-            unusedFlags = []
-            for flag in flagList:
-                if flag not in usedFlags:
-                    if (not flag == 'prod') and (not flag == 'staging'):
-                        unusedFlags.append(flag)
-            if len(unusedFlags) > 0:
-                if len(unusedFlags) == 1:
-                    intro = 'This feature flag is'
-                else:
-                    intro = 'These feature flags are'
-                addToWarnings(intro + ' not used in any content files and can be removed: ' +
-                              (", ".join(unusedFlags)), details["featureFlagFile"], '', details, log, 'pre-build', '', '')
+        if len(flagsNotUsed) > 0:
+            if len(flagsNotUsed) == 1:
+                intro = 'This feature flag is'
+            else:
+                intro = 'These feature flags are'
+            addToWarnings(intro + ' not used in any content files and can be removed: ' +
+                          (", ".join(flagsNotUsed)), details["featureFlagFile"], '', details, log, 'post-build', '', '')

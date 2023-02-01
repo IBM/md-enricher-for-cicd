@@ -5,6 +5,8 @@
 
 def config(log, details, locations_config):
 
+    # Parse and validate the values in the config section of the locations file
+
     # from errorHandling.errorHandling import addToWarnings
     # from errorHandling.errorHandling import addToErrors
     # from setup.exitBuild import exitBuild

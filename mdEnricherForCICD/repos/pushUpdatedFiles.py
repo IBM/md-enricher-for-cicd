@@ -149,6 +149,7 @@ def pushUpdatedFiles(self, details, location_github_branch_push, source_files):
                         subprocess.call('git push --quiet', shell=True)
                     except Exception:
                         try:
+                            self.log.info('Setting upstream origin ' + location_github_branch_push + '.')
                             subprocess.call('git push --set-upstream origin ' + location_github_branch_push + ' --quiet', shell=True)
                         except Exception as e:
                             pushErrors(details, e, self.log)

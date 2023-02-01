@@ -5,6 +5,8 @@
 
 def sitemapOLD(self, details):
 
+    # Create a sitemap from a marked-it version 1 toc file
+
     # !/usr/bin/env python
     import os
     import traceback

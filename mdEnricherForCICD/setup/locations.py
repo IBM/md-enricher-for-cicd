@@ -5,6 +5,8 @@
 
 def locations(details, location, log):
 
+    # Parse the locations section of the locations file
+
     # from errorHandling.errorHandling import addToWarnings
     from errorHandling.errorHandling import addToErrors
     from setup.exitBuild import exitBuild

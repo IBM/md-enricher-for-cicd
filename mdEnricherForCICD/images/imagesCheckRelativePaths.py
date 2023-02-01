@@ -5,6 +5,9 @@
 
 def imagesCheckRelativePaths(self, details, file_name, folderAndFile, folderPath, topicContents):
 
+    # If images are referenced in reuse files, their relative paths might need to be altered
+    # depending on the structure of the content files using the reuse files
+
     import re
 
     if ((not details["reuse_snippets_folder"] in folderAndFile)):

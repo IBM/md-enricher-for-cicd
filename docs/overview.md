@@ -1,6 +1,7 @@
 <!--
-# Copyright 2022 IBM Inc. All rights reserved
+# Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
+# Last updated: 2023-02-01
 -->
 
 # Overview
@@ -15,7 +16,8 @@ The [Markdown Enricher](https://github.com/IBM/md-enricher-for-cicd)'s best qual
 
 * Single-sourced markdown content authoring and delivery
 * Adaptable from simple to complex use cases
-* No more copying and pasting from one branch to another when must branches diverge and must stay diverged
+* While it was designed for markdown, you can define any text-based language to run on
+* No more copying and pasting from one Git branch to another when must branches diverge and must stay diverged
 * No Git CLI knowledge required
 * No merge conflicts between downstream branches
 * In editor feature flag control
@@ -31,7 +33,6 @@ The [Markdown Enricher](https://github.com/IBM/md-enricher-for-cicd)'s best qual
 * Local transformation for testing or for pushing the output files to a content management system that is not Github
 
 
-
 ## Potential use cases
 
 - Staging versus production content
@@ -44,9 +45,17 @@ The [Markdown Enricher](https://github.com/IBM/md-enricher-for-cicd)'s best qual
 - Reuse across files
 
 
+## Use these tools in conjunction with the Markdown Enricher
 
+The Markdown Enricher is designed to bring continuous integration and continuous delivery capabilities to the documentation solution you already have, rather than be a stand-alone documentation solution itself. The Markdown Enricher is not a static site generator, have a content management system, or a display framework like other tools, such as Hugo or Jekyll. The Markdown Enricher is great for taking simple solutions and making them more user-friendly for their content developers.
 
+For example, the Markdown Enricher documentation is stored in Git, and then displayed using Github Pages and Docsify. No HTML transformation is necessary in this automation pipeline, but if your display framework does require HTML transformation, include a markdown to HTML processor pipeline.
 
-
+|Tool|Why use it?|
+|--|--|
+|[Docsify](https://docsify.js.org/#/?id=docsify)|Site generator to display markdown in the Github Pages framework.|
+|[Github Pages](https://pages.github.com/)|Site generator for markdown. |
+|[marked-it](https://ibm.github.io/marked-it)|Transform markdown into HTML.|
+|[PyMdown](https://facelessuser.github.io/PyMdown/)|Transform markdown into HTML|
 
 

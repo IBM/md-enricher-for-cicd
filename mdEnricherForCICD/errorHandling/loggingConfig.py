@@ -5,7 +5,7 @@
 
 def loggingConfig(details):
 
-    # Send all INFO logs to the console and to the .travis.log files, but only send DEBUG logs to the .travis.log files.
+    # Send all INFO logs to the console and to the log files, but only send DEBUG logs to the log files.
 
     import logging
     import logging.handlers  # for the rotating file handler

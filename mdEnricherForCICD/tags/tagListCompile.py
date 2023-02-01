@@ -5,11 +5,10 @@
 
 def tagListCompile(self, details):
 
-    # Create a list of tags to work with whether this is staging or prod and indicate what to do with them
-    # Example:  tagList = ['tag':'show/hide']
+    # Create a list of tags for content that will show and a list of tags for content that will hidden
 
-    import json  # for sending data with and parsing data from requests
-    import os  # for running OS commands like changing directories or listing files in directory
+    # import json  # for sending data with and parsing data from requests
+    # import os  # for running OS commands like changing directories or listing files in directory
 
     from errorHandling.errorHandling import addToWarnings
     from errorHandling.errorHandling import addToErrors
@@ -35,58 +34,51 @@ def tagListCompile(self, details):
     tags_hide.append('hidden')
 
     # Get the feature flags and replace them with staging/prod tags to be dealt with later in this script
-    if os.path.isfile(details["source_dir"] + details["featureFlagFile"]):
-        with open(details["source_dir"] + details["featureFlagFile"], 'r', encoding="utf8", errors="ignore") as featureFlagJson:
-            try:
-                featureFlags = json.load(featureFlagJson)
-            except Exception as e:
-                addToErrors('Information might not be formatted properly' + str(e), details["featureFlagFile"],
-                            '', details, self.log, self.location_name, '', '')
+    if not details["featureFlags"] == 'None':
+
+        for featureFlag in details["featureFlags"]:
+            featureFlagName = featureFlag["name"]
+
+            if (featureFlagName in tags_show) or (featureFlagName in tags_hide):
+                addToErrors('Check for duplicate "' + featureFlagName + '" flags in the feature flag file.', details["featureFlagFile"],
+                            '', details, self.log, self.location_name, featureFlagName, str(details["featureFlags"]))
+
+            if ' ' in featureFlagName:
+                addToErrors('Feature flags cannot include spaces: ' + featureFlagName, details["featureFlagFile"],
+                            '', details, self.log, self.location_name, featureFlagName, str(details["featureFlags"]))
             else:
-                self.log.debug('Feature flag check for ' + self.location_name + ':')
-                for featureFlag in featureFlags:
-                    featureFlagName = featureFlag["name"]
+                def displayFound(featureFlagName, featureFlagDisplay):
+                    self.log.debug('Location value for ' + featureFlagName + ': ' + featureFlagDisplay)
 
-                    if (featureFlagName in tags_show) or (featureFlagName in tags_hide):
-                        addToErrors('Check for duplicate "' + featureFlagName + '" flags in the feature flag file.', details["featureFlagFile"],
-                                    '', details, self.log, self.location_name, featureFlagName, str(featureFlags))
+                try:
+                    featureFlagDisplay = featureFlag["location"]
+                except Exception as e:
+                    addToWarnings('No location value for the ' + featureFlagName + ' feature flag to parse' +
+                                  str(e), details["featureFlagFile"], '', details, self.log, self.location_name,
+                                  featureFlagName, str(details["featureFlags"]))
+                else:
+                    displayFound(featureFlagName, featureFlagDisplay)
 
-                    if ' ' in featureFlagName:
-                        addToErrors('Feature flags cannot include spaces: ' + featureFlagName, details["featureFlagFile"],
-                                    '', details, self.log, self.location_name, featureFlagName, str(featureFlags))
+                try:
+                    featureFlagDisplay
+                except Exception:
+                    addToErrors('No location value for the ' + featureFlagName, details["featureFlagFile"], '',
+                                details, self.log, self.location_name, featureFlagName, str(details["featureFlags"]))
+                else:
+                    if ',' in featureFlagDisplay:
+                        featureFlagDisplayList = featureFlagDisplay.split(',')
                     else:
-                        def displayFound(featureFlagName, featureFlagDisplay):
-                            self.log.debug('Location value for ' + featureFlagName + ': ' + featureFlagDisplay)
+                        featureFlagDisplayList = [featureFlagDisplay]
 
-                        try:
-                            featureFlagDisplay = featureFlag["location"]
-                        except Exception as e:
-                            addToWarnings('No location value for the ' + featureFlagName + ' feature flag to parse' +
-                                          str(e), details["featureFlagFile"], '', details, self.log, self.location_name,
-                                          featureFlagName, str(featureFlags))
-                        else:
-                            displayFound(featureFlagName, featureFlagDisplay)
+                    for featureFlagDisplayEntry in featureFlagDisplayList:
+                        if ((featureFlagDisplayEntry in tags_show) and (featureFlagName not in tags_show)):
+                            if featureFlagName not in tags_show:
+                                tags_show.append(featureFlagName)
 
-                        try:
-                            featureFlagDisplay
-                        except Exception:
-                            addToErrors('No location value for the ' + featureFlagName, details["featureFlagFile"], '',
-                                        details, self.log, self.location_name, featureFlagName, str(featureFlags))
-                        else:
-                            if ',' in featureFlagDisplay:
-                                featureFlagDisplayList = featureFlagDisplay.split(',')
-                            else:
-                                featureFlagDisplayList = [featureFlagDisplay]
-
-                            for featureFlagDisplayEntry in featureFlagDisplayList:
-                                if ((featureFlagDisplayEntry in tags_show) and (featureFlagName not in tags_show)):
-                                    if featureFlagName not in tags_show:
-                                        tags_show.append(featureFlagName)
-
-                            for featureFlagDisplayEntry in featureFlagDisplayList:
-                                if ((featureFlagDisplayEntry in tags_hide) and (featureFlagName not in tags_hide) and (featureFlagName not in tags_show)):
-                                    if featureFlagName not in tags_hide:
-                                        tags_hide.append(featureFlagName)
+                    for featureFlagDisplayEntry in featureFlagDisplayList:
+                        if ((featureFlagDisplayEntry in tags_hide) and (featureFlagName not in tags_hide) and (featureFlagName not in tags_show)):
+                            if featureFlagName not in tags_hide:
+                                tags_hide.append(featureFlagName)
 
     else:
         self.log.debug('No feature flag to work with: ' + details["source_dir"] + details["featureFlagFile"])
