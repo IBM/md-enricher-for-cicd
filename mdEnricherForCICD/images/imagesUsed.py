@@ -30,8 +30,8 @@ def copySourceImage(self, details, imageFileName, imgOutputDir):
                     newTimeStamp = float(imageTimeStampOtherRepo)
                     if float(newTimeStamp) > float(oldTimeStamp):
                         # Remove the old version of the file
-                        if os.path.isfile(self.location_dir + '/' + imgOutputDir + '/' + imgSource):
-                            os.remove(self.location_dir + '/' + imgOutputDir + '/' + imgSource)
+                        if os.path.isfile(self.location_dir + imgOutputDir + imgSource):
+                            os.remove(self.location_dir + imgOutputDir + imgSource)
                         # Copy the new version of the image
                         shutil.copy(details["source_dir"] + '/' + imgSource, imgOutputDir)
                         # self.log.debug(imgSourceLong + ': Copying source file')
@@ -39,7 +39,7 @@ def copySourceImage(self, details, imageFileName, imgOutputDir):
                         # self.log.debug(imgSource + ': Up to date already')
 
 
-def copyImage(self, details, imageFileName):
+def copyImage(self, details, file_name, folderAndFile, folderPath):
 
     # Copy the image downstream
 
@@ -49,33 +49,23 @@ def copyImage(self, details, imageFileName):
 
     # In staging or if the image is used in a supported image file, then the image is copied over
     # self.log.debug("image name: " + imageFileName)
-    imgOutputDir = imageFileName.rsplit('/', 1)[0]
-    if imgOutputDir.startswith('/'):
-        imgOutputDir = imgOutputDir[1:]
+    if not os.path.isdir(self.location_dir + folderPath):
+        os.makedirs(self.location_dir + folderPath)
 
-    imgOutputDir = (imgOutputDir.replace('../', ''))
-    # self.log.debug("image imgOutputDir: " + imgOutputDir)
-    imageFileNameNotRelative = imageFileName.replace('../', '')
-    if not imageFileNameNotRelative.startswith('/'):
-        imageFileNameNotRelative = '/' + imageFileNameNotRelative
-    if not os.path.isdir(self.location_dir + '/' + imgOutputDir + '/'):
-        os.makedirs(self.location_dir + '/' + imgOutputDir + '/')
-
-    if imageFileName.endswith(tuple(details["img_output_filetypes"])):
-        # Delete the old version
-        if os.path.isfile(self.location_dir + imageFileNameNotRelative):
-            self.log.debug('Removing old version: ' + imageFileNameNotRelative)
-            os.remove(self.location_dir + '/' + imageFileNameNotRelative)
-        # Copy the new version
-        if os.path.isfile(details["source_dir"] + imageFileNameNotRelative):
-            shutil.copy(details["source_dir"] + imageFileNameNotRelative, self.location_dir + '/' + imgOutputDir + '/')
-            self.log.debug('Copying: ' + imageFileNameNotRelative)
-            from images.imagesUsed import copySourceImage
-            copySourceImage(self, details, imageFileNameNotRelative, self.location_dir + '/' + imgOutputDir + '/')
-        else:
-            addToWarnings(imageFileName + ': Does not exist in the referenced path (as ' +
-                          imageFileNameNotRelative + ').', imageFileName, imageFileNameNotRelative, details, self.log,
-                          self.location_name, imageFileName, '')
+    # Delete the old version
+    if os.path.isfile(self.location_dir + folderPath + file_name):
+        self.log.debug('Removing old version: ' + folderPath + file_name)
+        os.remove(self.location_dir + folderPath + file_name)
+    # Copy the new version
+    if os.path.isfile(details["source_dir"] + folderAndFile):
+        shutil.copy(details["source_dir"] + folderAndFile, self.location_dir + folderPath)
+        self.log.debug('Copying: ' + details["source_dir"] + folderAndFile + ' to ' + self.location_dir + folderPath + file_name)
+        from images.imagesUsed import copySourceImage
+        copySourceImage(self, details, folderPath + file_name, self.location_dir + folderPath)
+    else:
+        addToWarnings(folderPath + file_name + ': Does not exist in the referenced path (as ' +
+                      folderPath + file_name + ').', folderPath + file_name, folderPath + file_name, details, self.log,
+                      self.location_name, folderPath + file_name, '')
 
 
 def imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContents):
@@ -95,118 +85,110 @@ def imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContent
             imageName = imageName[1:]
         return (imageName)
 
-    def imageCheck(imageName):
-        imageNameVerified = 'False'
-        os.chdir(self.location_dir + folderPath)
-        # self.log.info('Checking in ' + self.location_dir + folderPath)
-        # self.log.debug('imageName: ' + imageName)
-        if imageName.startswith('http'):
-            imageNameVerified = 'http'
-        elif os.path.isfile(imageName):
-            self.log.debug('Image path verified: ' + imageName)
-            imageNameVerified = 'True'
-        else:
-            # Look through the list of images found and see if that image is even there to compare against
-            for image in self.image_files_list:
+    def imageCheck(imageNameOriginal):
+        if imageNameOriginal.endswith(tuple(details["img_output_filetypes"])):
+
+            imageName = imageNameHandling(imageNameOriginal)
+            imageNameVerified = 'False'
+            if imageName.startswith('http'):
+                imageNameVerified = 'http'
+            else:
+                # Get the folder path and file name of the image referenced
                 if '/' in imageName:
-                    imageNameShort = imageName.rsplit('/', 1)[1]
+                    img_folderPath, img_file_name = imageName.rsplit('/', 1)
                 else:
-                    imageNameShort = imageName
-                if image.endswith('/' + imageNameShort):
-                    # Compare the file path of the image from the list of all images with the filepath of the markdown file
-                    # and see if the suggested relative path between those two files matches the image path used in the
-                    # markdown file
-                    # self.log.debug('imageNameShort from all images list: ' + imageNameShort)
-                    # self.log.debug('Comparing: ' + self.location_dir + image)
-                    # self.log.debug('With: ' + self.location_dir + folderPath)
-                    expectedRelativePath = os.path.relpath(self.location_dir + image, self.location_dir + folderPath)
-                    # self.log.debug('expectedRelativePath: ' + expectedRelativePath)
-                    if expectedRelativePath == imageName:
-                        self.log.debug('Image path verified: ' + imageName)
+                    img_file_name = imageName
+                    img_folderPath = '/'
+                img_folderPath = img_folderPath.replace('../', '')
+                if not img_folderPath.startswith('/'):
+                    img_folderPath = '/' + img_folderPath
+                if not img_folderPath.endswith('/'):
+                    img_folderPath = img_folderPath + '/'
+                imgfolderAndFile = img_folderPath + img_file_name
+
+                if os.path.isfile(details['source_dir'] + imgfolderAndFile):
+                    self.log.debug('Not checking HTTP images: ' + imageName)
+                    imageNameVerified = 'True'
+                elif not folderAndFile.startswith(img_folderPath):
+                    extraFolder = folderAndFile.rsplit('/', 1)[0]
+                    if os.path.isfile(details['source_dir'] + extraFolder + img_folderPath + img_file_name):
+                        self.log.debug('Image path verified: ' + extraFolder + img_folderPath + img_file_name)
+                        imgfolderAndFile = extraFolder + img_folderPath + img_file_name
+                        copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath)
                         imageNameVerified = 'True'
-                        break
-        if imageNameVerified == 'http':
-            self.log.debug('Not checking HTTP images: ' + imageName)
-        elif imageNameVerified == 'True':
-            copyImage(self, details, imageName)
-        else:
-            addToWarnings(imageName + ': Does not exist in the referenced path.', folderAndFile, folderPath + file_name, details, self.log,
-                          self.location_name, imageName, topicContents)
-        os.chdir(self.location_dir)
+                else:
+                    # Look through the list of images found and see if that image is even there to compare against
+                    for image in self.image_files_list:
+                        if '/' in imageName:
+                            imageNameShort = imageName.rsplit('/', 1)[1]
+                        else:
+                            imageNameShort = imageName
+                        if image.endswith('/' + imageNameShort):
+                            # Compare the file path of the image from the list of all images with the filepath of the markdown file
+                            # and see if the suggested relative path between those two files matches the image path used in the
+                            # markdown file
+                            expectedRelativePath = os.path.relpath(self.location_dir + image, self.location_dir + folderPath)
+                            if expectedRelativePath == imageName:
+                                copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath)
+                                imageNameVerified = 'True'
+                                break
+            if imageNameVerified == 'False':
+                addToWarnings(imageNameOriginal + ' does not exist in the expected location: ' + details['source_dir'] +
+                              imgfolderAndFile, folderAndFile, folderPath + file_name, details, self.log,
+                              self.location_name, imageNameOriginal, topicContents)
 
-    # This allows writers to only put images in the root images directory,
-    # then if they're used in the files in the CLI/subrepo, then they'll get automatically copied over
-
-    # Create the images dir in the downstream repo if it doesn't exist already
     if not self.image_files_list == []:
 
         # /subfolder/a-test.md
         # ../images/icloud.png
-        # Get the subdirectory path to resolve the image path used in the file
-        # relativeFilePath = ((folderPath + file_name).rsplit('/', 1)[0]) + '/'
-        # /subfolder
-        # /vpc/networking
 
-        if os.path.isfile(self.location_dir + folderPath + file_name):
-            fileName_open = open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore")
-            imgTextCheck = fileName_open.read()
-            fileName_open.close()
+        # Remove HTML comments to not collect image names in comments.
+        # Blockchain had an instance of an image name in a comment and that image did not exist in the repo.
+        htmlComments1 = re.findall('<!--(.*?)-->', topicContents, flags=re.DOTALL)
+        htmlComments2 = re.findall('<!--(.*)-->', topicContents, flags=re.DOTALL)
+        htmlComments = htmlComments1 + htmlComments2
+        for htmlComment in htmlComments:
+            topicContents = topicContents.replace(htmlComment, '')
 
-            # Remove HTML comments for collecting image names.
-            # Blockchain had an instance of an image name in a comment and that image did not exist in the repo.
-            htmlComments1 = re.findall('<!--(.*?)-->', imgTextCheck, flags=re.DOTALL)
-            htmlComments2 = re.findall('<!--(.*)-->', imgTextCheck, flags=re.DOTALL)
-            htmlComments = htmlComments1 + htmlComments2
-            for htmlComment in htmlComments:
-                imgTextCheck = imgTextCheck.replace(htmlComment, '')
+        # Get images in HTML format
+        htmlImages = re.findall(r'<img.*?/>', topicContents)
+        htmlImages = list(dict.fromkeys(htmlImages))
 
-            # If the image name is used in the content, then copy the image over
-            # Added or for removing the first slash just in case the writer didn't include it
+        # Get images from landing.json
+        jsonImages = re.findall(r'"thumbnail": ".*?"', topicContents)
+        jsonImages = list(dict.fromkeys(jsonImages))
 
-            # Get images in HTML format
-            htmlImages = re.findall(r'<img.*?/>', imgTextCheck)
-            htmlImages = list(dict.fromkeys(htmlImages))
+        # Replace all markdown alt text with nothing just in case there are parens in the alt text before getting images in markdown format
+        markdownAltTexts = re.findall(r'\!\[.*?\]', topicContents)
+        for markdownAltText in markdownAltTexts:
+            topicContents = topicContents.replace(markdownAltText, '!')
+        # Get images in markdown format
+        markdownImages = re.findall(r'\!\(.*?\)', topicContents)
+        markdownImages = list(dict.fromkeys(markdownImages))
 
-            # Get images from landing.json
-            jsonImages = re.findall(r'"thumbnail": ".*?"', imgTextCheck)
-            jsonImages = list(dict.fromkeys(jsonImages))
+        # If the image name is used in the content, then copy the image over
+        for htmlImage in htmlImages:
+            if 'src=\\"' in htmlImage:
+                htmlImage = htmlImage.replace('\\"', '"')
+            imageName = htmlImage.split('src="', 1)[1]
+            imageName = imageName.split('"', 1)[0]
 
-            # Replace all markdown alt text with nothing just in case there are parens in the alt text before getting images in markdown format
-            markdownAltTexts = re.findall(r'\!\[.*?\]', imgTextCheck)
-            for markdownAltText in markdownAltTexts:
-                imgTextCheck = imgTextCheck.replace(markdownAltText, '!')
-            # Get images in markdown format
-            markdownImages = re.findall(r'\!\(.*?\)', imgTextCheck)
-            markdownImages = list(dict.fromkeys(markdownImages))
+            if '../icons' not in imageName:
+                imageCheck(imageName)
 
-            for htmlImage in htmlImages:
-                if 'src=\\"' in htmlImage:
-                    htmlImage = htmlImage.replace('\\"', '"')
-                imageName = htmlImage.split('src="', 1)[1]
-                imageName = imageName.split('"', 1)[0]
-
+        # "./non-existent-image.png"
+        for markdownImage in markdownImages:
+            # Don't check videos that use image markdown styling
+            if not markdownImage + '{: video output="iframe"' in topicContents:
+                imageName = markdownImage.split('(', 1)[1]
                 if '../icons' not in imageName:
-                    imageName = imageNameHandling(imageName)
-                    if imageName.endswith(tuple(details["img_output_filetypes"])):
-                        imageCheck(imageName)
+                    if ' "' in imageName:
+                        imageName = imageName.split(' "', 1)[0]
+                    else:
+                        imageName = imageName.split(')', 1)[0]
+                    imageCheck(imageName)
 
-            # "./non-existent-image.png"
-            for markdownImage in markdownImages:
-                # Don't check videos that use image markdown styling
-                if not markdownImage + '{: video output="iframe"' in imgTextCheck:
-                    imageName = markdownImage.split('(', 1)[1]
-                    if '../icons' not in imageName:
-                        if ' "' in imageName:
-                            imageName = imageName.split(' "', 1)[0]
-                        else:
-                            imageName = imageName.split(')', 1)[0]
-                        imageName = imageNameHandling(imageName)
-                        if imageName.endswith(tuple(details["img_output_filetypes"])):
-                            imageCheck(imageName)
-
-            for jsonImage in jsonImages:
-                imageName = jsonImage.split('"',)[3]
-                if '../icons' not in imageName:
-                    imageName = imageNameHandling(imageName)
-                    if imageName.endswith(tuple(details["img_output_filetypes"])):
-                        imageCheck(imageName)
+        for jsonImage in jsonImages:
+            imageName = jsonImage.split('"',)[3]
+            if '../icons' not in imageName:
+                imageCheck(imageName)

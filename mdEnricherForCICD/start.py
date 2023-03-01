@@ -16,12 +16,23 @@ def start():
     my_parser.add_argument('--builder', action='store', type=str, help='Override the default builder',
                            choices=['local'])
 
+    my_parser.add_argument('--cleanup_flags_and_content', action='store', type=str,
+                           help='In a local clone of the source files, remove the feature flags and remove the content between them.' +
+                           'List the comma-separated flags without spaces between them.')
+
+    my_parser.add_argument('--cleanup_flags_not_content', action='store', type=str,
+                           help='In a local clone of the source files, remove the feature flags, but leave the content between them.' +
+                           'List the comma-separated flags without spaces between them.')
+
     my_parser.add_argument('--ibm_cloud_docs', action='store_true', help='Identifies repos as IBM Cloud Docs repos.')
 
     my_parser.add_argument('--ibm_docs', action='store_true', help='Identifies repos as IBM Docs repos.')
 
     my_parser.add_argument('--ibm_cloud_docs_product_name_check', action='store_true',
                            help='For IBM Cloud Docs repos, check product name replacements against the YAML file.')
+
+    my_parser.add_argument('--ibm_cloud_docs_keyref_check', action='store_true',
+                           help='For IBM Cloud Docs repos, check keywords against the global and service keyref files.')
 
     my_parser.add_argument('--ibm_cloud_docs_sitemap_depth', action='store', type=str,
                            help='For IBM Cloud Docs repos, if a sitemap is created, the depth of the title headings to include.',
@@ -30,7 +41,7 @@ def start():
     my_parser.add_argument('--ibm_cloud_docs_sitemap_rebuild_always', action='store_true',
                            help='Force the regeneration of the sitemap on every build. For services that reuse content in other repos.')
 
-    my_parser.add_argument('--locations_file', required=True, action='store', type=str,
+    my_parser.add_argument('--locations_file', action='store', type=str,
                            help='The path to the JSON file of locations to create content for.')
 
     my_parser.add_argument('--output_dir', action='store', type=str, help='The path to the output location.')
@@ -68,7 +79,10 @@ def start():
     args = my_parser.parse_args()
 
     builder = args.builder
+    cleanup_flags_and_content = args.cleanup_flags_and_content
+    cleanup_flags_not_content = args.cleanup_flags_not_content
     ibm_cloud_docs = args.ibm_cloud_docs
+    ibm_cloud_docs_keyref_check = args.ibm_cloud_docs_keyref_check
     ibm_cloud_docs_product_name_check = args.ibm_cloud_docs_product_name_check
     ibm_cloud_docs_sitemap_depth = args.ibm_cloud_docs_sitemap_depth
     ibm_cloud_docs_sitemap_rebuild_always = args.ibm_cloud_docs_sitemap_rebuild_always
@@ -86,25 +100,35 @@ def start():
     test_only = args.test_only
     validation = args.validation
 
-    from main import main
-    main(builder,
-         ibm_cloud_docs,
-         ibm_cloud_docs_product_name_check,
-         ibm_cloud_docs_sitemap_depth,
-         ibm_cloud_docs_sitemap_rebuild_always,
-         ibm_docs,
-         locations_file,
-         output_dir,
-         rebuild_all_files,
-         slack_bot_token,
-         slack_channel,
-         slack_post_success,
-         slack_show_author,
-         slack_user_mapping,
-         slack_webhook,
-         source_dir,
-         test_only,
-         validation)
+    if ibm_cloud_docs_product_name_check is True:
+        ibm_cloud_docs_keyref_check = True
+
+    if cleanup_flags_and_content is not None or cleanup_flags_not_content is not None:
+        from tags.cleanup import cleanup
+        cleanup(cleanup_flags_and_content,
+                cleanup_flags_not_content,
+                source_dir)
+
+    else:
+        from main import main
+        main(builder,
+             ibm_cloud_docs,
+             ibm_cloud_docs_keyref_check,
+             ibm_cloud_docs_sitemap_depth,
+             ibm_cloud_docs_sitemap_rebuild_always,
+             ibm_docs,
+             locations_file,
+             output_dir,
+             rebuild_all_files,
+             slack_bot_token,
+             slack_channel,
+             slack_post_success,
+             slack_show_author,
+             slack_user_mapping,
+             slack_webhook,
+             source_dir,
+             test_only,
+             validation)
 
 
 start()

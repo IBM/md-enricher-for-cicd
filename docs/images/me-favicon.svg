@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 31.35">
+  <defs>
+    <style>
+      .cls-1 {
+        font-family: MyriadPro-Regular, 'Myriad Pro';
+        font-size: 17.1px;
+      }
+
+      .cls-1, .cls-2 {
+        fill: #fff;
+      }
+
+      .cls-3 {
+        fill: #8800d0;
+      }
+
+      .cls-4 {
+        fill: #7d00ff;
+      }
+    </style>
+  </defs>
+  <circle class="cls-4" cx="15.67" cy="15.67" r="15.68"/>
+  <circle class="cls-2" cx="15.67" cy="15.68" r="13.78"/>
+  <circle class="cls-3" cx="15.67" cy="15.67" r="11.87"/>
+  <text class="cls-1" transform="translate(26.6 20.59) rotate(-180) scale(1 -1)"><tspan x="0" y="0">e</tspan></text>
+  <text class="cls-1" transform="translate(4.74 20.1)"><tspan x="0" y="0">m</tspan></text>
+</svg>

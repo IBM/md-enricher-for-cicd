@@ -55,7 +55,6 @@ def checkLocationsPaths(folderAndFile, location_contents_files, location_content
                 else:
                     returnedFolderName = file_handling
                 break
-
     if not returnedFolderName.startswith('/'):
         returnedFolderName = '/' + returnedFolderName
     if not returnedFolderName.endswith('/'):

@@ -1,0 +1,70 @@
+{
+
+    "markdown-enricher": {
+
+        "config": {
+            "source_github_branch": "dev",
+            "last_commit_id_file": ".dev_commit.txt",
+            "log_branch": "dev-logs",
+            "img_src_filetypes": ".svg, .SVG",
+            "reuse_snippets_folder": "/docs/reuse-snippets/",
+            "reuse_phrases_file": "phrases.json"
+        },
+
+        "locations": [
+
+            {
+                "location": "internal",
+                "location_build": "on",
+                "location_comments": "on",
+                "location_commit_summary_style": "AuthorAndSummary",
+                "location_contents":{
+                    "remove_all_other_files_folders": true,
+                    "files": [
+                        {
+                            "file": "docs/locations-dev.json",
+                            "file_handling": "remove"
+                        },
+                        {
+                            "file": "docs/locations-prod.json",
+                            "file_handling": "remove"
+                        }
+                    ],
+                    "folders": [
+                        {
+                            "folder": "docs",
+                            "folder_handling": "remove",
+                            "file_handling": ""
+                        }
+                    ]
+                }
+            },
+            {
+                "location": "external",
+                "location_build": "on",
+                "location_comments": "off",
+                "location_commit_summary_style": "AuthorAndSummary",
+                "location_contents":{
+                    "remove_all_other_files_folders": true,
+                    "files": [
+                        {
+                            "file": "docs/locations-dev.json",
+                            "file_handling": "remove"
+                        },
+                        {
+                            "file": "docs/locations-prod.json",
+                            "file_handling": "remove"
+                        }
+                    ],
+                    "folders": [
+                        {
+                            "folder": "docs",
+                            "folder_handling": "remove",
+                            "file_handling": ""
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}
