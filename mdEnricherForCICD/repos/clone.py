@@ -156,6 +156,10 @@ def clone(self, details):
             else:
                 # Get the main branch
                 cloneBranch(self.location_github_branch, self.location_dir, details)
+                if not os.path.isdir(self.location_dir):
+                    addToErrors('The ' + self.location_github_branch + ' branch could not be cloned.',
+                                'cloning', '', details, self.log, self.location_name, '', '')
+                    exitBuild(details, self.log)
                 os.chdir(self.location_dir)
                 self.log.info('Checking out branch: ' + self.location_github_branch_pr)
                 subprocess.call('git checkout -b ' + self.location_github_branch_pr + ' --quiet', shell=True)

@@ -31,8 +31,13 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     for (path, dirs, files) in os.walk(details["source_dir"]):
         # Allow the running of the example and docs directories, but not anything else
         if ((('md-enricher-for-cicd' in details["source_dir"]) and
-             ('md-enricher-for-cicd' in str(details["source_github_repo"]))) or
-                (('md-enricher-for-cicd' in details["source_dir"]) and ('/example' in details["source_dir"])) or
+             ('md-enricher-for-cicd' in str(details["source_github_repo"])) and
+             (details["output_dir"] not in path)) or
+
+                (('md-enricher-for-cicd' in details["source_dir"]) and
+                 ('/example' in details["source_dir"]) and
+                 (details["output_dir"] not in path)) or
+
                 (('.git' not in path) and
                  ('.DS_Store' not in path) and
                  ('environment-variables' not in path) and

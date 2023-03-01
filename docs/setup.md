@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2023-02-01
+# Last updated: 2023-02-23
 -->
 
 
@@ -138,6 +138,8 @@ The `python start.py` command kicks things off. These are the available options 
 |Option|Description|
 |----------|-----------|
 |`--builder`| Optional. Include `--builder local` to force builds running in Travis or Jenkins to behave like a `local` build. Ensures that source Git repository information retrieval or output handling do not affect the outcome of the build. |
+|`--cleanup_flags_and_content <tag1,tag2,tag3>`| Optional. Include locally with `--source_dir` to remove an outdated feature flag and all of the content within it from all files in the directory. For example, you might have set outdated content within a specific flag to hidden, now that flag and the content within it can be removed. Separate more than one tag with a comma. Do not include spaces.|
+|`--cleanup_flags_not_content <tag1,tag2,tag3>`| Optional. Include locally with `--source_dir` to remove an outdated feature flag from all files in the directory, but not the content within it. For example, you might have set new content within a specific flag to `all` or all of the locations it needs to be in, so now that flag can be removed, but the content within the tags must remain. Separate more than one tag with a comma. Do not include spaces.|
 |`--locations_file <path_to_locations_file>`|Required. The path to the JSON file of locations to create content for.|
 |`--output_dir <path_to_output_directory>`|Optional. The path to the output location.|
 |`--rebuild_all_files`|Optional. Force a rebuild of all files no matter what changes kicked off the build. This option is helpful when you're running the Markdown Enricher for the first time on new downstream branches.|
@@ -153,7 +155,7 @@ The `python start.py` command kicks things off. These are the available options 
 
 CLI help:
 ```
-python3 <PATH>/md-enricher-for-cicd/start.py --help
+python3 <PATH>/md-enricher-for-cicd/mdEnricherForCICD/start.py --help
 ```
 
 

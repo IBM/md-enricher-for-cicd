@@ -77,13 +77,17 @@ def sitemapYML(self, details, source_files):
                         self.log.error('No file contents returned.')
         return (reuseRepo, fileContentsText)
 
-    def conrefMDReplacement(conrefMDFilepath, topicContents):
+    def conrefMDReplacement(conrefMDFilepath, topicContents, srcFile):
+        if '/' in srcFile:
+            srcFile = srcFile.rsplit('/', 1)[1]
+        srcFile = srcFile.replace('.md', '')
         headingLevel = 0
         startingHeadingLevel = 0
         headings = ['## ', '### ', '#### ', '##### ', '###### ']
         with open(conrefMDFilepath, "r", encoding="utf8", errors="ignore") as conrefFileOpen:
             conrefLines = conrefFileOpen.readlines()
         conrefsUsed = re.findall('{{site.data.content.(.*?)}}', topicContents)
+        conrefsUsed = list(dict.fromkeys(conrefsUsed))
 
         for conrefUsed in conrefsUsed:
             getHeadingAnchor = False
@@ -100,14 +104,12 @@ def sitemapYML(self, details, source_files):
                     if '{: #' in line:
                         if (startingAnchor == '') and (re.findall('{: #(.*?)}', line)[0] == conrefUsed):
                             startingAnchor = line
-                            sectionToInsert.append(startingHeading)
                             storeLines = True
+                            insertRevisedAnchor = True
                         else:
-                            if not startingHeadingLevel < headingLevel:
-                                storeLines = False
-                    else:
-                        storeLines = False
-                        sectionToInsert = sectionToInsert[:-1]
+                            startingHeading == ''
+                            storeLines = False
+                            insertRevisedAnchor = False
 
                     getHeadingAnchor = False
 
@@ -115,23 +117,36 @@ def sitemapYML(self, details, source_files):
                 # if it is, then jump above to see if that heading has an anchor
                 if line.startswith(tuple(headings)):
                     getHeadingAnchor = True
+                    startingHeading = line
                     if startingHeading == '':
-                        startingHeading = line
                         hCount = startingHeading.split(' ', 1)[0]
                         startingHeadingLevel = hCount.count('#')
-                    else:
+                        self.log.info('Starting heading: ')
+                        self.log.info(startingHeading)
+                    if storeLines is True:
                         anotherHeading = line
                         hCount = anotherHeading.split(' ', 1)[0]
                         headingLevel = hCount.count('#')
+                        if startingHeadingLevel <= headingLevel:
+                            storeLines = False
 
                 if storeLines is True:
+                    if (insertRevisedAnchor is True) and ('{: #' in line):
+                        sectionToInsert.append(startingHeading)
+                        line = line.replace('{: #', '{: #' + srcFile + '-include-')
+                        insertRevisedAnchor = False
                     sectionToInsert.append(line)
+                else:
+                    startingHeading == ''
+
             if not sectionToInsert == []:
-                sectionToInsertString = '\n'.join(sectionToInsert)
+                sectionToInsertString = ''.join(sectionToInsert)
                 topicContents = topicContents.replace('{{site.data.content.' + conrefUsed + '}}', sectionToInsertString)
+            else:
+                self.log.info('{{site.data.content.' + conrefUsed + '}} is empty')
         return (topicContents)
 
-    def checkForReusedSections(topicContents):
+    def checkForReusedSections(topicContents, srcFile):
 
         import re
 
@@ -140,7 +155,7 @@ def sitemapYML(self, details, source_files):
 
         # {{site.data.content.someconrefname}} from conref.md in this subcollection
         if '{{site.data.content.' in topicContents:
-            topicContents = conrefMDReplacement(self.location_dir + '/conref.md', topicContents)
+            topicContents = conrefMDReplacement(self.location_dir + '/conref.md', topicContents, srcFile)
 
         # {{../account/account_settings.md#view-acct-settings}}
         if '{{../' in topicContents:
@@ -188,7 +203,7 @@ def sitemapYML(self, details, source_files):
                 else:
                     # {{site.data.content.someconrefname}} from conref.md in another subcollection
                     if '{{site.data.content.' in reusedSection:
-                        reusedSection = conrefMDReplacement(self.location_dir + '/sitemap-temp/' + reuseRepo + '/conref.md', reusedSection)
+                        reusedSection = conrefMDReplacement(self.location_dir + '/sitemap-temp/' + reuseRepo + '/conref.md', reusedSection, srcFile)
 
                     # {{site.data.keyword.somekeyword name}} from keyref.yaml in another subcollection
                     if '{{site.data.keyword.' in reusedSection:
@@ -437,7 +452,7 @@ def sitemapYML(self, details, source_files):
                             if not topicLink.startswith(tuple(relativeLinks)):
                                 with open(self.location_dir + '/' + topicLink, "r+", encoding="utf8", errors="ignore") as file_open_topic:
                                     topicContent = file_open_topic.read()
-                                    topicContent = checkForReusedSections(topicContent)
+                                    topicContent = checkForReusedSections(topicContent, topicLink)
                                     idList = re.findall('{: #(.*?)}', topicContent, flags=re.DOTALL)
 
                                 if not idList == []:
@@ -507,7 +522,7 @@ def sitemapYML(self, details, source_files):
                                             tempFile = path + '/' + tempFile
                                             with open(tempFile, "r+", encoding="utf8", errors="ignore") as file_open_tempfile:
                                                 topicContent = file_open_tempfile.read()
-                                                topicContent = checkForReusedSections(topicContent)
+                                                topicContent = checkForReusedSections(topicContent, tempFile)
                                                 idList = re.findall('{: #(.*?)}', topicContent, flags=re.DOTALL)
                                                 if not idList == []:
                                                     fileTopicID = idList[0]
@@ -603,7 +618,7 @@ def sitemapYML(self, details, source_files):
                             with open(filePath, "r+", encoding="utf8", errors="ignore") as file_open_file_path:
                                 # self.log.info('Opening filePath 2: ' + filePath)
                                 topicContent = file_open_file_path.read()
-                                topicContent = checkForReusedSections(topicContent)
+                                topicContent = checkForReusedSections(topicContent, filePath)
                                 topicContent = re.sub('<!--(.*?)-->', '', topicContent, flags=re.DOTALL)
                                 topicContentLines = topicContent.split('\n')
                                 anchor = ''

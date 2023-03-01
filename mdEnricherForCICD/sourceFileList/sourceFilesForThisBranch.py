@@ -85,21 +85,10 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
                 del source_files[source_file]
                 self.log.debug(source_file + ": Skipping content reuse files")
 
-        # Adding images to verify that they are used somewhere
-        elif ((file_name.endswith(tuple(details["img_filetypes"]))) and
-                (not details["builder"] == "local") and
-                (details["rebuild_all_files"] is False)):
-            for ALL_FILES_LISTEntry in self.all_files_dict:
-                if ((os.path.isfile(details["source_dir"] + ALL_FILES_LISTEntry)) and
-                        (not ALL_FILES_LISTEntry == folderAndFile)):
-                    fileName_open = open(details["source_dir"] + ALL_FILES_LISTEntry, 'r', encoding="utf8", errors="ignore")
-                    imageTextCheck = fileName_open.read()
-                    fileName_open.close
-                    if file_name in imageTextCheck:
-                        self.log.debug('Added because ' + file_name + ' is used in it: ' + ALL_FILES_LISTEntry)
-                        if ALL_FILES_LISTEntry not in source_files:
-                            source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
-                                                     ALL_FILES_LISTEntry, source_files, self.location_contents_files, self.location_contents_folders)
+        # Adding all images to verify that they are used somewhere
+        elif ((file_name.endswith(tuple(details["img_filetypes"])))):
+            source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
+                                     folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
 
         # 2 If the feature-flags.json file was updated, see if any other markdown files use those IDs also need to be updated
         elif (details["featureFlagFile"] in folderAndFile) and (os.path.isfile(details["source_dir"] + details["featureFlagFile"])):
@@ -200,9 +189,6 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
                                                              fileStatus, modifiedFile, source_files,
                                                              self.location_contents_files,
                                                              self.location_contents_folders)
-                    # else:
-                        # self.log.debug('\nNot found: ')
-                        # self.log.debug(details["source_dir"] + ALL_FILES_LISTEntry)
 
         # Remove travis.yml and gitignore files
         elif (('.travis.yml' in source_file) or ('.gitignore' in source_file)):
@@ -213,12 +199,7 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
         # Remove files with unsupported filetypes
         elif not source_file.endswith(tuple(details["filetypes"])):
             if source_file in source_files:
-                if source_file.endswith(tuple(details["img_filetypes"])):
-                    del source_files[source_file]
-                    # self.log.debug(source_file + ': Skipping images to handle later')
-                else:
-                    del source_files[source_file]
-                    # self.log.debug(source_file + ': Skipping unsupported file types')
+                del source_files[source_file]
 
         # If the file is included in the list for this location, add it.
         elif source_file in self.all_files_dict:
@@ -270,4 +251,5 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
     self.log.debug('Revised source file list for ' + self.location_name + ':')
     for source_file, source_file_info in sorted(source_files.items()):
         self.log.debug(source_file)
+
     return (source_files)

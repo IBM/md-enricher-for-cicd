@@ -10,6 +10,7 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
     import base64
     import re  # for doing finds within the topic content
     import requests  # for running curl-like API requests
+    import sys
 
     from sourceFileList.addToList import addToList
     from errorHandling.errorHandling import addToWarnings
@@ -133,7 +134,7 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
         if branchStatus == 'identical':
             log.info('This commit is identical to what is currently in the ' + details["source_github_branch"] +
                      ' branch. The branch must be newly created and does not contain any new changes. Exiting.')
-            exitBuild(details, log)
+            sys.exit(0)
 
     # Get the author's name
     listCommits = requests.get(details["source_github_api_repos"] + '/commits/' + current_commit_id + '?sha=' +

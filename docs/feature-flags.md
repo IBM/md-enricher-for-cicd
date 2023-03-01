@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2023-02-01
+# Last updated: 2023-02-23
 -->
 
 # Feature flags
@@ -17,6 +17,8 @@ For example, to manage content related to a specific feature that is in developm
 
 
 <br />
+
+## Adding feature flags
 
 To start using feature flags: 
 1. Create a `feature-flags.json` file in the root of your repository. Example tags for `new-feature` and `old-feature` where the locations set in the locations file are `staging` and `prod`.
@@ -47,7 +49,7 @@ To start using feature flags:
 
 
 
-#### Optional: Adding comments to the `feature-flags.json` file
+## Optional: Adding comments to the `feature-flags.json` file
 To insert comments into the `feature-flags.json` file, you can enter them as their own key, value pair  in each section. The key names do not need to be unique.
 ```
     {
@@ -62,3 +64,38 @@ To insert comments into the `feature-flags.json` file, you can enter them as the
     }
 ```
 
+
+## Cleaning up outdated feature flags
+
+When a feature flag is no longer needed, you can run the Markdown Enricher locally on a clone of your source files to clean up those flags and, optionally, the content within them.
+
+To decide whether the content within the tags must be removed in addition to the tags, look at what locations the tag is set to in the feature flags file. If the flag is set to hidden, the content is probably safe to remove as well. If the flag is set to `all` or the content exists in each location is meant to be in, the tags are probably safe to remove, but the content within them must be left behind.
+
+1. Install [Python 3](https://www.python.org/downloads/).
+
+1. Clone the [Markdown Enricher](https://github.com/IBM/md-enricher-for-cicd) repository.
+
+1. Install the required modules.
+    ```
+    pip install -r <PATH>/md-enricher-for-cicd/requirements.txt
+    ```
+
+1. Clone your upstream source repository so that you have the files locally.
+
+1. Run the start command with the `--source_dir` option set to your local clone and with one or both of the cleanup flags.
+
+    The examples below show the two flags separately, but you can use the flags together in the same command to handle tags in different ways within the same command.
+
+    To remove the flags and the content within them:
+
+    ```
+    python <PATH>/md-enricher-for-cicd/mdEnricherForCICD/start.py --source_dir <PATH_TO_UPSTREAM_LOCAL_CLONE> --cleanup_flags_and_content <tag1,tag2,tag3>
+    ```
+
+    To remove the flags, but not the content within them:
+
+    ```
+    python <PATH>/md-enricher-for-cicd/mdEnricherForCICD/start.py --source_dir <PATH_TO_UPSTREAM_LOCAL_CLONE> --cleanup_flags_not_content <tag1,tag2,tag3>
+    ```
+
+1. Push the results to the upstream source repository.

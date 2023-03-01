@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2023-02-01
+# Last updated: 2023-02-23
 -->
 
 # Supported file types
@@ -10,7 +10,6 @@ By default, these are the supported file types the Markdown Enricher can handle.
 ```
 '.html, .json, .md, .nojekyll, .yml, .yaml, .txt, toc'
 ```
-> Note: If a tag removes the entire content from a file, the file will not be written to the output. 
 
 
 Supported image output file types:

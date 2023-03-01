@@ -40,7 +40,7 @@ from tags.tagListCompile import tagListCompile
 def main(
          builder,
          ibm_cloud_docs,
-         ibm_cloud_docs_product_name_check,
+         ibm_cloud_docs_keyref_check,
          ibm_cloud_docs_sitemap_depth,
          ibm_cloud_docs_sitemap_rebuild_always,
          ibm_docs,
@@ -195,9 +195,14 @@ def main(
                 if source_files == {}:
                     self.log.info('No changes to process for this location.')
                 else:
+                    self.log.info('\n')
+                    self.log.info('Handling files for ' + self.location_name + '.')
 
                     # Actually do the conref and tag replacements in the new source file list
-                    cleanupEachFile(self, details, location_github_branch_push, source_files, tags_hide, tags_show)
+                    cleanupEachFile(self, details, False, location_github_branch_push, source_files, tags_hide, tags_show)
+
+                    # After all of the content files are updated, update the images
+                    cleanupEachFile(self, details, True, location_github_branch_push, source_files, tags_hide, tags_show)
 
                     # If images are not all stored in the /images directory, issue a warning
                     if (not os.path.isdir(details["source_dir"] + '/images')) and (not self.image_files_list == []) and details["ibm_cloud_docs"] is True:
@@ -250,7 +255,7 @@ def main(
                                           'toc.yaml', '', details, log, 'pre-build', '', '')
 
                     # If Travis, not Jenkins, push the updated files to the staging/prod branches
-                    if ((not location_output_action == 'none') and (not details["test_only"] is True)):
+                    if ((not details['builder'] == 'local') and (not location_output_action == 'none') and (not details["test_only"] is True)):
                         pushUpdatedFiles(self, details, location_github_branch_push, source_files)
 
                     elif details["test_only"] is True:
@@ -275,7 +280,6 @@ def main(
     details.update({"ibm_cloud_docs": ibm_cloud_docs})
     details.update({"ibm_cloud_docs_sitemap_depth": ibm_cloud_docs_sitemap_depth})
     details.update({"ibm_cloud_docs_sitemap_rebuild_always": ibm_cloud_docs_sitemap_rebuild_always})
-    details.update({"ibm_cloud_docs_product_name_check": ibm_cloud_docs_product_name_check})
     details.update({"ibm_docs": ibm_docs})
     details.update({"locations_file": locations_file})
     details.update({"rebuild_all_files": rebuild_all_files})
@@ -349,6 +353,7 @@ def main(
 
     travis_build_dir = str(os.environ.get('TRAVIS_BUILD_DIR'))
     workspace = str(os.environ.get('WORKSPACE'))
+    print('builder: ' + str(builder))
     if travis_build_dir != 'None':
 
         # Getting the SHAs here, but had problems with the environment variables before.
@@ -377,6 +382,7 @@ def main(
         build_number = 'Local'
         current_commit_summary = 'Local'
         current_commit_id = 'local'
+        workspace = source_dir
 
     details.update({"builder": builder})
     details.update({"build_id": build_id})
@@ -558,19 +564,22 @@ def main(
 
     # Get the IBM Cloud product name file to verify the product name conrefs that are used in each file
     ibm_cloud_docs_product_names = []
-    if details["ibm_cloud_docs_product_name_check"] is True:
-        if os.path.isfile(workspace + '/cloudoekeyrefs.yml'):
+    if ibm_cloud_docs_keyref_check is True:
+        if os.path.isfile(details['workspace'] + '/cloudoekeyrefs.yml'):
             log.info('IBM Cloud cloudoekeyrefs.yml exists. Product name checks enabled.')
-            with open(workspace + '/cloudoekeyrefs.yml', "r", encoding="utf8", errors="ignore") as stream:
+            with open(details['workspace'] + '/cloudoekeyrefs.yml', "r", encoding="utf8", errors="ignore") as stream:
                 try:
-                    ibm_cloud_docs_product_names = yaml.safe_load(stream)
-                    log.debug(str(ibm_cloud_docs_product_names)[0:500] + '...')
-                    os.remove(workspace + '/cloudoekeyrefs.yml')
+                    ibm_cloud_docs_product_namesAll = yaml.safe_load(stream)
+                    ibm_cloud_docs_product_names = ibm_cloud_docs_product_namesAll['keyword']
+                    # os.remove(workspace + '/cloudoekeyrefs.yml')
                 except yaml.YAMLError as exc:
                     log.warning(exc)
-        else:
-            log.debug('--ibm_cloud_docs_product_name_check is enabled, but cloudoekeyrefs.yml was not found. ' +
-                      'The IBM Cloud product names cannot be verified.')
+
+        if not os.path.isfile(details['workspace'] + '/cloudoekeyrefs.yml') and not os.path.isfile(details["source_dir"] + '/keyref.yaml'):
+            ibm_cloud_docs_keyref_check = False
+
+    details.update({"ibm_cloud_docs_product_names": ibm_cloud_docs_product_names})
+    details.update({"ibm_cloud_docs_keyref_check": ibm_cloud_docs_keyref_check})
 
     # Make a list of enricher required JSON files for pre-build check
     enricher_json_files = ['/' + details["reuse_snippets_folder"] + '/' + details["reuse_phrases_file"],
@@ -663,9 +672,10 @@ def main(
     log.info('\n\nBuild details:')
     for detail in sorted(details):
         if (details["ibm_cloud_docs"] is False) and ('ibm' in detail):
-            log.debug('%s: %s', detail, str(details[detail]))
+            if 'ibm_cloud_docs_product_names' not in detail:
+                log.debug('%s: %s', detail, str(details[detail]))
         else:
-            if (('token' not in detail) and ('webhook' not in detail) and ('username' not in detail)):
+            if (('token' not in detail) and ('webhook' not in detail) and ('username' not in detail) and ('ibm_cloud_docs_product_names' not in detail)):
                 log.info('%s: %s', detail, str(details[detail]))
     # log.info(details["username"])
     for location in locations_json_list:

@@ -30,6 +30,9 @@ def locations(details, location, log):
         location_output_action = location["location_output_action"]
     except KeyError:
         location_output_action = 'none'
+    else:
+        if details['builder'] == 'local':
+            location_output_action = 'none'
 
     try:
         location_github_url = location["location_github_url"]

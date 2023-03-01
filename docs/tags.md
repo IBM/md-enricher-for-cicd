@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2023-02-01
+# Last updated: 2023-02-23
 -->
 
 # Default tags
@@ -23,6 +23,7 @@ In your source repository, you can use the names of the locations in your Locati
 
 
 Remember:
+- If a tag removes the entire content from a file, the file will not be written to the output. 
 - Tags cannot have spaces in them.
 - If your markdown processor is picky about line breaks, place your tags where line breaks are not going to be left behind.
 - Nested tags might be impacted by the tags around them. For example, if you have a large section of content set to hidden but a nested sentence within it set to display, the nested sentence will also be hidden.
