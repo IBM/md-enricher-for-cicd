@@ -58,7 +58,7 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
         return (topicContents)
 
     # If the file doesn't have anything in it, don't write it or remove existing file unless it's a hidden file
-    if ((topicContents == '') or (topicContents == '\n') or (topicContents == '\n\n')) and (not file_name.startswith('.')):
+    if ((topicContents == '') or ((topicContents.isspace()) is True)) and (not file_name.startswith('.')):
         if os.path.isfile(self.location_dir + folderPath + file_name):
             self.log.debug('No content to write to file in ' + self.location_name + '. Removing.')
             try:

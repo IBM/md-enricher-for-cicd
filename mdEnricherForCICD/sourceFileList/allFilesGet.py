@@ -5,7 +5,7 @@
 
 def allFilesGet(details, location_contents_files, location_contents_files_keep, location_contents_files_remove,
                 location_contents_folders, location_contents_folders_keep, location_contents_folders_remove,
-                location_contents_folders_remove_and_files, log, remove_all_other_files_folders):
+                location_contents_folders_remove_and_files, log, remove_all_other_files_folders, source_files_original_list):
 
     # Create a list of all of the files in the repo so we can sort through them and choose which ones to loop over.
     # Like if a conref file changes, this list will be used to look inside each file to see if that conref is used in it
@@ -20,13 +20,14 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # from setup.exitBuild import exitBuild
 
     # log.debug('Gathering all source files.')
-    all_files_dict: dict[dict[str, str], dict[str, str]] = {}
+    all_files_dict: dict[dict[str, str], dict[str, str]] = {}  # type: ignore[misc]
     conref_files_list = []
     image_files_list = []
     sitemap_file = 'None'
     # filesForOtherLocations to collect all file names from all locations
     # for complete validation even when not all locations are built
     filesForOtherLocations = []
+    allFiles: list[str] = []  # type: ignore[misc]
 
     for (path, dirs, files) in os.walk(details["source_dir"]):
         # Allow the running of the example and docs directories, but not anything else
@@ -47,7 +48,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
             folder_name = path.split(details["source_dir"])[1]
             if not folder_name.endswith('/'):
                 folder_name = folder_name + '/'
-
+            allFiles = allFiles + files
             for file in sorted(files):
 
                 # Always ignore the locations file
@@ -135,6 +136,12 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
 
         # else:
             # log.debug('Not handling this directory for this location: ' + folder_name)
+
+    for source_file in source_files_original_list:
+        if source_file[1:] not in allFiles:
+            all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
+                                       source_file, all_files_dict, location_contents_files,
+                                       location_contents_folders)
 
     conref_files_list.sort()
     image_files_list.sort()
