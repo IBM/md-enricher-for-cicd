@@ -2,6 +2,18 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.0.3, released 03 April 2023
+
+<dl>
+<dt>Added file handling for commits with over 300 files</dt>
+    <dd>Added Git CLI handling for commits that include over 300 files, since files alphabetically over 300 are not included in the response from the Git API.</dd>
+<dt>Bug fix: File deletion issue</dt>
+    <dd>Files deleted from upstream repository were not deleted from downstream repositories.</dd>
+<dt>Bug fix: Traceback error displayed on JSON errors in locations file</dt>
+    <dd>When the locations file contained JSON errors, the validation step led into the build exit step, but not enough information had been collected yet to exit successfully. </dd>
+<dt>Bug fix: Broken image links from reused files</dt>
+    <dd>In marked-it, when a file was reused and resolved in the sitemap, during link checking, image files referenced in the reused files were not found.</dd>
+</dl>
 
 ## Version 1.0.2, released 01 March 2023
 

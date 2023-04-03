@@ -353,7 +353,6 @@ def main(
 
     travis_build_dir = str(os.environ.get('TRAVIS_BUILD_DIR'))
     workspace = str(os.environ.get('WORKSPACE'))
-    print('builder: ' + str(builder))
     if travis_build_dir != 'None':
 
         # Getting the SHAs here, but had problems with the environment variables before.
@@ -702,7 +701,7 @@ def main(
         all_files_get_result = allFilesGet(details, location_contents_files, location_contents_files_keep,
                                            location_contents_files_remove, location_contents_folders,
                                            location_contents_folders_keep, location_contents_folders_remove,
-                                           location_contents_folders_remove_and_files, log, remove_all_other_files_folders)
+                                           location_contents_folders_remove_and_files, log, remove_all_other_files_folders, source_files_original_list)
         all_files_dict = all_files_get_result[0]
         conref_files_list = all_files_get_result[1]
         image_files_list = all_files_get_result[2]
@@ -723,22 +722,28 @@ def main(
                     fileStatus = source_files_original_list[source_files_original]["fileStatus"]
                     filePatch = source_files_original_list[source_files_original]["filePatch"]
                     fileNamePrevious = source_files_original_list[source_files_original]["fileNamePrevious"]
-
-                    source_files_location_list[source_files_original] = {}
-                    source_files_location_list[source_files_original]['folderAndFile'] = source_files_original
-                    source_files_location_list[source_files_original]['file_name'] = file_name
-                    source_files_location_list[source_files_original]['folderPath'] = folderPath
-                    source_files_location_list[source_files_original]['fileStatus'] = fileStatus
-                    source_files_location_list[source_files_original]['filePatch'] = filePatch
-                    source_files_location_list[source_files_original]['fileNamePrevious'] = fileNamePrevious
                 except Exception as e:
-                    log.debug('Skipping: ' + source_files_original)
+                    # We don't want things like .travis.yml added to the location list
+                    log.debug('Could not find details for: ' + source_files_original)
                     log.debug(e)
+                else:
+                    try:
+                        source_files_location_list[source_files_original] = {}
+                        source_files_location_list[source_files_original]['folderAndFile'] = source_files_original
+                        source_files_location_list[source_files_original]['file_name'] = file_name
+                        source_files_location_list[source_files_original]['folderPath'] = folderPath
+                        source_files_location_list[source_files_original]['fileStatus'] = fileStatus
+                        source_files_location_list[source_files_original]['filePatch'] = filePatch
+                        source_files_location_list[source_files_original]['fileNamePrevious'] = fileNamePrevious
+                    except Exception as e:
+                        log.debug('Could not add details to location list: ' + source_files_original)
+                        log.debug(e)
 
         # log.info(json.dumps(source_files_location_list, indent=4))
 
         # See if this is a location that should be iterated over
         # or skipped based on which files kicked off the build
+
         runThisLocation = runThisBuild(details, all_files_dict, location_name, log, source_files_location_list)
 
         if runThisLocation is False:

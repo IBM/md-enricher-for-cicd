@@ -38,6 +38,24 @@ def sitemapYML(self, details, source_files):
                         # keyrefs in content other repos need to be resolved to be inserted into the sitemap
                         fileContentsText = str(fileContents.text)
 
+                        # Get the images files for link testing
+                        if 'images/' in fileContentsText:
+                            images = re.findall(r'images/(.*?)\)', fileContentsText)
+                            for image in images:
+                                imagePath, imageName = image.rsplit('/')
+                                if not imagePath.startswith('/'):
+                                    imagePath = '/' + imagePath
+                                imagePath = '/images' + imagePath
+                                if not os.path.isdir(details["output_dir"] + '/' + tempRepo[4] + imagePath):
+                                    os.makedirs(details["output_dir"] + '/' + tempRepo[4] + imagePath)
+                                imageFile = requests.get('https://raw.' + tempRepo[2] + '/' + tempRepo[3] + '/' +
+                                                         tempRepo[4] + '/' + self.location_github_branch + '/images/' + image,
+                                                         auth=(details["username"], details["token"]))
+                                # The image link will resolve, but it's not the actual image
+                                with open(details["output_dir"] + '/' + tempRepo[4] + imagePath + '/' + imageName,
+                                          "w+", encoding="utf8", errors="ignore") as imageFileOpen:
+                                    imageFileOpen.write(imageFile.text)
+
                         # Get the keyref.yaml file, if it exists
                         if '{{site.data.keyword.' in fileContentsText:
                             # If a reuse section contains a keyword from their own keyref.yaml file
@@ -376,6 +394,9 @@ def sitemapYML(self, details, source_files):
                     # self.log.debug('Appending to file: ' + content)
 
                 def titleAnchorCreation(type, title, sitemapAnchorList):
+
+                    import string
+
                     if type == 'anchor':
                         titleNoSpaces = title.replace(' ', '_')
                     elif type == 'link':
@@ -384,16 +405,26 @@ def sitemapYML(self, details, source_files):
                         addToErrors('Type not set.', location_sitemap_file, '', details, self.log, self.location_name, '', '')
                         titleNoSpaces = title
 
-                    titleNoSpaces = titleNoSpaces.replace(':', '').replace('#', '').replace('(', '')
-                    titleNoSpaces = titleNoSpaces.replace(')', '').replace('.', '').replace('/', '').replace('\\', '')
-                    titleNoSpaces = titleNoSpaces.replace('--', '-').replace('`', '').replace('--', '-')
-                    titleNoSpaces = titleNoSpaces.lower()
+                    # Remove product names
                     while '{{' in titleNoSpaces:
                         firstpart, ignore = titleNoSpaces.split('{{', 1)
                         secondpart = ignore.split('}}', 1)[1]
                         titleNoSpaces = firstpart + secondpart
                         if '{{' not in titleNoSpaces:
                             break
+
+                    # Remove all punctuation
+                    punctuationList = string.punctuation
+                    punctuationList = punctuationList.replace('_', '').replace('-', '')
+                    if any(punctuation in titleNoSpaces for punctuation in punctuationList):
+                        for punctuation in punctuationList:
+                            titleNoSpaces = titleNoSpaces.replace(punctuation, '')
+                    titleNoSpaces = titleNoSpaces.lower()
+                    titleNoSpaces = titleNoSpaces.replace('_-_', '_')
+                    while '__' in titleNoSpaces:
+                        titleNoSpaces = titleNoSpaces.replace('__', '_')
+
+                    # Make sure there are no duplicates
                     while ('{: #sitemap_' + titleNoSpaces + '}') in sitemapAnchorList:
                         titleNoSpaces = titleNoSpaces + '_'
                     return (titleNoSpaces)
@@ -792,7 +823,7 @@ def sitemapYML(self, details, source_files):
                                                 if ' ' in anchor:
                                                     filePathShort = filePath.split(self.location_dir)[1]
                                                     addToWarnings('The anchor "' + anchor + '" in ' + filePathShort +
-                                                                  ' contains a space and will affect the sitemap link.',
+                                                                  ' contains a space and affects the sitemap link.',
                                                                   location_sitemap_file, '',
                                                                   details, self.log,
                                                                   self.location_name, '', '')

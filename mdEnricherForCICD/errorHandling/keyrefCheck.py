@@ -66,8 +66,8 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
                     if keyref in details['ibm_cloud_docs_product_names']:
                         productNameFound = True
                         topicContentsAIBM = topicContents.replace('{{site.data.keyword.' + keyref + '}}', details['ibm_cloud_docs_product_names'][keyref])
-                        # Check for instances of "a IBM"
-                        aIBMCount = (topicContentsAIBM.lower()).count("a ibm")
+                        # Check for instances of " a IBM"
+                        aIBMCount = (topicContentsAIBM.lower()).count(" a ibm")
                         if aIBMCount > 0:
                             if aIBMCount == 1:
                                 instance = 'instance'
@@ -75,7 +75,7 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
                                 instance = 'instances'
                             addToWarnings(str(aIBMCount) + ' ' + instance + ' of "a IBM" created by "a ' +
                                           '{{site.data.keyword.' + keyref + '}}' + '". ', folderAndFile, folderPath + file_name,
-                                          details, self.log, self.location_name, "a " + '{{site.data.keyword.' + keyref + '}}', topicContents)
+                                          details, self.log, self.location_name, " a " + '{{site.data.keyword.' + keyref + '}}', topicContents)
             # Then check if it's in the keyref.yaml file
             if os.path.isfile(details['source_dir'] + '/keyref.yaml') and productNameFound is False:
                 with open(details['source_dir'] + '/keyref.yaml', "r", encoding="utf8", errors="ignore") as stream:

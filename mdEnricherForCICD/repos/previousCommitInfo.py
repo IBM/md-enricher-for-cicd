@@ -10,6 +10,7 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
     import base64
     import re  # for doing finds within the topic content
     import requests  # for running curl-like API requests
+    import subprocess
     import sys
 
     from sourceFileList.addToList import addToList
@@ -150,6 +151,7 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
         log.info('Rebuilding all files.')
         source_files_original_list = {}
     else:
+
         # log.info('Getting a list of files that have changed since the last build ran.')
         # Get a list of files that have changed since the last build ran
         if details["test_only"] is True:
@@ -250,10 +252,54 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
 
             # Ignore the mypy comparison-overlap errors here:
             # https://mypy.readthedocs.io/en/stable/error_code_list2.html#check-that-comparisons-are-overlapping-comparison-overlap
+            # Switch to the CLI and run commands to gather information about the
+            # remaining files that the API did not catch
+            # Using the CLI entirely doesn't seem great though because it does
+            # not seem to catch renames, or at least not from VS Code
             if (fileCount > 299):
-                log.info('No files could be retrieved from the commit.')
-                addToWarnings('These changes included 300 or more files. ' +
+                cliCommitListBYTES = subprocess.check_output('git diff ' + previous_commit_id + ' ' + current_commit_id + ' --name-status', shell=True)
+                cliCommitListString = cliCommitListBYTES.decode("utf-8")
+                if '\n' in cliCommitListString:
+                    cliCommitList = cliCommitListString.split('\n')
+                else:
+                    cliCommitList = [cliCommitListString]
+                for commit in cliCommitList:
+                    if not commit == '':
+                        cli_list = commit.split()
+                        folderAndFile = cli_list[-1]
+                        log.info(folderAndFile)
+                        if (('/' + folderAndFile) not in source_files_original_list.keys()):  # type: ignore[comparison-overlap]
+                            # Get file status
+                            fileNamePrevious = 'None'
+                            if cli_list[0] == 'A':
+                                fileStatus = 'added'
+                            elif cli_list[0] == 'C':
+                                fileStatus = 'modified'
+                            elif cli_list[0] == 'D':
+                                fileStatus = 'deleted'
+                            elif cli_list[0] == 'M':
+                                fileStatus = 'modified'
+                            elif cli_list[0] == 'R':
+                                fileStatus = 'renamed'
+                                fileRenameBytes = subprocess.check_output('git diff ' + previous_commit_id + ' ' + current_commit_id +
+                                                                          ' --patch --diff-filter=R' + folderAndFile, shell=True)
+                                fileNamePrevious = fileRenameBytes.decode("utf-8")
+                            else:
+                                fileStatus = 'modified'
+                            # Get file patch
+                            if folderAndFile.endswith(tuple(details["filetypes"])):
+                                filePatchBytes = subprocess.check_output('git diff ' + previous_commit_id + ' ' + current_commit_id +
+                                                                         ' --patch ' + folderAndFile, shell=True)
+                                filePatch = filePatchBytes.decode("utf-8")
+                            else:
+                                filePatch = ''
+
+                            source_files_original_list = addToList('None', details, log, fileNamePrevious,
+                                                                   filePatch, fileStatus, '/' + folderAndFile, source_files_original_list, [], [])
+
+                addToWarnings('The commit included 300 or more files. ' +
                               'The Git API could not include the details for more than 300 files in a commit. ' +
+                              'Information for the remaining files are being gathered from the CLI. ' +
                               'All of the files from the commit are being handled in this build, but deletions related ' +
                               'to file renames or removals might not happen as desired downstream on the files that ' +
                               'were over the first alphabetical 300.\n', 'commits', '', details, log, 'pre-build', '', '')
@@ -265,7 +311,7 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
 
         log.info('These were the files changed since the last commit that a build ran on:')
         for source_file, source_file_info in source_files_original_list.items():
-            log.info(source_file)
+            log.info(str(source_file) + str(' (' + source_files_original_list[source_file]['fileStatus'] + ')'))
         log.info('\n\n')
 
     return (current_commit_author, current_commit_id, current_commit_summary, previous_commit_id, source_files_original_list)

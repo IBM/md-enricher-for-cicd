@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2023-02-23
+# Last updated: 2023-04-03
 -->
 
 # Running in Travis
@@ -17,8 +17,8 @@
 
     a. Disable the job from running on **Pull requests**.
 
-    a. Add the [environment variables](setup.md#Environment-variables).
-1. Create a [locations file](setup.md#Locations-file). 
+    a. Add the [environment variables](setup.md#environment-variables).
+1. Create a [locations file](setup.md#locations-file). 
 1. Create a `.travis.yml` file. Example:
     ```
     matrix:
