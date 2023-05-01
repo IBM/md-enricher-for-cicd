@@ -207,9 +207,10 @@ def cleanupEachFile(self, details, imageProcessing, location_github_branch_push,
                                 (folderAndFile in self.all_files_dict)):
                             fileCleanUpLoop(self, details, conrefJSON, file_name, fileNamePrevious, fileStatus,
                                             folderAndFile, folderPath, tags_hide, tags_show)
-                        else:
-                            self.log.debug('Not working with ' + folderAndFile + '. Does not exist in source dir: ' +
-                                           details["source_dir"] + folderAndFile)
+                        elif folderAndFile in self.all_files_dict:
+                            # --rebuild_files list might have a typo or something
+                            addToWarnings('Does not exist in the source directory for ' + self.location_name + ': ' + folderAndFile,
+                                          folderAndFile, folderPath + file_name, details, self.log, self.location_name, '', '')
                             self.log.debug('folderAndFile = ' + folderAndFile)
                             self.log.debug('file_name = ' + file_name)
                             self.log.debug('folderPath = ' + folderPath)

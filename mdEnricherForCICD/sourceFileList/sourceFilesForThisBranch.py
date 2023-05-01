@@ -29,6 +29,13 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
 
     self.log.debug('Rebuilding the source file list for ' + self.location_name + '.')
 
+    # Adding selected rebuild_files
+    if not details["rebuild_files_list"] == []:
+        for rebuild_file in details["rebuild_files_list"]:
+            self.log.debug('Adding ' + rebuild_file)
+            source_files = addToList(self, details, self.log, '', '', 'rebuild',
+                                     rebuild_file, source_files, self.location_contents_files, self.location_contents_folders)
+
     for source_file, source_file_info in list(source_files.items()):
 
         folderAndFile = source_files[source_file]['folderAndFile']
@@ -52,7 +59,7 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
                     if self.sitemap_file not in source_files:
                         self.log.debug('Adding ' + self.sitemap_file)
                         source_files = addToList(self, details, self.log, self.sitemap_file, 'None',
-                                                 'modified', self.sitemap_file, source_files, self.location_contents_files, self.location_contents_folders)
+                                                 'rebuild', self.sitemap_file, source_files, self.location_contents_files, self.location_contents_folders)
                 else:
                     self.log.info('File does not exist: ' + details["source_dir"] + self.sitemap_file)
 

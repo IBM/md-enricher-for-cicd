@@ -76,7 +76,9 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
             # but then when the sitemap content is generated, the folderPath and file_name is used
             # Open the file for writing
             write = False
-            if ((folderAndFile == self.sitemap_file) or (self.sitemap_file.endswith(folderPath + file_name))):
+            if folderAndFile in details['rebuild_files_list']:
+                write = True
+            elif ((folderAndFile == self.sitemap_file) or (self.sitemap_file.endswith(folderPath + file_name))):
                 with open(details["source_dir"] + folderAndFile, 'r', encoding="utf8", errors="ignore") as fileName_write:
                     topicContentsSource = fileName_write.read()
                 topicContentsLines = topicContents.splitlines()
