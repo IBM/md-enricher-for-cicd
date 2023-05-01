@@ -49,6 +49,10 @@ def start():
     my_parser.add_argument('--rebuild_all_files', action='store_true',
                            help='Force a rebuild of all files no matter what changes kicked off the build.')
 
+    my_parser.add_argument('--rebuild_files', action='store', type=str,
+                           help='Force a rebuild of comma-separated list of files in addition to the changes that kicked off the build. ' +
+                           'Helpful for landing page date updates where the date must change but the content itself does not change often.')
+
     my_parser.add_argument('--slack_bot_token', action='store',
                            help='The token for a Slack bot to post ephemeral and normal error messages to.')
 
@@ -90,6 +94,7 @@ def start():
     locations_file = args.locations_file
     output_dir = args.output_dir
     rebuild_all_files = args.rebuild_all_files
+    rebuild_files = args.rebuild_files
     slack_bot_token = args.slack_bot_token
     slack_channel = args.slack_channel
     slack_post_success = args.slack_post_success
@@ -120,6 +125,7 @@ def start():
              locations_file,
              output_dir,
              rebuild_all_files,
+             rebuild_files,
              slack_bot_token,
              slack_channel,
              slack_post_success,

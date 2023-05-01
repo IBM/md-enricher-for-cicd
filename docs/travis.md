@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2023-04-03
+# Last updated: 2023-05-01
 -->
 
 # Running in Travis
@@ -11,7 +11,7 @@
 1. Configure the settings for Travis.
     a. Click **More options** > **Settings**. If the Settings option does not display, wait a minute and refresh the page. If the problem persists, verify you are an admin of the upstream repo, then in Travis, click your username > **Profile** > **Sync Account** to refresh your Github permissions in Travis.
     
-    a. Turn **Build only if .travis.yml is present** on. 
+    a. (Travis 2) Turn **Build only if .travis.yml is present** on. 
 
     a. Turn **Limit concurrent jobs** on and enter 1.
 

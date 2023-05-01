@@ -47,6 +47,7 @@ def main(
          locations_file,
          output_dir,
          rebuild_all_files,
+         rebuild_files,
          slack_bot_token,
          slack_channel,
          slack_post_success,
@@ -389,6 +390,22 @@ def main(
     details.update({"current_commit_summary": current_commit_summary})
     details.update({"current_commit_id": current_commit_id})
     details.update({"workspace": workspace})
+
+    # Create a list out of the rebuild_files values and make sure each entry starts with a slash
+    if rebuild_files is None:
+        rebuild_files_list: list[str] = []  # type: ignore[misc]
+    elif ',' in rebuild_files:
+        rebuild_files_list = []
+        rebuild_files_list_original = rebuild_files.split(',')
+        for rebuild_files_list_item in rebuild_files_list_original:
+            if not rebuild_files_list_item.startswith('/'):
+                rebuild_files_list_item = '/' + rebuild_files_list_item
+            rebuild_files_list.append(rebuild_files_list_item)
+    else:
+        if not rebuild_files.startswith('/'):
+            rebuild_files = '/' + rebuild_files
+        rebuild_files_list = [rebuild_files]
+    details.update({"rebuild_files_list": rebuild_files_list})
 
     if not os.path.exists(source_dir):
         os.makedirs(source_dir)

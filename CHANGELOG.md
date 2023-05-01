@@ -2,6 +2,13 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.1.0, released 01 May 2023
+
+<dl>
+<dt>Added --rebuild_files flag</dt>
+    <dd>Use the <code>--rebuild_files</code> flag to force a rebuild of a comma-separated list of files in addition to the changes that kicked off the build. This flag is helpful for forcing a rebuild of something like a landing page so that the date updates even though the content itself does not change often.</dd>
+</dl>
+
 ## Version 1.0.3, released 03 April 2023
 
 <dl>
