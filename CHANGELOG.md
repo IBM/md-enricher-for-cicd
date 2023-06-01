@@ -2,6 +2,19 @@
 
 Notable changes to this project are documented in this file.
 
+
+
+## Version 1.1.1, released 01 June 2023
+
+<dl>
+<dt><a href="https://nvd.nist.gov/vuln/detail/CVE-2023-32681">CVE-2023-32681</a></dt>
+    <dd>Updated <code>requests</code> to minimum version 2.31.0 in the <code>requirements.txt</code>.</dd>
+<dt>Removed handling of files that are stored in the <code>.github</code> folder</dt>
+    <dd>Any changes made to issue templates or files in the <code>.github</code> kick off builds, but are not processed or included in downstream content.</dd>
+<dt>Bug fixes</dt>
+    <dd><ul><li>Fixed Travis build URL in Slack posts.</li><li>When no downstream branch is created yet, and the branch is created from the default branch, the build failed when a pull request could not be created to the same branch that changes were pushed to.</li><li>When the downstream branch is created from the default branch, the <code>.travis.yml</code> is included. A secondary build is kicked off, which could be what the user wants if there are other tasks run, but it might not be. The build was not exiting because the upstream repo and branch matched the downstream repo and branch. </li><li>When the upstream repo and branch is the same as the downstream repo and branch, changed warning issued to error.</li></ul></dd>
+</dl>
+
 ## Version 1.1.0, released 01 May 2023
 
 <dl>

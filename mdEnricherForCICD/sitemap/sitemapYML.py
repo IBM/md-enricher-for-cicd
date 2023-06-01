@@ -42,7 +42,12 @@ def sitemapYML(self, details, source_files):
                         if 'images/' in fileContentsText:
                             images = re.findall(r'images/(.*?)\)', fileContentsText)
                             for image in images:
-                                imagePath, imageName = image.rsplit('/')
+                                self.log.info(image)
+                                if '/' in image:
+                                    imagePath, imageName = image.rsplit('/')
+                                else:
+                                    imagePath = ''
+                                    imageName = image
                                 if not imagePath.startswith('/'):
                                     imagePath = '/' + imagePath
                                 imagePath = '/images' + imagePath

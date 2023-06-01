@@ -21,7 +21,7 @@ def exitBuild(details, log):
         log.info('\n\n')
 
         userID = None
-        if details["slack_user_mapping"] is not None:
+        if (details["slack_user_mapping"] is not None) and (details["slack_bot_token"] is not None):
             # https://slack.dev/python-slack-sdk/web/index.html
 
             log.info('Getting Slack ID from user mapping.')

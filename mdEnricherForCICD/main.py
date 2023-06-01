@@ -545,16 +545,9 @@ def main(
     details.update({"source_github_url": source_github_url})
 
     if details["builder"] == 'travis':
-        try:
-            if 'github.com' in details["source_github_domain"]:
-                build_domain = 'travis.com'
-            else:
-                build_domain = details["source_github_domain"].replace('github', 'travis')
-            build_url = "https://" + build_domain + "/" + details["source_github_org"] + "/" + details["source_github_repo"] + "/builds/" + details["build_id"]
-        except Exception:
-            build_url = 'None'
+        build_url = str(os.environ.get('TRAVIS_BUILD_WEB_URL'))
     elif details["builder"] == 'jenkins':
-        build_url = os.environ.get('build_url')
+        build_url = str(os.environ.get('build_url'))
     else:
         build_url = 'None'
 
@@ -603,7 +596,7 @@ def main(
     jsonCheck(details, log, 'False', enricher_json_files, 'None')
 
     all_tags = []
-    all_locations = []
+    all_locations: list[str] = []  # type: ignore[misc]
     allSourceFiles = {}
 
     # Collect tags, location folders, but also verify that the locations are unique
@@ -621,34 +614,43 @@ def main(
         except Exception:
             log.debug('%s is a local location.', location_name)
         else:
-            try:
-                branch_test = location["location_github_branch_pr"]
-            except Exception:
-                try:
-                    branch_test = location["location_github_branch"]
-                except Exception:
-                    addToErrors('No branch is specified in the locations file for ' + location_name + '.',
-                                'locations.json', '', details, log, 'pre-build', location_name, locations_wholeFile)
-                    exitBuild(details, log)
 
-            location_info = location_github_url + ',' + branch_test
-            # Catch duplicates in the locations file
-            if location_info in all_locations:
-                addToErrors('The ' + location_name + ' might be a duplicate of another. ' +
-                            'Check that the combination of the URL, Branch and PR branch are unique for ' +
-                            location_github_url + ' with the branch ' + branch_test + '.', 'locations.json', '',
-                            details, log, 'pre-build', location_name, locations_wholeFile)
-                exitBuild(details, log)
-            # Check if the current branch is listed in one of the locations and don't run on that
-            elif (location_info) == (details["source_github_url"] + ',' + details["current_github_branch"]):
-                addToWarnings('The downstream location cannot be the same as the upstream location where this build is initiated: ' +
-                              location_github_url + ', ' + branch_test +
-                              ' branch. Not running on this content. Exiting the build.',
-                              'locations.json', '', details, log, 'pre-build', '', '')
+            def checkLocation(all_locations, location_info):
+                # Catch duplicates in the locations file
+                if location_info in all_locations:
+                    addToErrors('The ' + location_name + ' might be a duplicate of another. ' +
+                                'Check that the combination of the URL, Branch and PR branch are unique for ' +
+                                location_info + '.', 'locations.json', '',
+                                details, log, 'pre-build', location_name, locations_wholeFile)
+                    exitBuild(details, log)
+                # Check if the current branch is listed in one of the locations and don't run on that
+                elif (location_info ==
+                      details["source_github_url"] + ',' + details["current_github_branch"]):
+                    addToErrors('The downstream location cannot be the same as the upstream location where this build is initiated: ' +
+                                location_info +
+                                ' branch. Not running on this content. Exiting the build.',
+                                'locations.json', '', details, log, 'pre-build', '', '')
+                    exitBuild(details, log)
+                else:
+                    all_locations.append(location_info)
+                    log.debug('Verified location is unique: ' + location_info)
+                return (all_locations)
+
+            try:
+                location_info = location_github_url + ',' + location["location_github_branch_pr"]
+            except Exception:
+                pass
+            else:
+                all_locations = checkLocation(all_locations, location_info)
+
+            try:
+                location_info = location_github_url + ',' + location["location_github_branch"]
+            except Exception:
+                addToErrors('No branch is specified in the locations file for ' + location_name + '.',
+                            'locations.json', '', details, log, 'pre-build', location_name, locations_wholeFile)
                 exitBuild(details, log)
             else:
-                all_locations.append(location_github_url + ',' + branch_test)
-                log.debug('Verified location is unique: ' + location_github_url + ',' + branch_test)
+                all_locations = checkLocation(all_locations, location_info)
 
     join_comma = ', '
     log.info('Locations can be used as tags: %s', join_comma.join(all_tags))
