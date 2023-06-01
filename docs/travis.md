@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2023-05-01
+# Last updated: 2023-06-01
 -->
 
 # Running in Travis
@@ -20,6 +20,7 @@
     a. Add the [environment variables](setup.md#environment-variables).
 1. Create a [locations file](setup.md#locations-file). 
 1. Create a `.travis.yml` file. Example:
+    
     ```
     matrix:
     include:
@@ -43,8 +44,8 @@
                 travis_terminate 1
             fi
         - echo "Starting the Markdown Enricher script..."
-        - python -m pip install -r ${TRAVIS_BUILD_DIR}/*md-enricher-for-cicd-*/requirements.txt
-        - python ${TRAVIS_BUILD_DIR}/*md-enricher-for-cicd-*/md-enricher-for-cicd/mdEnricherForCICD/start.py --source_dir ${TRAVIS_BUILD_DIR} --locations_file ${TRAVIS_BUILD_DIR}/*md-enricher-for-cicd-*/md-enricher-for-cicd/locations.json --slack_webhook ${SLACK_WEBHOOK} | tee -a ${TRAVIS_BUILD_DIR}/.md-enricher-for-cicd.log ; travis_terminate ${PIPESTATUS[0]}
+        - python -m pip install -r ${TRAVIS_BUILD_DIR}/*md-enricher-for-cicd*/requirements.txt
+        - python ${TRAVIS_BUILD_DIR}/*md-enricher-for-cicd*/md-enricher-for-cicd/mdEnricherForCICD/start.py --source_dir ${TRAVIS_BUILD_DIR} --locations_file ${TRAVIS_BUILD_DIR}/*md-enricher-for-cicd*/md-enricher-for-cicd/locations.json --slack_webhook ${SLACK_WEBHOOK} | tee -a ${TRAVIS_BUILD_DIR}/.md-enricher-for-cicd.log ; travis_terminate ${PIPESTATUS[0]}
     ```
 1. Mark up your content with tags. These tags can be the names of the locations or the flags in the `feature-flags.json` file. When you commit the change, a Travis build is kicked off.
 

@@ -183,7 +183,7 @@ def pushUpdatedFiles(self, details, location_github_branch_push, source_files):
         # Was something commited to Next Prod Push? If a PR doesn't already exist that's created by the user, create the PR for prod
 
         if pushSuccessful is True:
-            if self.location_output_action == 'create-pr':
+            if (self.location_output_action == 'create-pr') and (not location_github_branch_push == self.location_github_branch):
                 # List PRs
                 listPRs = requests.get(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
                                        auth=(details["username"], details["token"]))
