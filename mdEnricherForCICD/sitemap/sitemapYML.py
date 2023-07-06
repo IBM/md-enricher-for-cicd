@@ -27,7 +27,7 @@ def sitemapYML(self, details, source_files):
             for repo in yamlContents["includes"]:
                 tempRepo = repo.split('/')
                 # 0: http, 1: nothing, 2: domain, 3: org, 4: repo
-                if tempRepo[4] == reuseRepo:
+                if (tempRepo[4] == reuseRepo) and (not os.path.isfile(self.location_dir + '/includes/' + tempRepo[4] + '/' + pathAndReuseTopic)):
                     self.log.info('Getting ' + tempRepo[3] + '/' + tempRepo[4] + '/' + pathAndReuseTopic + ' for reuse.')
                     fileContents = requests.get('https://raw.' + tempRepo[2] + '/' + tempRepo[3] + '/' +
                                                 tempRepo[4] + '/' + self.location_github_branch + '/' +
@@ -67,8 +67,8 @@ def sitemapYML(self, details, source_files):
                             keyrefFile = requests.get('https://raw.' + tempRepo[2] + '/' + tempRepo[3] + '/' +
                                                       tempRepo[4] + '/' + self.location_github_branch + '/keyref.yaml',
                                                       auth=(details["username"], details["token"]))
-                            if os.path.isfile(self.location_dir + '/sitemap-temp/' + tempRepo[4] + '/keyref.yaml'):
-                                with open(self.location_dir + '/sitemap-temp/' + tempRepo[4] + '/keyref.yaml',
+                            if os.path.isfile(self.location_dir + '/includes/' + tempRepo[4] + '/keyref.yaml'):
+                                with open(self.location_dir + '/includes/' + tempRepo[4] + '/keyref.yaml',
                                           "w+", encoding="utf8", errors="ignore") as keyrefFileOpen:
                                     keyrefFileOpen.write(keyrefFile.text)
 
@@ -78,23 +78,16 @@ def sitemapYML(self, details, source_files):
                             conrefFile = requests.get('https://raw.' + tempRepo[2] + '/' + tempRepo[3] + '/' +
                                                       tempRepo[4] + '/' + self.location_github_branch + '/conref.md',
                                                       auth=(details["username"], details["token"]))
-                            with open(self.location_dir + '/sitemap-temp/' + tempRepo[4] + '/conref.md',
+                            with open(self.location_dir + '/includes/' + tempRepo[4] + '/conref.md',
                                       "w+", encoding="utf8", errors="ignore") as conrefFileOpen:
                                 conrefFileOpen.write(conrefFile.text)
 
-                        if not os.path.isdir(self.location_dir + '/sitemap-temp/' + tempRepo[4] + '/' + pathToReuseTopic):
-                            os.makedirs(self.location_dir + '/sitemap-temp/' + tempRepo[4] + '/' + pathToReuseTopic)
-                        with open(self.location_dir + '/sitemap-temp/' + tempRepo[4] + '/' + pathAndReuseTopic,
+                        if not os.path.isdir(self.location_dir + '/includes/' + tempRepo[4] + '/' + pathToReuseTopic):
+                            os.makedirs(self.location_dir + '/includes/' + tempRepo[4] + '/' + pathToReuseTopic)
+                        with open(self.location_dir + '/includes/' + tempRepo[4] + '/' + pathAndReuseTopic,
                                   "w+", encoding="utf8", errors="ignore") as reuseFile:
                             reuseFile.write(fileContentsText)
-                        # For Jenkins and local, also write the include file to be processed with the markdown transform
-                        if not details["builder"] == 'travis':
-                            # if not os.path.isfile(details["output_dir"] + '/' + tempRepo[4] + '/' + pathAndReuseTopic):
-                            if not os.path.isdir(details["output_dir"] + '/' + tempRepo[4] + '/' + pathToReuseTopic):
-                                os.makedirs(details["output_dir"] + '/' + tempRepo[4] + '/' + pathToReuseTopic)
-                            with open(details["output_dir"] + '/' + tempRepo[4] + '/' + pathAndReuseTopic,
-                                      "w+", encoding="utf8", errors="ignore") as reuseFile:
-                                reuseFile.write(fileContentsText)
+
                     else:
                         self.log.error(fileContents.text)
                         self.log.error('No file contents returned.')
@@ -118,8 +111,9 @@ def sitemapYML(self, details, source_files):
             startingAnchor = ''
             sectionToInsert = []
             storeLines = False
+            previousLine = ''
             for line in conrefLines:
-                if getHeadingAnchor is True:
+                if previousLine.startswith('#') and getHeadingAnchor is True:
                     # If the heading has an anchor and it matches the one being evaluated
                     # Then start tracking the subsquent lines until it reaches a breaking ppoint
                     # Which is either the end of the file, a heading without an anchor
@@ -162,11 +156,13 @@ def sitemapYML(self, details, source_files):
                 else:
                     startingHeading == ''
 
+                previousLine = line
+
             if not sectionToInsert == []:
                 sectionToInsertString = ''.join(sectionToInsert)
                 topicContents = topicContents.replace('{{site.data.content.' + conrefUsed + '}}', sectionToInsertString)
-            else:
-                self.log.info('{{site.data.content.' + conrefUsed + '}} is empty')
+            # else:
+                # self.log.info('{{site.data.content.' + conrefUsed + '}} is empty')
         return (topicContents)
 
     def checkForReusedSections(topicContents, srcFile):
@@ -187,7 +183,6 @@ def sitemapYML(self, details, source_files):
             # For each reuse section
             for reuseTopic in reusedSections:
                 # Get the contents of that file
-                self.log.info(' Getting: ' + reuseTopic)
                 reuseRepo, reuseTopicContents = getReuseFile(reuseTopic)
                 # Get the anchor
                 if '#' in reuseTopic:
@@ -195,6 +190,22 @@ def sitemapYML(self, details, source_files):
                 # If there is no anchor specified, grab the first one in the topic
                 else:
                     anchor = re.findall('{: #(.*?)}', topicContents)[0]
+
+                # Split on H2s
+                '''
+                reusedH2s = reuseTopicContents.split('## ')
+                for reusedH2 in reusedH2s:
+                    if '{: #' + anchor + '}' in reusedH2:
+                        reusedH3s = reusedH2.split('### ')
+                        print('Anchor in H2')
+                        for reusedH3 in reusedH3s:
+                            if '{: #' + anchor + '}' in reusedH3:
+                                print('Anchor in H3')
+                                reusedH4s = reusedH3.split('#### ')
+                                for reusedH4 in reusedH4s:
+                                    if '{: #' + anchor + '}' in reusedH4:
+                                        print('Anchor in H4')
+                '''
                 # Turn the topic contents into a list
                 reuseTopicContentsLines = reuseTopicContents.split('\n')
                 reusedSection = ''
@@ -202,10 +213,10 @@ def sitemapYML(self, details, source_files):
                 previousLine = ''
                 for line in reuseTopicContentsLines:
                     # Find the anchor referenced
-                    if '{: #' + anchor + '}' in line:
+                    if '{: #' + anchor + '}' in line and previousLine.startswith('#'):
                         # Then split the section on the heading before the anchor
                         reusedSectionWithoutHeading = reuseTopicContents.split(previousLine)[1]
-                        reusedSection = previousLine + '\n' + reusedSectionWithoutHeading
+                        reusedSection = previousLine + reusedSectionWithoutHeading
                         reusedSectionLines = reusedSectionWithoutHeading.split('\n')
                         # Go through every line of the reused section content and look for the
                         # next heading of the same level or higher to end on
@@ -221,17 +232,16 @@ def sitemapYML(self, details, source_files):
                                     reusedSection = reusedSection.split(reusedLine)[0]
                         break
                     previousLine = line
-                if reusedSection == '':
-                    self.log.warning('The section could not be found: ' + '{{../' + reuseTopic + '}}')
-                else:
-                    # {{site.data.content.someconrefname}} from conref.md in another subcollection
+                if not reusedSection == '':
+                    # self.log.warning('The section could not be found: ' + '{{../' + reuseTopic + '}}')
+
                     if '{{site.data.content.' in reusedSection:
-                        reusedSection = conrefMDReplacement(self.location_dir + '/sitemap-temp/' + reuseRepo + '/conref.md', reusedSection, srcFile)
+                        reusedSection = conrefMDReplacement(self.location_dir + '/includes/' + reuseRepo + '/conref.md', reusedSection, srcFile)
 
                     # {{site.data.keyword.somekeyword name}} from keyref.yaml in another subcollection
                     if '{{site.data.keyword.' in reusedSection:
-                        if os.path.isfile(self.location_dir + '/sitemap-temp/' + reuseRepo + '/keyref.yaml'):
-                            with open(self.location_dir + '/sitemap-temp/' + reuseRepo + '/keyref.yaml',
+                        if os.path.isfile(self.location_dir + '/includes/' + reuseRepo + '/keyref.yaml'):
+                            with open(self.location_dir + '/includes/' + reuseRepo + '/keyref.yaml',
                                       "r", encoding="utf8", errors="ignore") as keyrefFileOpen:
                                 keyrefFileYAML = yaml.safe_load(keyrefFileOpen)
                             keywords = re.findall('{{site.data.keyword.(.*?)}}', reusedSection)
@@ -243,6 +253,11 @@ def sitemapYML(self, details, source_files):
                                     pass
                                 else:
                                     reusedSection = reusedSection.replace('{{site.data.keyword.' + keyword + '}}', value)
+                    # Replace the anchors with the reused anchors format: mainTopicID-include-reusedSectionID
+                    reusedAnchors = re.findall('{: #(.*?)}', reusedSection)
+                    mainTopicID = re.findall('{: #(.*?)}', topicContents)[0]
+                    for reusedAnchor in reusedAnchors:
+                        reusedSection = reusedSection.replace('{: #' + reusedAnchor + '}', '{: #' + mainTopicID + '-include-' + reusedAnchor + '}')
                     topicContents = topicContents.replace('{{../' + reuseTopic + '}}', reusedSection)
 
         return (topicContents)
@@ -255,7 +270,7 @@ def sitemapYML(self, details, source_files):
         import os
         import re
         import requests
-        import shutil
+        # import shutil
         import subprocess
         import yaml
 
@@ -336,13 +351,13 @@ def sitemapYML(self, details, source_files):
                             contentReuseList.append(tocFilenameNoSpaces)
                             tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
                             repoName = tocFilenameNoStartingSlash.split('/', 1)[0]
-                            if not os.path.isdir(self.location_dir + '/sitemap-temp/' + repoName):
+                            if not os.path.isdir(self.location_dir + '/includes/' + repoName):
                                 self.log.info('Cloning ' + repoName + ' to resolve sitemap content.')
                                 subprocess.call('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
                                                 details["username"] + ':' + details["token"] + '@' +
                                                 self.location_github_domain + '/' + cloudDocsOrg + '/' + repoName + ' ' +
-                                                self.location_dir + '/sitemap-temp/' + repoName + ' --quiet', shell=True)
-                            if not os.path.isfile(self.location_dir + '/sitemap-temp/' + repoName + input_file):
+                                                self.location_dir + '/includes/' + repoName + ' --quiet', shell=True)
+                            if not os.path.isfile(self.location_dir + '/includes/' + repoName + input_file):
                                 addToWarnings('The sitemap might be incomplete. This TOC does not exist yet: ' +
                                               repoName + input_file, location_sitemap_file, '', details, self.log,
                                               self.location_name, '', '')
@@ -355,12 +370,12 @@ def sitemapYML(self, details, source_files):
                             contentReuseList.append(tocFilenameNoSpaces)
                             tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
                             repoName = tocFilenameNoStartingSlash.split('/', 1)[0]
-                            if not os.path.isdir(self.location_dir + '/sitemap-temp/' + repoName):
+                            if not os.path.isdir(self.location_dir + '/includes/' + repoName):
                                 self.log.info('Cloning ' + repoName + ' to resolve sitemap content.')
                                 subprocess.call('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
                                                 details["username"] + ':' + details["token"] + '@' +
                                                 self.location_github_domain + '/' + cloudDocsOrg + '/' + repoName + ' ' +
-                                                self.location_dir + '/sitemap-temp/' + repoName + ' --quiet', shell=True)
+                                                self.location_dir + '/includes/' + repoName + ' --quiet', shell=True)
 
             try:
                 with open(self.location_dir + input_file, "r+", encoding="utf8", errors="ignore") as file_open_test:
@@ -510,8 +525,8 @@ def sitemapYML(self, details, source_files):
                         elif str(topicInfo).endswith('toc'):
                             repoName = topicInfo.split('/')[1]
                             # self.log.debug('repoName: ' + repoName)
-                            if os.path.isfile(self.location_dir + '/sitemap-temp/' + repoName + input_file):
-                                f2 = open(self.location_dir + '/sitemap-temp/' + repoName + input_file)
+                            if os.path.isfile(self.location_dir + '/includes/' + repoName + input_file):
+                                f2 = open(self.location_dir + '/includes/' + repoName + input_file)
                                 tocContent2 = yaml.safe_load(f2)
                                 f2.close()
                                 path2 = tocContent2['toc']['properties']['path']
@@ -519,11 +534,11 @@ def sitemapYML(self, details, source_files):
                                 linkIntro2 = '/docs/' + path2 + '?topic=' + subcollection2 + '-'
                                 entries2 = tocContent2['toc']['entries']
                                 self.log.debug(entries2)
-                                sitemapList = entriesLoop(entries2, linkIntro2, self.location_dir + '/sitemap-temp/' + repoName,
+                                sitemapList = entriesLoop(entries2, linkIntro2, self.location_dir + '/includes/' + repoName,
                                                           True, True, topicGroup, sitemapAnchorList, sitemapList)
                                 nestedTOC = False
                             # else:
-                                # self.log.debug('TOC does not exist: ' + self.location_dir + '/sitemap-temp/' + repoName + input_file)
+                                # self.log.debug('TOC does not exist: ' + self.location_dir + '/includes/' + repoName + input_file)
                         elif str(topicInfo).startswith('/') or str(topicInfo).startswith('../'):
                             # self.log.info('Checking: ' + topicInfo)
                             if str(topicInfo).startswith('/'):
@@ -544,15 +559,15 @@ def sitemapYML(self, details, source_files):
                                 # self.log.info(fileName)
                             if not topicPath.startswith('/'):
                                 topicPath = '/' + topicPath
-                            # self.log.info('Looking for ' + self.location_dir + '/sitemap-temp' + topicPath + '/' + fileName)
-                            if os.path.isfile(self.location_dir + '/sitemap-temp' + topicPath + '/' + fileName):
-                                # self.log.info('Found: ' + self.location_dir + '/sitemap-temp' + topicPath + '/' + fileName)
-                                sitemapList = getFileContents(self.location_dir + '/sitemap-temp' + topicPath + '/' + fileName,
-                                                              navtitle, topicGroup, nestedTOC, self.location_dir + '/sitemap-temp/' +
+                            # self.log.info('Looking for ' + self.location_dir + '/includes' + topicPath + '/' + fileName)
+                            if os.path.isfile(self.location_dir + '/includes' + topicPath + '/' + fileName):
+                                # self.log.info('Found: ' + self.location_dir + '/includes' + topicPath + '/' + fileName)
+                                sitemapList = getFileContents(self.location_dir + '/includes' + topicPath + '/' + fileName,
+                                                              navtitle, topicGroup, nestedTOC, self.location_dir + '/includes/' +
                                                               topicPath, sitemapAnchorList, sitemapList)
                             else:
                                 # self.log.info('Looping for ' + topicPath)
-                                for (path, dirs, files) in os.walk(self.location_dir + '/sitemap-temp' + topicPath + '/'):
+                                for (path, dirs, files) in os.walk(self.location_dir + '/includes' + topicPath + '/'):
                                     if '.git' not in path:
                                         for tempFile in files:
                                             tempFile = path + '/' + tempFile
@@ -589,7 +604,8 @@ def sitemapYML(self, details, source_files):
                                 # getFileContents(file,navtitle,topicGroup,nestedTOC,predictedFilePath)
                                 sitemapList = getFileContents(file_name, navtitle, topicGroup, nestedTOC, predictedFilePath, sitemapAnchorList, sitemapList)
                             else:
-                                addToErrors('Does not exist: ' + file_name, location_sitemap_file, '', details, self.log, self.location_name, '', '')
+                                addToErrors('The topic referenced in the TOC does not exist and its contents could not be included in the sitemap: ' +
+                                            file_name.replace(self.location_dir, ''), location_sitemap_file, '', details, self.log, self.location_name, '', '')
                         elif topicInfo['href']:
                             self.log.debug('Handling links!')
                             sitemapList = getLink(linkIntro, topicInfo, topicGroup, sitemapList)
@@ -612,14 +628,14 @@ def sitemapYML(self, details, source_files):
                     # self.log.info('topicGroup: ' + str(topicGroup))
                     # self.log.info('nestedTOC: ' + str(nestedTOC))
                     # self.log.info('predictedFilePath: ' + predictedFilePath)
-                    if '/sitemap-temp/' not in file:
+                    if '/includes/' not in file:
                         if self.location_dir not in file:
                             filePath = self.location_dir + '/' + file
                         else:
                             filePath = file
                         subcollectionTemp = tocContent['toc']['properties']['subcollection']
                         linkIntro = '/docs/' + path + '?topic=' + subcollectionTemp + '-'
-                    if '/sitemap-temp/' in file:
+                    if '/includes/' in file:
                         filePath = file
                         # If new whole file content reuse is used in the toc, then use the same subcollection as the repo
                         linkIntro = '/docs/' + path + '?topic=' + path + '-'
@@ -1084,5 +1100,5 @@ def sitemapYML(self, details, source_files):
     except Exception as e:
         addToErrors('The sitemap could not be generated: ' + str(e), location_sitemap_file, '', details, self.log, self.location_name, '', '')
 
-    if os.path.isdir(self.location_dir + '/sitemap-temp'):
-        shutil.rmtree(self.location_dir + '/sitemap-temp')
+    # if os.path.isdir(self.location_dir + '/includes'):
+    # shutil.rmtree(self.location_dir + '/includes')

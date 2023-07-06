@@ -218,7 +218,7 @@ def main(
 
                     # Should these be within the location_dir or the output_dir
                     for directory_to_delete in directories_to_delete:
-                        if not directory_to_delete.startswith('/'):
+                        if not directory_to_delete.startswith('/') and not directory_to_delete.startswith('includes'):
                             directory_to_delete = '/' + directory_to_delete
                         if os.path.isdir(self.location_dir + directory_to_delete):
                             self.log.debug('Deleted: ' + self.location_dir + directory_to_delete)
@@ -233,6 +233,10 @@ def main(
                     if os.path.isfile(self.location_dir + '/' + locations_file_name):
                         os.remove(self.location_dir + '/' + locations_file_name)
                         self.log.debug('Removing: ' + self.location_dir + '/' + locations_file_name)
+
+                    if os.path.isdir(self.location_dir + '/doctopus-common'):
+                        shutil.rmtree(self.location_dir + '/doctopus-common')
+                        self.log.debug('Removing: ' + self.location_dir + '/doctopus-common')
 
                     # Update the copyright and last updated
                     # Comments are also handled via dates
