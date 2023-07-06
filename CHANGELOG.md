@@ -2,7 +2,12 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.1.2, released 06 July 2023
 
+<dl>
+<dt>Removed empty lines from downstream <code>toc.yaml</code> files</dt>
+<dd>To prevent <code>marked-it</code> transformation errors, lines that only contain newlines (<code>\n</code>) or spaces were removed from downstream <code>toc.yaml</code> files.</dd>
+</dl>
 
 ## Version 1.1.1, released 01 June 2023
 

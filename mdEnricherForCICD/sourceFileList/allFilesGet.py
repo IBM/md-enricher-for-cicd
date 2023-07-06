@@ -33,15 +33,18 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
         # Allow the running of the example and docs directories, but not anything else
         if ((('md-enricher-for-cicd' in details["source_dir"]) and
              ('md-enricher-for-cicd' in str(details["source_github_repo"])) and
+             ('doctopus-common' not in path) and
              (details["output_dir"] not in path)) or
 
                 (('md-enricher-for-cicd' in details["source_dir"]) and
                  ('/example' in details["source_dir"]) and
+                 ('doctopus-common' not in path) and
                  (details["output_dir"] not in path)) or
 
                 (('.git' not in path) and
                  ('.DS_Store' not in path) and
                  ('environment-variables' not in path) and
+                 ('doctopus-common' not in path) and
                  ('md-enricher-for-cicd' not in path) and
                  (details["output_dir"] not in path))):
 
@@ -93,7 +96,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                 elif (file.endswith(tuple(details["filetypes"])) and
                                    (remove_all_other_files_folders is False)):
                     # if not file == str(details["reuse_phrases_file"]):
-                    # log.debug('Handling filetypes: ' + folder_name + file)
+                    log.debug('Handling filetypes and remove is False: ' + folder_name + file)
                     all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
                                                folder_name + file, all_files_dict, location_contents_files,
                                                location_contents_folders)
@@ -104,7 +107,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                                    (remove_all_other_files_folders is True) and
                                    (folder_name in location_contents_folders_keep)):
                     # if not file == str(details["reuse_phrases_file"]):
-                    # log.debug('Handling filetypes: ' + folder_name + file)
+                    log.debug('Handling filetypes and Remove is true and folder name is in folder keep: ' + folder_name + file)
                     all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
                                                folder_name + file, all_files_dict, location_contents_files,
                                                location_contents_folders)
@@ -137,11 +140,11 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
         # else:
             # log.debug('Not handling this directory for this location: ' + folder_name)
 
-    for source_file in source_files_original_list:
-        if source_file[1:] not in allFiles:
-            all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
-                                       source_file, all_files_dict, location_contents_files,
-                                       location_contents_folders)
+    # for source_file in source_files_original_list:
+    # if source_file[1:] not in allFiles:
+    # all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
+    # source_file, all_files_dict, location_contents_files,
+    # location_contents_folders)
 
     conref_files_list.sort()
     image_files_list.sort()

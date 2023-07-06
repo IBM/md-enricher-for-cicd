@@ -106,6 +106,8 @@ def pushUpdatedLogFile(details, log):
                                             details["output_dir"] + '/' + details["log_branch"] + '/' + fileOrFolder)
                             if os.path.isdir(details["output_dir"] + '/' + details["log_branch"] + '/' + fileOrFolder + '/.git'):
                                 shutil.rmtree(details["output_dir"] + '/' + details["log_branch"] + '/' + fileOrFolder + '/.git')
+                            if os.path.isfile(details["output_dir"] + '/' + details["log_branch"] + '/' + fileOrFolder + '/.gitignore'):
+                                os.remove(details["output_dir"] + '/' + details["log_branch"] + '/' + fileOrFolder + '/.gitignore')
                             log.debug('Copying ' + details["output_dir"] + '/' + fileOrFolder + ' to ' +
                                       details["output_dir"] + '/' + details["log_branch"] + '/' + fileOrFolder)
                 elif os.path.isfile(details["output_dir"] + '/' + fileOrFolder):

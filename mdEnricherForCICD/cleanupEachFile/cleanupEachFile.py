@@ -68,6 +68,13 @@ def cleanupEachFile(self, details, imageProcessing, location_github_branch_push,
         from cleanupEachFile.metadata import metadata
         topicContents = metadata(self, details, file_name, firstAnchor, folderAndFile, folderPath, topicContents)
 
+        if file_name == 'toc.yaml':
+            topicContentsList = topicContents.split('\n')
+            for line in topicContentsList:
+                if (line.isspace() is True) or (line == ''):
+                    topicContentsList.remove(line)
+            topicContents = "\n".join(topicContentsList)
+
         from cleanupEachFile.writeResult import writeResult
         writeResult(self, details, file_name, folderAndFile, folderPath, topicContents)
 
