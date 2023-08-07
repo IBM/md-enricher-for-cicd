@@ -107,7 +107,7 @@ def imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContent
                 imgfolderAndFile = img_folderPath + img_file_name
 
                 if os.path.isfile(details['source_dir'] + imgfolderAndFile):
-                    self.log.debug('Not checking HTTP images: ' + imageName)
+                    copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath)
                     imageNameVerified = 'True'
                 elif not folderAndFile.startswith(img_folderPath):
                     extraFolder = folderAndFile.rsplit('/', 1)[0]

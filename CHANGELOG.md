@@ -2,6 +2,14 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.1.3, released 07 August 2023
+<dl>
+<dt>Bug fix: Images not being copied downstream</dt>
+<dd>Fixed a missing copy command after verifying that the image does exist.</dd>
+<dt>Added debugging</dt>
+<dd>Added debugging logs to understand why a file might be ignored and not get processed.</dd>
+</dl>
+
 ## Version 1.1.2, released 06 July 2023
 
 <dl>

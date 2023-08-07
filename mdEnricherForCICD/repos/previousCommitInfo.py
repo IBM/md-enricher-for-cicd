@@ -288,9 +288,12 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
                                 fileStatus = 'modified'
                             # Get file patch
                             if folderAndFile.endswith(tuple(details["filetypes"])):
-                                filePatchBytes = subprocess.check_output('git diff ' + previous_commit_id + ' ' + current_commit_id +
-                                                                         ' --patch ' + folderAndFile, shell=True)
-                                filePatch = filePatchBytes.decode("utf-8")
+                                try:
+                                    filePatchBytes = subprocess.check_output('git diff ' + previous_commit_id + ' ' + current_commit_id +
+                                                                             ' --patch ' + folderAndFile, shell=True)
+                                    filePatch = filePatchBytes.decode("utf-8")
+                                except Exception:
+                                    filePatch = ''
                             else:
                                 filePatch = ''
 

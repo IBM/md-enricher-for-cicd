@@ -5,94 +5,6 @@
 
 def sitemapYML(self, details, source_files):
 
-    def getReuseFile(reuseTopic):
-
-        # - include: ../va/va_index.md
-        # {{../account/account_settings.md#view-acct-settings}}
-        while '../' in reuseTopic:
-            reuseTopic = reuseTopic.replace('../', '')
-        reuseTopic = reuseTopic.replace('\n', '')
-        # account   account_settings.md#view-acct-settings
-        reuseRepo, pathAndReuseTopic = reuseTopic.split('/', 1)
-        if '#' in pathAndReuseTopic:
-            pathAndReuseTopic = pathAndReuseTopic.split('#', 1)[0]
-        if '/' in pathAndReuseTopic:
-            pathToReuseTopic = pathAndReuseTopic.rsplit('/', 1)[0]
-        else:
-            pathToReuseTopic = ''
-        fileContentsText = ''
-        if os.path.isfile(self.location_dir + '/.build.yaml'):
-            with open(self.location_dir + '/.build.yaml', "r+", encoding="utf8", errors="ignore") as yaml_read:
-                yamlContents = yaml.safe_load(yaml_read)
-            for repo in yamlContents["includes"]:
-                tempRepo = repo.split('/')
-                # 0: http, 1: nothing, 2: domain, 3: org, 4: repo
-                if (tempRepo[4] == reuseRepo) and (not os.path.isfile(self.location_dir + '/includes/' + tempRepo[4] + '/' + pathAndReuseTopic)):
-                    self.log.info('Getting ' + tempRepo[3] + '/' + tempRepo[4] + '/' + pathAndReuseTopic + ' for reuse.')
-                    fileContents = requests.get('https://raw.' + tempRepo[2] + '/' + tempRepo[3] + '/' +
-                                                tempRepo[4] + '/' + self.location_github_branch + '/' +
-                                                pathAndReuseTopic, auth=(details["username"], details["token"]))
-                    # self.log.info(fileContents.status_code)
-                    if fileContents.status_code == 200:
-                        # Keyrefs in the same repo don't need to be resolved, but
-                        # keyrefs in content other repos need to be resolved to be inserted into the sitemap
-                        fileContentsText = str(fileContents.text)
-
-                        # Get the images files for link testing
-                        if 'images/' in fileContentsText:
-                            images = re.findall(r'images/(.*?)\)', fileContentsText)
-                            for image in images:
-                                self.log.info(image)
-                                if '/' in image:
-                                    imagePath, imageName = image.rsplit('/')
-                                else:
-                                    imagePath = ''
-                                    imageName = image
-                                if not imagePath.startswith('/'):
-                                    imagePath = '/' + imagePath
-                                imagePath = '/images' + imagePath
-                                if not os.path.isdir(details["output_dir"] + '/' + tempRepo[4] + imagePath):
-                                    os.makedirs(details["output_dir"] + '/' + tempRepo[4] + imagePath)
-                                imageFile = requests.get('https://raw.' + tempRepo[2] + '/' + tempRepo[3] + '/' +
-                                                         tempRepo[4] + '/' + self.location_github_branch + '/images/' + image,
-                                                         auth=(details["username"], details["token"]))
-                                # The image link will resolve, but it's not the actual image
-                                with open(details["output_dir"] + '/' + tempRepo[4] + imagePath + '/' + imageName,
-                                          "w+", encoding="utf8", errors="ignore") as imageFileOpen:
-                                    imageFileOpen.write(imageFile.text)
-
-                        # Get the keyref.yaml file, if it exists
-                        if '{{site.data.keyword.' in fileContentsText:
-                            # If a reuse section contains a keyword from their own keyref.yaml file
-                            keyrefFile = requests.get('https://raw.' + tempRepo[2] + '/' + tempRepo[3] + '/' +
-                                                      tempRepo[4] + '/' + self.location_github_branch + '/keyref.yaml',
-                                                      auth=(details["username"], details["token"]))
-                            if os.path.isfile(self.location_dir + '/includes/' + tempRepo[4] + '/keyref.yaml'):
-                                with open(self.location_dir + '/includes/' + tempRepo[4] + '/keyref.yaml',
-                                          "w+", encoding="utf8", errors="ignore") as keyrefFileOpen:
-                                    keyrefFileOpen.write(keyrefFile.text)
-
-                        # Get the conref.md file, if it exists
-                        if '{{site.data.content.' in fileContentsText:
-                            # If a reuse section contains a keyword from their own keyref.yaml file
-                            conrefFile = requests.get('https://raw.' + tempRepo[2] + '/' + tempRepo[3] + '/' +
-                                                      tempRepo[4] + '/' + self.location_github_branch + '/conref.md',
-                                                      auth=(details["username"], details["token"]))
-                            with open(self.location_dir + '/includes/' + tempRepo[4] + '/conref.md',
-                                      "w+", encoding="utf8", errors="ignore") as conrefFileOpen:
-                                conrefFileOpen.write(conrefFile.text)
-
-                        if not os.path.isdir(self.location_dir + '/includes/' + tempRepo[4] + '/' + pathToReuseTopic):
-                            os.makedirs(self.location_dir + '/includes/' + tempRepo[4] + '/' + pathToReuseTopic)
-                        with open(self.location_dir + '/includes/' + tempRepo[4] + '/' + pathAndReuseTopic,
-                                  "w+", encoding="utf8", errors="ignore") as reuseFile:
-                            reuseFile.write(fileContentsText)
-
-                    else:
-                        self.log.error(fileContents.text)
-                        self.log.error('No file contents returned.')
-        return (reuseRepo, fileContentsText)
-
     def conrefMDReplacement(conrefMDFilepath, topicContents, srcFile):
         if '/' in srcFile:
             srcFile = srcFile.rsplit('/', 1)[1]
@@ -181,15 +93,28 @@ def sitemapYML(self, details, source_files):
             # Get a list of all reused sections in the topic
             reusedSections = re.findall('{{../(.*?)}}', topicContents)
             # For each reuse section
-            for reuseTopic in reusedSections:
+            for reuseEntry in reusedSections:
+                reuseTopic = reuseEntry
                 # Get the contents of that file
-                reuseRepo, reuseTopicContents = getReuseFile(reuseTopic)
+                # account/account_settings.md#view-acct-settings
+                if '../' in reuseTopic:
+                    reuseTopic = reuseTopic.rsplit('../', 1)[1]
                 # Get the anchor
                 if '#' in reuseTopic:
-                    anchor = reuseTopic.split('#')[1]
+                    reuseTopic, anchor = reuseTopic.split('#')
                 # If there is no anchor specified, grab the first one in the topic
                 else:
                     anchor = re.findall('{: #(.*?)}', topicContents)[0]
+                # account/account_settings.md
+                if os.path.isfile(self.location_dir + '/includes/' + reuseTopic):
+                    with open(self.location_dir + '/includes/' + reuseTopic,
+                              "r", encoding="utf8", errors="ignore") as fileOpen:
+                        reuseTopicContents = fileOpen.read()
+                else:
+                    addToErrors('The reused file could not be found: ' + self.location_dir + '/includes/' + reuseTopic, location_sitemap_file, '',
+                                details, self.log, self.location_name, '', '')
+                    reuseTopicContents = ''
+                reuseRepo = reuseTopic.split('/', 1)[0]
 
                 # Split on H2s
                 '''
@@ -232,6 +157,7 @@ def sitemapYML(self, details, source_files):
                                     reusedSection = reusedSection.split(reusedLine)[0]
                         break
                     previousLine = line
+
                 if not reusedSection == '':
                     # self.log.warning('The section could not be found: ' + '{{../' + reuseTopic + '}}')
 
@@ -258,7 +184,7 @@ def sitemapYML(self, details, source_files):
                     mainTopicID = re.findall('{: #(.*?)}', topicContents)[0]
                     for reusedAnchor in reusedAnchors:
                         reusedSection = reusedSection.replace('{: #' + reusedAnchor + '}', '{: #' + mainTopicID + '-include-' + reusedAnchor + '}')
-                    topicContents = topicContents.replace('{{../' + reuseTopic + '}}', reusedSection)
+                    topicContents = topicContents.replace('{{../' + reuseEntry + '}}', reusedSection)
 
         return (topicContents)
 
@@ -269,8 +195,8 @@ def sitemapYML(self, details, source_files):
         # !/usr/bin/env python
         import os
         import re
-        import requests
-        # import shutil
+        # import requests
+        import shutil
         import subprocess
         import yaml
 
@@ -331,51 +257,23 @@ def sitemapYML(self, details, source_files):
 
         # Clone repos/files for marked-it conref reuse
 
+        if os.path.isfile(self.location_dir + '/.build.yaml'):
+            with open(self.location_dir + '/.build.yaml', "r+", encoding="utf8", errors="ignore") as yaml_read:
+                yamlContents = yaml.safe_load(yaml_read)
+            for repo in yamlContents["includes"]:
+                tempRepo = repo.split('/')
+                # 0: http, 1: nothing, 2: domain, 3: org, 4: repo
+                if (not os.path.isfile(self.location_dir + '/includes/' + tempRepo[4])):
+                    self.log.info('Cloning ' + tempRepo[4] + ' to resolve sitemap content.')
+                    subprocess.call('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
+                                    details["username"] + ':' + details["token"] + '@' +
+                                    tempRepo[2] + '/' + tempRepo[3] + '/' + tempRepo[4] + ' ' +
+                                    self.location_dir + '/includes/' + tempRepo[4] + ' --quiet', shell=True)
+                if (os.path.isdir(self.location_dir + '/includes/' + tempRepo[4] + '/.git')):
+                    shutil.rmtree(self.location_dir + '/includes/' + tempRepo[4] + '/.git')
+
         if os.path.isfile(self.location_dir + input_file):
             self.log.debug(self.location_dir + input_file + ' exists.')
-            contentReuseList = []
-            if ((details["username"] is not None) and
-                    (details["token"] is not None) and
-                    (self.location_github_branch is not None) and
-                    (self.location_github_domain is not None)):
-
-                self.log.debug('Parsing ' + input_file)
-                cloudDocsOrg = 'cloud-docs'
-                # if cloudDocsOrg == 'Run this now':
-                with open(self.location_dir + input_file, "r+", encoding="utf8", errors="ignore") as file_open:
-                    file_read = file_open.readlines()
-                    for line in file_read:
-                        line = re.sub('<!--(.*?)-->', '', line, flags=re.DOTALL)
-                        tocFilenameNoSpaces = line.replace('-', '', 1).replace(' ', '').replace('\n', '')
-                        if '/toc' in line:
-                            contentReuseList.append(tocFilenameNoSpaces)
-                            tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
-                            repoName = tocFilenameNoStartingSlash.split('/', 1)[0]
-                            if not os.path.isdir(self.location_dir + '/includes/' + repoName):
-                                self.log.info('Cloning ' + repoName + ' to resolve sitemap content.')
-                                subprocess.call('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
-                                                details["username"] + ':' + details["token"] + '@' +
-                                                self.location_github_domain + '/' + cloudDocsOrg + '/' + repoName + ' ' +
-                                                self.location_dir + '/includes/' + repoName + ' --quiet', shell=True)
-                            if not os.path.isfile(self.location_dir + '/includes/' + repoName + input_file):
-                                addToWarnings('The sitemap might be incomplete. This TOC does not exist yet: ' +
-                                              repoName + input_file, location_sitemap_file, '', details, self.log,
-                                              self.location_name, '', '')
-                        elif 'include: ' in line:
-                            # - include: ../va/va_index.md
-                            reuseTopic = line.split('include: ')[1]
-                            getReuseFile(reuseTopic)
-
-                        elif tocFilenameNoSpaces.startswith('/'):
-                            contentReuseList.append(tocFilenameNoSpaces)
-                            tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
-                            repoName = tocFilenameNoStartingSlash.split('/', 1)[0]
-                            if not os.path.isdir(self.location_dir + '/includes/' + repoName):
-                                self.log.info('Cloning ' + repoName + ' to resolve sitemap content.')
-                                subprocess.call('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
-                                                details["username"] + ':' + details["token"] + '@' +
-                                                self.location_github_domain + '/' + cloudDocsOrg + '/' + repoName + ' ' +
-                                                self.location_dir + '/includes/' + repoName + ' --quiet', shell=True)
 
             try:
                 with open(self.location_dir + input_file, "r+", encoding="utf8", errors="ignore") as file_open_test:

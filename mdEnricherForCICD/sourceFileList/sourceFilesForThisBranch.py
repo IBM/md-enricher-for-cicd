@@ -84,10 +84,14 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
                 del source_files[source_file]
                 self.log.debug(source_file + ': Skipping phrases content reuse file')
 
-        elif details["reuse_snippets_folder"] in folderAndFile:
+        elif details["reuse_snippets_folder"] + '/' in folderAndFile:
             if details["builder"] != 'local':
-                conrefMDFilename = folderAndFile.split(details["reuse_snippets_folder"] + '/', 2)[1]
-                conrefChangeList.append(conrefMDFilename)
+                try:
+                    conrefMDFilename = folderAndFile.split(details["reuse_snippets_folder"] + '/', 1)[1]
+                    conrefChangeList.append(conrefMDFilename)
+                except Exception as e:
+                    self.log.debug('Failed to parse: ' + folderAndFile)
+                    self.log.debug(e)
             if source_file in source_files:
                 del source_files[source_file]
                 self.log.debug(source_file + ": Skipping content reuse files")

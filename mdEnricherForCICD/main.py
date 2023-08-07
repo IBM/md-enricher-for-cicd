@@ -747,8 +747,28 @@ def main(
                     fileNamePrevious = source_files_original_list[source_files_original]["fileNamePrevious"]
                 except Exception as e:
                     # We don't want things like .travis.yml added to the location list
-                    log.debug('Could not find details for: ' + source_files_original)
+                    log.debug('Not handling: ' + source_files_original)
                     log.debug(e)
+                    try:
+                        log.debug(folderPath)
+                    except Exception:
+                        log.debug('No folderPath.')
+                    try:
+                        log.debug(file_name)
+                    except Exception:
+                        log.debug('No file_name.')
+                    try:
+                        log.debug(fileStatus)
+                    except Exception:
+                        log.debug('No fileStatus.')
+                    try:
+                        log.debug(filePatch)
+                    except Exception:
+                        log.debug('No filePatch.')
+                    try:
+                        log.debug(fileNamePrevious)
+                    except Exception:
+                        log.debug('No fileNamePrevious.')
                 else:
                     try:
                         source_files_location_list[source_files_original] = {}
