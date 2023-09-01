@@ -29,7 +29,7 @@ def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folde
         dictionary[folderAndFile]['fileStatus'] = fileStatus
         dictionary[folderAndFile]['filePatch'] = filePatch
         dictionary[folderAndFile]['fileNamePrevious'] = fileNamePrevious
-        log.debug('Adding: ' + folderAndFile)
+        log.debug('Adding: ' + folderAndFile + ' (upstream path), ' + returnedFolderName + returnedFileName + ' (downstream path)')
 
         if (os.path.isfile(details["source_dir"] + folderAndFile)) and (folderAndFile.endswith(tuple(details["filetypes"]))):
             with open(details["source_dir"] + folderAndFile, 'r', encoding="utf8", errors="ignore") as fileName_write:

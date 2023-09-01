@@ -9,8 +9,8 @@ def runThisBuild(details, all_files_dict, location_name, log, source_files_locat
 
     runThisLocation = False
 
-    log.debug('source_files_location_list:')
-    log.debug(source_files_location_list)
+    # log.debug('source_files_location_list:')
+    # log.debug(source_files_location_list)
 
     if any(x in list(all_files_dict) for x in source_files_location_list):
         log.debug('Running this location because file is in the list for this location.')
@@ -27,5 +27,12 @@ def runThisBuild(details, all_files_dict, location_name, log, source_files_locat
     if (details["featureFlagFile"] in source_files_location_list) and (runThisLocation is False):
         log.debug('Running this location because feature_flags.json is in the original source files list.')
         runThisLocation = True
+
+    if runThisLocation is False:
+        for x in source_files_location_list:
+            if source_files_location_list[x]['fileStatus'] == 'removed':
+                log.debug('Running this location because a file was removed upstream.')
+                runThisLocation = True
+                break
 
     return (runThisLocation)
