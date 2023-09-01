@@ -4,4 +4,4 @@ The Markdown Enricher allows writers to single-source content delivery from one 
 
 Spend more time writing, with better quality, and less time on content delivery management. 
 
-[Learn more in the documentation](https://ibm.github.io/md-enricher-for-cicd/#/overview).
+[Learn more in the documentation](https://ibm.github.io/md-enricher-for-cicd/#/).

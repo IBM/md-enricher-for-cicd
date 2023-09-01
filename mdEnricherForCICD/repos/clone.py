@@ -44,7 +44,8 @@ def clone(self, details):
             if details["token"] is None:
                 addToErrors('A token was not specified in the environment variables.', 'cloning', '', details, self.log,
                             self.location_name, '', '')
-            exitBuild(details, self.log)
+            if not self.location_output_action == 'none':
+                exitBuild(details, self.log)
 
         # CLONE THE REPOS TO A DIRECTORY
         try:
@@ -83,7 +84,8 @@ def clone(self, details):
                     addToErrors('The repo could not be cloned: https://' + self.location_github_domain + '/' +
                                 self.location_github_org + '/' + self.location_github_repo + ".git", 'cloning', '', details,
                                 self.log, self.location_name, '', '')
-                    exitBuild(details, self.log)
+                    if not self.location_output_action == 'none':
+                        exitBuild(details, self.log)
                 else:
                     try:
                         z = zipfile.ZipFile(io.BytesIO(r.content))
@@ -93,7 +95,8 @@ def clone(self, details):
                         addToErrors('The repo could not be cloned: https://' + self.location_github_domain + '/' +
                                     self.location_github_org + '/' + self.location_github_repo + ".git", 'cloning', '', details,
                                     self.log, self.location_name, '', '')
-                        exitBuild(details, self.log)
+                        if not self.location_output_action == 'none':
+                            exitBuild(details, self.log)
                     else:
                         # Everything gets cloned into a subdirectory named org-repo-sha. Move everything from that subdirectory up a level
                         if not os.path.isdir(CLONE_DIR):
@@ -102,7 +105,8 @@ def clone(self, details):
                                         ".git. The repo might not be accessible or the " + self.location_github_domain +
                                         ' domain might not be available at the moment.', 'cloning', '', details, self.log,
                                         self.location_name, '', '')
-                            exitBuild(details, self.log)
+                            if not self.location_output_action == 'none':
+                                exitBuild(details, self.log)
                         allDirs = os.listdir(CLONE_DIR)
                         for directory in allDirs:
                             if ((self.location_github_repo in directory) and (self.GITHUB_ORG in directory)):
@@ -129,12 +133,14 @@ def clone(self, details):
     except Exception:
         addToErrors('A list of branches could not be retrieved. Review the request result:\n' + str(getBranches.text) +
                     'A list of branches could not be retrieved.', 'cloning', '', details, self.log, self.location_name)
-        exitBuild(details, self.log)
+        if not self.location_output_action == 'none':
+            exitBuild(details, self.log)
     if 'Not Found' in str(getBranchesJSON):
         addToErrors('The repo was not found. Verify the domain, organization, and repo: https://' +
                     self.location_github_domain + '/' + self.location_github_org + '/' + self.location_github_repo,
                     'cloning', '', details, self.log, self.location_name, '', '')
-        exitBuild(details, self.log)
+        if not self.location_output_action == 'none':
+            exitBuild(details, self.log)
     else:
         branches = []
         for branchSection in getBranchesJSON:
@@ -159,7 +165,8 @@ def clone(self, details):
                 if not os.path.isdir(self.location_dir):
                     addToErrors('The ' + self.location_github_branch + ' branch could not be cloned.',
                                 'cloning', '', details, self.log, self.location_name, '', '')
-                    exitBuild(details, self.log)
+                    if not self.location_output_action == 'none':
+                        exitBuild(details, self.log)
                 os.chdir(self.location_dir)
                 self.log.info('Checking out branch: ' + self.location_github_branch_pr)
                 subprocess.call('git checkout -b ' + self.location_github_branch_pr + ' --quiet', shell=True)

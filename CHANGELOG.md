@@ -2,6 +2,12 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.1.4, released 01 September 2023
+<dl>
+<dt>Bug fix: Deletions not occurring downstream</dt>
+<dd>When deleting a file upstream, the file was not also deleted from the downstream locations.</dd>
+</dl>
+
 ## Version 1.1.3, released 07 August 2023
 <dl>
 <dt>Bug fix: Images not being copied downstream</dt>

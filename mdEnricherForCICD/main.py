@@ -173,13 +173,15 @@ def main(
 
             location_github_branch_push = None
 
-            if not self.location_output_action == 'none':
+            try:
                 location_github_branch_push = clone(self, details)
+            except Exception:
+                log.info('Repo could not be cloned. Building upstream content.')
 
             # For local builds, copy over everything to the working directory
-            else:
-                if not os.path.isdir(self.location_dir):
-                    os.mkdir(self.location_dir)
+            # else:
+            if not os.path.isdir(self.location_dir):
+                os.mkdir(self.location_dir)
 
             # If there is a cloned repo, do stuff with it.
             # There might not be for the CLI and SUB_REPO.
@@ -742,6 +744,22 @@ def main(
                 try:
                     folderPath = all_files_dict[source_files_original]["folderPath"]
                     file_name = all_files_dict[source_files_original]["file_name"]
+                except Exception:
+                    try:
+                        folderPath = source_files_original_list[source_files_original]["folderPath"]
+                        file_name = source_files_original_list[source_files_original]["file_name"]
+                    except Exception as e:
+                        log.debug('Not handling: ' + source_files_original)
+                        log.debug(e)
+                        try:
+                            log.debug(folderPath)
+                        except Exception:
+                            log.debug('No folderPath.')
+                        try:
+                            log.debug(file_name)
+                        except Exception:
+                            log.debug('No file_name.')
+                try:
                     fileStatus = source_files_original_list[source_files_original]["fileStatus"]
                     filePatch = source_files_original_list[source_files_original]["filePatch"]
                     fileNamePrevious = source_files_original_list[source_files_original]["fileNamePrevious"]
@@ -749,14 +767,6 @@ def main(
                     # We don't want things like .travis.yml added to the location list
                     log.debug('Not handling: ' + source_files_original)
                     log.debug(e)
-                    try:
-                        log.debug(folderPath)
-                    except Exception:
-                        log.debug('No folderPath.')
-                    try:
-                        log.debug(file_name)
-                    except Exception:
-                        log.debug('No file_name.')
                     try:
                         log.debug(fileStatus)
                     except Exception:
@@ -782,7 +792,9 @@ def main(
                         log.debug('Could not add details to location list: ' + source_files_original)
                         log.debug(e)
 
-        # log.info(json.dumps(source_files_location_list, indent=4))
+        log.debug('File list for this location:')
+        for source_file in source_files_location_list:
+            log.debug(source_files_location_list[source_file]['folderAndFile'])
 
         # See if this is a location that should be iterated over
         # or skipped based on which files kicked off the build
