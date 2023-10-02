@@ -50,7 +50,6 @@ def ymlCheck(details, log, ISSUE_WARNINGS, yml_files_list, yml_files_list_folder
                                 try:
                                     config_schema = yaml.safe_load(stream)
                                     log.debug(str(config_schema)[0:500])
-                                    os.remove(details["workspace"] + '/toc_schema.json')
                                 except yaml.YAMLError as exc:
                                     log.warning(exc)
                                 try:

@@ -10,25 +10,39 @@ def pushUpdatedLogFile(details, log):
     import os  # for running OS commands like changing directories or listing files in directory
     import shutil
     import subprocess
+    from subprocess import PIPE, STDOUT
     import sys
+
+    from errorHandling.errorHandling import addToErrors
+    from errorHandling.parseSubprocessOutput import parseSubprocessOutput
 
     def checkout():
         log.info('Checking out branch: ' + details["log_branch"])
         os.chdir(details["output_dir"] + '/' + details["log_branch"])
-        subprocess.call('git checkout -b ' + details["log_branch"] + ' --quiet', shell=True)
-        log.info('Cleaning up unneeded files in the ' + details["source_github_branch"] + ' branch to become the ' + details["log_branch"] + ' branch.')
+        subprocessOutput = subprocess.Popen('git checkout -b ' + details["log_branch"] + ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+        exitCode = parseSubprocessOutput(subprocessOutput, log)
+        if exitCode > 0:
+            addToErrors('The logs branch could not be checked out.', 'logs', '', details, log, 'post-build', '', '')
+        else:
+            log.info('Cleaning up unneeded files in the ' + details["source_github_branch"] + ' branch to become the ' + details["log_branch"] + ' branch.')
 
     def clone(branch):
-        subprocess.call('git clone --depth 1 -b ' + branch + " https://" + details["username"] + ":" + details["token"] + '@' +
-                        details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
-                        details["source_github_repo"] + ".git " + details["output_dir"] + '/' +
-                        details["log_branch"] + ' --quiet', shell=True)
-        log.info('Cloned the ' + branch + ' branch.')
+        subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + branch + " https://" + details["username"] + ":" + details["token"] + '@' +
+                                            details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
+                                            details["source_github_repo"] + ".git " + details["output_dir"] + '/' +
+                                            details["log_branch"] + ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+        exitCode = parseSubprocessOutput(subprocessOutput, log)
+        if exitCode > 0:
+            addToErrors('The log files branch could not be cloned.', 'logs', '', details, log, 'post-build', '', '')
+        else:
+            log.info('Cloned the ' + branch + ' branch.')
 
     # from errorHandling.errorHandling import addToWarnings
     # from errorHandling.errorHandling import addToErrors
     # from setup.exitBuild import exitBuild
     from errorHandling.pushErrors import pushErrors
+
+    logBranchCommit = ''
 
     try:
         if (not details["builder"] == 'local') and (not details["source_github_branch"] == 'None') and (details["log_branch"] is not None):
@@ -128,31 +142,40 @@ def pushUpdatedLogFile(details, log):
 
             # Push up the log branch changes
             os.chdir(details["output_dir"] + '/' + details["log_branch"])
-            subprocess.call('git add --all', shell=True)
-            subprocess.call('git commit -m "[ci skip] Build #' + details["build_number"] + contains +
-                            ' - ' + details["current_commit_summary"] + '" --quiet', shell=True)
+            subprocessOutput = subprocess.Popen('git add --all', shell=True, stdout=PIPE, stderr=STDOUT)
+            exitCode = parseSubprocessOutput(subprocessOutput, log)
+            subprocessOutput = subprocess.Popen('git commit -m "[ci skip] Build #' + details["build_number"] + contains +
+                                                ' - ' + details["current_commit_summary"] + '" --quiet', shell=True,
+                                                stdout=PIPE, stderr=STDOUT)
+            exitCode = parseSubprocessOutput(subprocessOutput, log)
             try:
                 log.info('Pushing changed log files.')
-                subprocess.call('git push  --quiet', shell=True, stdout=open(os.devnull, 'wb'))
+                subprocessOutput = subprocess.Popen('git push  --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+                exitCode = parseSubprocessOutput(subprocessOutput, log)
             except Exception:
-                subprocess.call('git pull', shell=True)
+                subprocessOutput = subprocess.Popen('git pull', shell=True, stdout=PIPE, stderr=STDOUT)
+                exitCode = parseSubprocessOutput(subprocessOutput, log)
                 try:
                     log.info('Setting upstream origin ' + details["log_branch"] + '.')
-                    subprocess.call('git push --set-upstream origin ' + details["log_branch"] + '  --quiet', shell=True)
+                    subprocessOutput = subprocess.Popen('git push --set-upstream origin ' + details["log_branch"] +
+                                                        ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+                    exitCode = parseSubprocessOutput(subprocessOutput, log)
                     log.info('Completed upstream origin')
                 except Exception as e:
                     pushErrors(details, e, log)
-            try:
-                logBranchCommitBytes = subprocess.check_output('git rev-parse origin/' + details["log_branch"], shell=True)
-                logBranchCommit = logBranchCommitBytes.decode("utf-8")
-                logBranchCommit = logBranchCommit.replace('\n', '')
-                log.info('View the logs: https://' + details["source_github_domain"] + '/' + details["source_github_org"] +
-                         '/' + details["source_github_repo"] + '/tree/' + logBranchCommit)
-            except Exception:
-                log.warning('Cannot get the last commit sha for the ' + details["log_branch"] + '.')
-                logBranchCommit = ''
+            if exitCode > 0:
+                addToErrors('The log files could not be pushed to the repo.', 'logs', '', details, log, 'post-build', '', '')
+            else:
+
+                try:
+                    logBranchCommitBytes = subprocess.check_output('git rev-parse origin/' + details["log_branch"], shell=True)
+                    logBranchCommit = logBranchCommitBytes.decode("utf-8")
+                    logBranchCommit = logBranchCommit.replace('\n', '')
+                    log.info('View the logs: https://' + details["source_github_domain"] + '/' + details["source_github_org"] +
+                             '/' + details["source_github_repo"] + '/tree/' + logBranchCommit)
+                except Exception:
+                    log.warning('Cannot get the last commit sha for the ' + details["log_branch"] + '.')
 
     except Exception:
         log.error('Log file could not be pushed to the logs branch.')
-        logBranchCommit = ''
     return (logBranchCommit)

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def sitemapYML(self, details, source_files):
+def sitemapYML(self, details):
 
     def conrefMDReplacement(conrefMDFilepath, topicContents, srcFile):
         if '/' in srcFile:
@@ -50,8 +50,8 @@ def sitemapYML(self, details, source_files):
                     if startingHeading == '':
                         hCount = startingHeading.split(' ', 1)[0]
                         startingHeadingLevel = hCount.count('#')
-                        self.log.info('Starting heading: ')
-                        self.log.info(startingHeading)
+                        self.log.debug('Starting heading: ')
+                        self.log.debug(startingHeading)
                     if storeLines is True:
                         anotherHeading = line
                         hCount = anotherHeading.split(' ', 1)[0]
@@ -74,7 +74,7 @@ def sitemapYML(self, details, source_files):
                 sectionToInsertString = ''.join(sectionToInsert)
                 topicContents = topicContents.replace('{{site.data.content.' + conrefUsed + '}}', sectionToInsertString)
             # else:
-                # self.log.info('{{site.data.content.' + conrefUsed + '}} is empty')
+                # self.log.debug('{{site.data.content.' + conrefUsed + '}} is empty')
         return (topicContents)
 
     def checkForReusedSections(topicContents, srcFile):
@@ -122,14 +122,14 @@ def sitemapYML(self, details, source_files):
                 for reusedH2 in reusedH2s:
                     if '{: #' + anchor + '}' in reusedH2:
                         reusedH3s = reusedH2.split('### ')
-                        print('Anchor in H2')
+                        self.log.debug('Anchor in H2')
                         for reusedH3 in reusedH3s:
                             if '{: #' + anchor + '}' in reusedH3:
-                                print('Anchor in H3')
+                                self.log.debug('Anchor in H3')
                                 reusedH4s = reusedH3.split('#### ')
                                 for reusedH4 in reusedH4s:
                                     if '{: #' + anchor + '}' in reusedH4:
-                                        print('Anchor in H4')
+                                        self.log.debug('Anchor in H4')
                 '''
                 # Turn the topic contents into a list
                 reuseTopicContentsLines = reuseTopicContents.split('\n')
@@ -190,18 +190,20 @@ def sitemapYML(self, details, source_files):
 
     # Create a sitemap from a marked-it version 2 toc.yaml file
 
-    try:
+    # !/usr/bin/env python
+    import os
+    import re
+    # import requests
+    import shutil
+    import subprocess
+    import yaml
+    from subprocess import PIPE, STDOUT
 
-        # !/usr/bin/env python
-        import os
-        import re
-        # import requests
-        import shutil
-        import subprocess
-        import yaml
+    try:
 
         from errorHandling.errorHandling import addToWarnings
         from errorHandling.errorHandling import addToErrors
+        from errorHandling.parseSubprocessOutput import parseSubprocessOutput
         # from setup.exitBuild import exitBuild
         from cleanupEachFile.writeResult import writeResult
 
@@ -246,14 +248,14 @@ def sitemapYML(self, details, source_files):
         self.log.debug('H3_ENABLED: ' + str(H3_ENABLED))
         self.log.debug('H4_ENABLED: ' + str(H4_ENABLED))
 
-        location_sitemap_file_name = source_files[self.sitemap_file]['file_name']
-        location_sitemap_folderPath = source_files[self.sitemap_file]['folderPath']
+        location_sitemap_file_name = self.source_files[self.sitemap_file]['file_name']
+        location_sitemap_folderPath = self.source_files[self.sitemap_file]['folderPath']
         location_sitemap_file = location_sitemap_folderPath + location_sitemap_file_name
 
-        self.log.info("\n")
-        self.log.info('Creating ' + location_sitemap_file + ' from ' + self.sitemap_file + ' and ' + input_file + ".")
+        self.log.debug("\n")
+        self.log.debug('Creating ' + location_sitemap_file + ' from ' + self.sitemap_file + ' and ' + input_file + ".")
 
-        # self.log.info('Working directory: ' + self.location_dir)
+        # self.log.debug('Working directory: ' + self.location_dir)
 
         # Clone repos/files for marked-it conref reuse
 
@@ -263,12 +265,16 @@ def sitemapYML(self, details, source_files):
             for repo in yamlContents["includes"]:
                 tempRepo = repo.split('/')
                 # 0: http, 1: nothing, 2: domain, 3: org, 4: repo
-                if (not os.path.isfile(self.location_dir + '/includes/' + tempRepo[4])):
-                    self.log.info('Cloning ' + tempRepo[4] + ' to resolve sitemap content.')
-                    subprocess.call('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
-                                    details["username"] + ':' + details["token"] + '@' +
-                                    tempRepo[2] + '/' + tempRepo[3] + '/' + tempRepo[4] + ' ' +
-                                    self.location_dir + '/includes/' + tempRepo[4] + ' --quiet', shell=True)
+                if (not os.path.isdir(self.location_dir + '/includes/' + tempRepo[4])):
+                    self.log.debug('Cloning ' + tempRepo[4] + ' to resolve sitemap content.')
+                    subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
+                                                        details["username"] + ':' + details["token"] + '@' +
+                                                        tempRepo[2] + '/' + tempRepo[3] + '/' + tempRepo[4] + ' ' +
+                                                        self.location_dir + '/includes/' + tempRepo[4] + ' --quiet',
+                                                        shell=True, stdout=PIPE, stderr=STDOUT)
+                    exitCode = parseSubprocessOutput(subprocessOutput, self.log)
+                    if exitCode > 0:
+                        addToErrors('The repo could not be cloned to resolve the sitemap.', 'sitemap', '', details, self.log, self.location_name, '', '')
                 if (os.path.isdir(self.location_dir + '/includes/' + tempRepo[4] + '/.git')):
                     shutil.rmtree(self.location_dir + '/includes/' + tempRepo[4] + '/.git')
 
@@ -295,10 +301,10 @@ def sitemapYML(self, details, source_files):
                     # self.log.debug(content)
                     sitemapAnchorTest = '\n'.join(sitemapList)
                     if '{: #sitemap_' in sitemapAnchorTest:
-                        # self.log.info('Evaluating sitemap anchor')
+                        # self.log.debug('Evaluating sitemap anchor')
                         number = 0
                         anchorList = re.findall('{: #sitemap_(.*?)}', content, flags=re.DOTALL)
-                        # self.log.info(anchorList)
+                        # self.log.debug(anchorList)
                         for anchor in anchorList:
                             revisedAnchor = '{: #sitemap_' + anchor + '}'
                             if revisedAnchor in sitemapAnchorTest:
@@ -306,7 +312,7 @@ def sitemapYML(self, details, source_files):
                                     number = number + 1
                                     revisedAnchor = revisedAnchor.replace('}', str(number) + '}')
                                 content = content.replace('{: #sitemap_' + anchor + '}', revisedAnchor)
-                                # self.log.info('Revised anchor: ' + content)
+                                # self.log.debug('Revised anchor: ' + content)
                     sitemapList.append(content)
                     return (sitemapList)
                     # self.log.debug('Appending to file: ' + content)
@@ -362,9 +368,9 @@ def sitemapYML(self, details, source_files):
                         except Exception:
                             self.log.debug('Could not get href for: ' + str(topicOrGroup))
                     try:
-                        # self.log.info('In link try')
-                        # self.log.info('topicLink: ' + topicLink)
-                        # self.log.info('topicGroup: ' + str(topicGroup))
+                        # self.log.debug('In link try')
+                        # self.log.debug('topicLink: ' + topicLink)
+                        # self.log.debug('topicGroup: ' + str(topicGroup))
                         if topicLink.startswith('http'):
                             external = '{: external}'
                         else:
@@ -379,10 +385,10 @@ def sitemapYML(self, details, source_files):
                         else:
                             if topicGroup == 1:
                                 titleNoSpaces = titleAnchorCreation('link', topicLabel, sitemapAnchorList)
-                                # self.log.info('H2 in topicGroup: ' + topicLabel)
+                                # self.log.debug('H2 in topicGroup: ' + topicLabel)
                                 sitemapList = appendToFile('\n\n## ' + topicLabel + '\n{: #sitemap_' + titleNoSpaces + '}\n\n[' +
                                                            topicLabel + '](' + topicLink + ')' + external, sitemapList)
-                                # self.log.info('155: ' + topicLabel)
+                                # self.log.debug('155: ' + topicLabel)
                                 # self.log.debug('Appending to file: ' + '## ' + topicLabel + '\n{: #sitemap_' +
                                 # titleNoSpaces + '}\n\n[' + topicLabel + '](' + topicLink + ')' + external)
                             elif topicGroup == 2:
@@ -438,7 +444,7 @@ def sitemapYML(self, details, source_files):
                             # else:
                                 # self.log.debug('TOC does not exist: ' + self.location_dir + '/includes/' + repoName + input_file)
                         elif str(topicInfo).startswith('/') or str(topicInfo).startswith('../'):
-                            # self.log.info('Checking: ' + topicInfo)
+                            # self.log.debug('Checking: ' + topicInfo)
                             if str(topicInfo).startswith('/'):
                                 topicPath, subcollectionAndID = str(topicInfo).rsplit('/', 1)
                                 repoName = topicPath.split('/')[1]
@@ -446,25 +452,25 @@ def sitemapYML(self, details, source_files):
                             elif str(topicInfo).startswith('../'):
                                 while str(topicInfo).startswith('../'):
                                     topicInfo = str(topicInfo).replace('../', '')
-                                # self.log.info(topicInfo)
+                                # self.log.debug(topicInfo)
                                 topicPath, fileName = str(topicInfo).rsplit('/', 1)
                                 if '/' in topicPath:
                                     repoName = topicPath.split('/')[1]
                                 else:
                                     repoName = topicPath
-                                # self.log.info(topicPath)
-                                # self.log.info(repoName)
-                                # self.log.info(fileName)
+                                # self.log.debug(topicPath)
+                                # self.log.debug(repoName)
+                                # self.log.debug(fileName)
                             if not topicPath.startswith('/'):
                                 topicPath = '/' + topicPath
-                            # self.log.info('Looking for ' + self.location_dir + '/includes' + topicPath + '/' + fileName)
+                            # self.log.debug('Looking for ' + self.location_dir + '/includes' + topicPath + '/' + fileName)
                             if os.path.isfile(self.location_dir + '/includes' + topicPath + '/' + fileName):
-                                # self.log.info('Found: ' + self.location_dir + '/includes' + topicPath + '/' + fileName)
+                                # self.log.debug('Found: ' + self.location_dir + '/includes' + topicPath + '/' + fileName)
                                 sitemapList = getFileContents(self.location_dir + '/includes' + topicPath + '/' + fileName,
                                                               navtitle, topicGroup, nestedTOC, self.location_dir + '/includes/' +
                                                               topicPath, sitemapAnchorList, sitemapList)
                             else:
-                                # self.log.info('Looping for ' + topicPath)
+                                # self.log.debug('Looping for ' + topicPath)
                                 for (path, dirs, files) in os.walk(self.location_dir + '/includes' + topicPath + '/'):
                                     if '.git' not in path:
                                         for tempFile in files:
@@ -476,15 +482,15 @@ def sitemapYML(self, details, source_files):
                                                 if not idList == []:
                                                     fileTopicID = idList[0]
                                                     if fileTopicID == fileName[:-3]:
-                                                        # self.log.info('Anchor matches')
+                                                        # self.log.debug('Anchor matches')
                                                         if os.path.isfile(tempFile):
-                                                            # self.log.info('Tmp File Exists: ' + tempFile)
+                                                            # self.log.debug('Tmp File Exists: ' + tempFile)
                                                             sitemapList = getFileContents(tempFile, navtitle, topicGroup,
                                                                                           nestedTOC, path, sitemapAnchorList, sitemapList)
                                                             break
 
                         elif str(topicInfo).endswith('.md'):
-                            # self.log.info('Working on')
+                            # self.log.debug('Working on')
                             # getFileContents(file,navtitle,topicGroup,nestedTOC,predictedFilePath)
                             sitemapList = getFileContents(topicInfo, navtitle, topicGroup, nestedTOC, predictedFilePath, sitemapAnchorList, sitemapList)
                         elif topicInfo['topic']:
@@ -516,16 +522,16 @@ def sitemapYML(self, details, source_files):
                                           details, self.log, self.location_name, '', '')
                         else:
                             addToErrors('Cannot evaluate: ' + str(topicInfo), location_sitemap_file, '', details, self.log, self.location_name, '', '')
-                            self.log.info(e)
+                            self.log.debug(e)
                     return (sitemapList)
 
                 def getFileContents(file, navtitle, topicGroup, nestedTOC, predictedFilePath, sitemapAnchorList, sitemapList):
-                    # self.log.info('getFileContents')
-                    # self.log.info('file: ' + file)
-                    # self.log.info('navtitle: ' + str(navtitle))
-                    # self.log.info('topicGroup: ' + str(topicGroup))
-                    # self.log.info('nestedTOC: ' + str(nestedTOC))
-                    # self.log.info('predictedFilePath: ' + predictedFilePath)
+                    # self.log.debug('getFileContents')
+                    # self.log.debug('file: ' + file)
+                    # self.log.debug('navtitle: ' + str(navtitle))
+                    # self.log.debug('topicGroup: ' + str(topicGroup))
+                    # self.log.debug('nestedTOC: ' + str(nestedTOC))
+                    # self.log.debug('predictedFilePath: ' + predictedFilePath)
                     if '/includes/' not in file:
                         if self.location_dir not in file:
                             filePath = self.location_dir + '/' + file
@@ -549,7 +555,7 @@ def sitemapYML(self, details, source_files):
                             else:
                                 contentExists = True
                                 fileTopicID = idList[0]
-                                # self.log.info('fileTopicID: ' + fileTopicID)
+                                # self.log.debug('fileTopicID: ' + fileTopicID)
 
                             if contentExists is True:
                                 if '<!--' in topicContent:
@@ -560,20 +566,20 @@ def sitemapYML(self, details, source_files):
                                     codeblockList = re.findall('```(.*?)```', topicContent, flags=re.DOTALL)
                                 else:
                                     codeblockList = []
-                        # self.log.info(codeblockList)
+                        # self.log.debug(codeblockList)
                         if contentExists is True:
 
-                            # self.log.info('Content exists')
+                            # self.log.debug('Content exists')
 
                             with open(filePath, "r+", encoding="utf8", errors="ignore") as file_open_file_path:
-                                # self.log.info('Opening filePath 2: ' + filePath)
+                                # self.log.debug('Opening filePath 2: ' + filePath)
                                 topicContent = file_open_file_path.read()
                                 topicContent = checkForReusedSections(topicContent, filePath)
                                 topicContent = re.sub('<!--(.*?)-->', '', topicContent, flags=re.DOTALL)
                                 topicContentLines = topicContent.split('\n')
                                 anchor = ''
                                 findAnchor = False
-                                # self.log.info('Reading file')
+                                # self.log.debug('Reading file')
                                 checkForRelNotesDefLists = False
                                 releaseNotesFile = False
                                 for line in topicContentLines:
@@ -581,7 +587,7 @@ def sitemapYML(self, details, source_files):
                                     if (((not str(lineNoNewlines) in str(commentList)) and
                                             (not str(lineNoNewlines) in str(codeblockList))) or
                                             (findAnchor is True)):
-                                        # self.log.info('Starting new line')
+                                        # self.log.debug('Starting new line')
                                         # if line.startswith('#'):
                                         # self.log.debug('\n\n\n\n' + line)
                                         # self.log.debug(topicGroup)
@@ -623,19 +629,19 @@ def sitemapYML(self, details, source_files):
                                             title = title.rstrip()
 
                                             if (topicGroup == 1) and (nestedTOC is False):
-                                                # self.log.info('Setting 1 indent to *')
+                                                # self.log.debug('Setting 1 indent to *')
                                                 indent = '* '
                                             elif (topicGroup == 2) and (nestedTOC is False):
-                                                # self.log.info('Setting 2 indent to *')
+                                                # self.log.debug('Setting 2 indent to *')
                                                 indent = '* '
                                             elif (topicGroup == 3) and (nestedTOC is False):
-                                                # self.log.info('Setting 3 indent to *')
+                                                # self.log.debug('Setting 3 indent to *')
                                                 indent = '* '
                                             elif nestedTOC is True:
-                                                # self.log.info('Got in for H2 nested toc  True')
+                                                # self.log.debug('Got in for H2 nested toc  True')
                                                 indent = '* '
                                             else:
-                                                # self.log.info('Got in for H2 else')
+                                                # self.log.debug('Got in for H2 else')
                                                 indent = '* '
                                             findAnchor = True
                                             checkForRelNotesDefLists = False
@@ -643,37 +649,37 @@ def sitemapYML(self, details, source_files):
                                                 checkForRelNotesDefLists = True
 
                                         elif line.startswith('# '):
-                                            # self.log.info('H1:')
-                                            # self.log.info(topicGroup)
-                                            # self.log.info(nestedTOC)
-                                            # self.log.info('Found H1')
+                                            # self.log.debug('H1:')
+                                            # self.log.debug(topicGroup)
+                                            # self.log.debug(nestedTOC)
+                                            # self.log.debug('Found H1')
                                             checkForRelNotesDefLists = False
                                             if (navtitle is False) and (nestedTOC is False):
-                                                # self.log.info('navtitle and nestedtoc are false')
+                                                # self.log.debug('navtitle and nestedtoc are false')
                                                 count = 0
                                                 line.count('#')
                                                 count = count + 1
-                                                # self.log.info('count: ' + str(count))
+                                                # self.log.debug('count: ' + str(count))
                                                 if count > 1:
                                                     break
                                                 # Makes sure to only include H1s and no possible comments in codeblocks
                                                 elif count == 1:
                                                     title = line.replace('# ', '')
                                                     title = title.rstrip()
-                                                    # self.log.info(title)
+                                                    # self.log.debug(title)
                                                     # if topicGroup == True:
-                                                    # self.log.info('topicGroup: ' + str(topicGroup))
+                                                    # self.log.debug('topicGroup: ' + str(topicGroup))
                                                     # Topic group heading
                                                     titleNoSpaces = titleAnchorCreation('anchor', title, sitemapAnchorList)
-                                                    # self.log.info('H2 in H1 section: ' + title)
+                                                    # self.log.debug('H2 in H1 section: ' + title)
                                                     if topicGroup == 1:
-                                                        # self.log.info('393: ' + title)
+                                                        # self.log.debug('393: ' + title)
                                                         sitemapList = appendToFile('\n\n## ' + title + '\n{: #sitemap_' + titleNoSpaces + '}\n', sitemapList)
                                                     elif topicGroup == 2:
-                                                        # self.log.info('393: ' + title)
+                                                        # self.log.debug('393: ' + title)
                                                         sitemapList = appendToFile('\n\n## ' + title + '\n{: #sitemap_' + titleNoSpaces + '}\n', sitemapList)
                                                     # elif topicGroup == 3:
-                                                        # self.log.info('396: ' + title)
+                                                        # self.log.debug('396: ' + title)
                                                         # appendToFile('\n\n### ' + title + '\n{: #sitemap_'+ titleNoSpaces + '}\n')
                                                     indent = ''
                                                 findAnchor = True
@@ -689,23 +695,23 @@ def sitemapYML(self, details, source_files):
                                                 findAnchor = True
                                                 title = line.replace('# ', '')
                                                 title = title.rstrip()
-                                                # self.log.info(title)
+                                                # self.log.debug(title)
                                                 self.log.debug('title: ' + str(title))
                                                 titleNoSpaces = titleAnchorCreation('anchor', title, sitemapAnchorList)
                                                 if topicGroup == 1 or topicGroup == 2:
-                                                    # self.log.info('346: ' + title)
+                                                    # self.log.debug('346: ' + title)
                                                     sitemapList = appendToFile('\n\n## ' + title + '\n{: #sitemap_' + titleNoSpaces + '}\n', sitemapList)
                                                 # if topicGroup == 3 or topicGroup == 4:
                                                     # 'Registry public images land here
-                                                    # self.log.info('453: ' + title)
+                                                    # self.log.debug('453: ' + title)
                                                     # appendToFile('\n\n### ' + title + '\n{: #sitemap_'+ titleNoSpaces + '}\n')
                                             else:
                                                 indent = ''
                                                 findAnchor = True
                                                 title = navtitle
-                                                # self.log.info(title)
+                                                # self.log.debug(title)
                                                 titleNoSpaces = titleAnchorCreation('anchor', navtitle, sitemapAnchorList)
-                                                # self.log.info('H2 in H1 else: ' + navtitle)
+                                                # self.log.debug('H2 in H1 else: ' + navtitle)
                                                 if topicGroup == 1:
                                                     sitemapList = appendToFile('\n\n## ' + navtitle + '\n{: #sitemap_' + titleNoSpaces + '}\n', sitemapList)
                                                 # elif topicGroup == 2:
@@ -714,14 +720,14 @@ def sitemapYML(self, details, source_files):
                                                     # appendToFile('\n\n### ' + navtitle + '\n{: #sitemap_'+ titleNoSpaces + '}\n')
 
                                         elif findAnchor is True:
-                                            # self.log.info('Finding anchor')
-                                            # self.log.info('line: ' + line)
+                                            # self.log.debug('Finding anchor')
+                                            # self.log.debug('line: ' + line)
                                             if "{: #" in line:
                                                 anchor = line.replace('{: #', '')
                                                 anchor = anchor.replace('}', '')
                                                 anchor = anchor.rstrip()
-                                                # self.log.info('407')
-                                                # self.log.info('Appending to file: ' + indent + '[' + title + '](' +
+                                                # self.log.debug('407')
+                                                # self.log.debug('Appending to file: ' + indent + '[' + title + '](' +
                                                 # linkIntro + fileTopicID + '#' + anchor + ')')
                                                 # appendToFile('\n' + indent + '[' + title + '](' + linkIntro + fileTopicID +
                                                 # '#' + anchor + ')')
@@ -732,12 +738,12 @@ def sitemapYML(self, details, source_files):
                                                 anchor = ''
 
                                             else:
-                                                # self.log.info('Creating anchor from title')
+                                                # self.log.debug('Creating anchor from title')
 
                                                 if anchor == '':
                                                     anchor = titleAnchorCreation('link', title, sitemapAnchorList)
-                                                    # self.log.info('413')
-                                                    # self.log.info(indent + '[' + title + '](' + linkIntro + fileTopicID + '#' + titleNoSpaces + ')')
+                                                    # self.log.debug('413')
+                                                    # self.log.debug(indent + '[' + title + '](' + linkIntro + fileTopicID + '#' + titleNoSpaces + ')')
 
                                                 if ' ' in anchor:
                                                     filePathShort = filePath.split(self.location_dir)[1]
@@ -750,7 +756,7 @@ def sitemapYML(self, details, source_files):
 
                                                 sitemapList = appendToFile('\n' + indent + '[' + title + '](' +
                                                                            linkIntro + fileTopicID + '#' + anchor + ')', sitemapList)
-                                                # self.log.info('Appending: ' + indent + '[' + title + '](' + linkIntro + fileTopicID + '#' + anchor + ')')
+                                                # self.log.debug('Appending: ' + indent + '[' + title + '](' + linkIntro + fileTopicID + '#' + anchor + ')')
                                                 findAnchor = False
                                                 anchor = ''
                                         elif checkForRelNotesDefLists is True:
@@ -803,8 +809,8 @@ def sitemapYML(self, details, source_files):
                                             topicOrGroup1 = topicOrGroup['topics']
                                         except Exception:
                                             topicOrGroup1 = topicOrGroup['topicgroup']['links']
-                                    # self.log.info('\n')
-                                    # self.log.info(topicOrGroup1)
+                                    # self.log.debug('\n')
+                                    # self.log.debug(topicOrGroup1)
                                     if topicOrGroup1 is None:
                                         addToErrors('A topic group is defined but has no topics within it. The sitemap cannot continue to be built past: ' +
                                                     str(topicOrGroup), location_sitemap_file, '', details, self.log, self.location_name, '', '')
@@ -826,10 +832,10 @@ def sitemapYML(self, details, source_files):
                                             topicOrGroup2 = topicOrGroup1['topicgroup']['topics']
                                         except Exception:
                                             topicOrGroup2 = topicOrGroup1['topics']
-                                        # self.log.info('Topic group 2: ' + topicLabel)
-                                        # self.log.info('\n')
-                                        # self.log.info('topicOrGroup2 1:')
-                                        # self.log.info(topicOrGroup2)
+                                        # self.log.debug('Topic group 2: ' + topicLabel)
+                                        # self.log.debug('\n')
+                                        # self.log.debug('topicOrGroup2 1:')
+                                        # self.log.debug(topicOrGroup2)
                                         for topicOrGroup3 in topicOrGroup2:
                                             section = topicOrGroup3
                                             if str(topicOrGroup3).startswith('{\'link\''):
@@ -846,9 +852,9 @@ def sitemapYML(self, details, source_files):
                                                     topicOrGroup4 = topicOrGroup3['topicgroup']['topics']
                                                 except Exception:
                                                     topicOrGroup4 = topicOrGroup3['topics']
-                                                # self.log.info('Topic group 3: ' + topicLabel)
-                                                # self.log.info('\n')
-                                                # self.log.info(topicOrGroup3)
+                                                # self.log.debug('Topic group 3: ' + topicLabel)
+                                                # self.log.debug('\n')
+                                                # self.log.debug(topicOrGroup3)
                                                 for topicOrGroup5 in topicOrGroup4:
                                                     section = topicOrGroup5
                                                     if str(topicOrGroup5).startswith('{\'topicgroup\''):
@@ -856,15 +862,15 @@ def sitemapYML(self, details, source_files):
                                                             topicLabel = topicOrGroup5['topicgroup']['label']
                                                         except Exception:
                                                             topicLabel = topicOrGroup5['label']
-                                                        # self.log.info('Topic group 4: ' + topicLabel)
+                                                        # self.log.debug('Topic group 4: ' + topicLabel)
                                                         try:
                                                             topicOrGroup6 = topicOrGroup5['topicgroup']['topics']
                                                         except Exception:
                                                             topicOrGroup6 = topicOrGroup5['topics']
                                                         addToErrors('Needs another topicgroup', location_sitemap_file, '', details,
                                                                     self.log, self.location_name, '', '')
-                                                        # self.log.info('\n')
-                                                        # self.log.info(topicOrGroup3)
+                                                        # self.log.debug('\n')
+                                                        # self.log.debug(topicOrGroup3)
                                                         for topicOrGroup7 in topicOrGroup6:
                                                             sitemapList = fileEvaluation(topicOrGroup7, False, (4 + levelsToAdd), nestedTOC,
                                                                                          predictedFilePath, relativeTOC, sitemapAnchorList, sitemapList)
@@ -909,8 +915,8 @@ def sitemapYML(self, details, source_files):
                                                                                      predictedFilePath, relativeTOC, sitemapAnchorList, sitemapList)
                                     else:
                                         for topicOrGroup2 in topicOrGroup1:
-                                            # self.log.info('\ntopicOrGroup2 2:')
-                                            # self.log.info(topicOrGroup2)
+                                            # self.log.debug('\ntopicOrGroup2 2:')
+                                            # self.log.debug(topicOrGroup2)
                                             if str(topicOrGroup2).startswith('{\'link\''):
                                                 sitemapList = getLink(linkIntro, topicOrGroup2, 2, sitemapList)
                                             elif str(topicOrGroup2).startswith('{\'include\''):
@@ -923,7 +929,7 @@ def sitemapYML(self, details, source_files):
                                                 except Exception:
                                                     topicLabel = topicOrGroup2['label']
 
-                                                # self.log.info('topicLabel: ' + topicLabel)
+                                                # self.log.debug('topicLabel: ' + topicLabel)
 
                                                 titleNoSpaces = titleAnchorCreation('anchor', topicLabel, sitemapAnchorList)
                                                 sitemapList = appendToFile('\n\n### ' + topicLabel + '\n{: #sitemap_' + titleNoSpaces + '}\n', sitemapList)
@@ -955,8 +961,8 @@ def sitemapYML(self, details, source_files):
                                                             sitemapList = fileEvaluation(topicOrGroup4, False, (4 + levelsToAdd), nestedTOC,
                                                                                          predictedFilePath, relativeTOC, sitemapAnchorList, sitemapList)
                                             else:
-                                                # self.log.info('Evaluating')
-                                                # self.log.info(topicOrGroup2)
+                                                # self.log.debug('Evaluating')
+                                                # self.log.debug(topicOrGroup2)
                                                 sitemapList = fileEvaluation(topicOrGroup2, False, (3 + levelsToAdd), nestedTOC,
                                                                              predictedFilePath, relativeTOC, sitemapAnchorList, sitemapList)
 
@@ -980,7 +986,7 @@ def sitemapYML(self, details, source_files):
                 with open(self.location_dir + location_sitemap_file, "r", encoding="utf8", errors="ignore") as h:
                     sitemapList = [h.read()]
 
-                # self.log.info(entries)
+                # self.log.debug(entries)
 
                 sitemapList = entriesLoop(entries, linkIntro, self.location_dir, False, False, 0, sitemapAnchorList, sitemapList)
 
@@ -989,7 +995,7 @@ def sitemapYML(self, details, source_files):
                 completeSitemap = "\n".join(sitemapList)
                 writeResult(self, details, location_sitemap_file_name, self.sitemap_file, location_sitemap_folderPath, completeSitemap)
 
-                self.log.info('Sitemap complete.')
+                self.log.debug('Sitemap complete.')
 
         else:
             addToErrors('The ' + input_file + ' could not be found at this location to build the sitemap from: ' +

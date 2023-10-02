@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def locationContentList(location_contents, log):
+def locationContentList(self):
 
     # Parse the locations_contents bit of the locations file
 
@@ -13,9 +13,9 @@ def locationContentList(location_contents, log):
     location_contents_files_remove = []
     location_contents_files_keep = {}
     try:
-        location_contents_folders = location_contents["folders"]
+        location_contents_folders = self.location_contents["folders"]
     except Exception:
-        log.debug('No folders.')
+        self.log.debug('No folders.')
         location_contents_folders = {}
     else:
         for location_contents_folder in location_contents_folders:
@@ -40,14 +40,14 @@ def locationContentList(location_contents, log):
                 location_contents_folders_keep[location_contents_folder_name] = {}
                 location_contents_folders_keep[location_contents_folder_name]['file_handling'] = location_contents_folder['file_handling']
 
-    log.debug('location_contents_folders_keep:' + str(location_contents_folders_keep))
+    self.log.debug('location_contents_folders_keep:' + str(location_contents_folders_keep))
 
-    log.debug('location_contents_folders_remove:' + str(location_contents_folders_remove))
+    self.log.debug('location_contents_folders_remove:' + str(location_contents_folders_remove))
 
     try:
-        location_contents_files = location_contents["files"]
+        location_contents_files = self.location_contents["files"]
     except Exception:
-        log.debug('No files.')
+        self.log.debug('No files.')
         location_contents_files = {}
     else:
         for location_contents_file in location_contents_files:
@@ -66,11 +66,11 @@ def locationContentList(location_contents, log):
                 location_contents_files_keep[location_contents_file_name] = {}
                 location_contents_files_keep[location_contents_file_name]['file_handling'] = str(location_contents_file['file_handling'])
 
-    log.debug('location_contents_files_keep:')
-    log.debug(location_contents_files_keep)
+    self.log.debug('location_contents_files_keep:')
+    self.log.debug(location_contents_files_keep)
 
-    log.debug('location_contents_files_remove:')
-    log.debug(location_contents_files_remove)
+    self.log.debug('location_contents_files_remove:')
+    self.log.debug(location_contents_files_remove)
 
-    return (location_contents_files, location_contents_files_keep, location_contents_files_remove,
+    return (location_contents_files_keep, location_contents_files_remove,
             location_contents_folders, location_contents_folders_keep, location_contents_folders_remove, location_contents_folders_remove_and_files)

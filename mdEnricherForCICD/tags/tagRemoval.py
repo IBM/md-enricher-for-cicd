@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def tagRemoval(self, details, folderAndFile, folderPath, file_name, tags_hide, tags_show, topicContents):
+def tagRemoval(self, details, folderAndFile, topicContents):
 
     # Remove the opening tags, closing tags, and maybe the content within them
 
@@ -42,7 +42,7 @@ def tagRemoval(self, details, folderAndFile, folderPath, file_name, tags_hide, t
 
         self.log.debug('Handling tags in ' + folderAndFile + '.')
 
-        for tagName in tags_hide:
+        for tagName in self.tags_hide:
             openTag = '<' + tagName + '>'
             closedTag = '</' + tagName + '>'
 
@@ -81,7 +81,7 @@ def tagRemoval(self, details, folderAndFile, folderPath, file_name, tags_hide, t
                             folderPath + file_name, details, self.log, self.location_name, closedTag, topicContents)
             '''
 
-        for tagName in tags_show:
+        for tagName in self.tags_show:
             openTag = '<' + tagName + '>'
             closedTag = '</' + tagName + '>'
 

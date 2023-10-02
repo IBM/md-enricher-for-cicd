@@ -21,7 +21,7 @@ def validateArguments(details, log):
         exitBuild(details, log)
 
     # locations_file
-    log.info('Validating the locations_file path and file name: %s', details["locations_file"])
+    log.debug('Validating the locations_file path and file name: %s', details["locations_file"])
     if not os.path.isfile(details["locations_file"]):
         addToErrors('The location file specified for the locations_file variable does not exist. ' +
                     'Verify that the path and file name are correct: --locations_file=' + details["locations_file"], '',

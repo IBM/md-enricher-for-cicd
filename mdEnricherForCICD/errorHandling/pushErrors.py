@@ -28,5 +28,5 @@ def pushErrors(details, e, log):
         log.error(e)
     else:
         log.error(e)
-        addToErrors('The changes could not be pushed to the repo.' + str(e), 'push', '', details, log, 'post-build', '', '')
+        addToErrors('The changes could not be pushed to the repo. ' + str(e), 'push', '', details, log, 'post-build', '', '')
     exitBuild(details, log)

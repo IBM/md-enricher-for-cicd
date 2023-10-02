@@ -13,26 +13,29 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
     from datetime import datetime
 
     def examineDiff():
-        with open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore") as fileName_write:
-            topicContentsOriginal = fileName_write.read()
-        topicContentsLines = topicContents.splitlines()
-        topicContentsOriginalLines = topicContentsOriginal.splitlines()
+        if os.path.isfile(self.location_dir + folderPath + file_name):
+            with open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore") as fileName_write:
+                topicContentsOriginal = fileName_write.read()
+            topicContentsLines = topicContents.splitlines()
+            topicContentsOriginalLines = topicContentsOriginal.splitlines()
 
-        diffCount = 0
-        dateCount = 0
-        # Look for diffs that do not include comments or only empty lines
-        for diff in dl.context_diff(topicContentsOriginalLines, topicContentsLines):
-            # ('<!--' not in diff) and ('-->' not in diff)
-            # Removed this because Registry had comments in the file being edited
-            if (diff.startswith('! ')) or (diff.startswith('+ ')) or (diff.startswith('- ')):
-                diffCount = diffCount + 1
-                if ('[{LAST_UPDATED_DATE}]' in diff) or ('[{CURRENT_YEAR}]' in diff) or ('lastupdated:' in diff) or ('  years:' in diff):
-                    dateCount = dateCount + 1
+            diffCount = 0
+            dateCount = 0
+            # Look for diffs that do not include comments or only empty lines
+            for diff in dl.context_diff(topicContentsOriginalLines, topicContentsLines):
+                # ('<!--' not in diff) and ('-->' not in diff)
+                # Removed this because Registry had comments in the file being edited
+                if (diff.startswith('! ')) or (diff.startswith('+ ')) or (diff.startswith('- ')):
+                    diffCount = diffCount + 1
+                    if ('[{LAST_UPDATED_DATE}]' in diff) or ('[{CURRENT_YEAR}]' in diff) or ('lastupdated:' in diff) or ('  years:' in diff):
+                        dateCount = dateCount + 1
 
-        if (diffCount - dateCount) > 0:
-            write = True
+            if (diffCount - dateCount) > 0:
+                write = True
+            else:
+                write = False
         else:
-            write = False
+            write = True
 
         return (write)
 
@@ -51,10 +54,10 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
         currentYear, currentMonth, currentDay = getTodaysDate()
         if '[{LAST_UPDATED_DATE}]' in topicContents:
             topicContents = topicContents.replace('[{LAST_UPDATED_DATE}]', currentYear + '-' + currentMonth + '-' + currentDay)
-            # self.log.debug(r'Replaced [{LAST_UPDATED_DATE}] with current date: ' + currentYear + '-' + currentMonth + '-' + currentDay)
+            self.log.debug(r'Replaced [{LAST_UPDATED_DATE}] with current date: ' + currentYear + '-' + currentMonth + '-' + currentDay)
         if '[{CURRENT_YEAR}]' in topicContents:
             topicContents = topicContents.replace('[{CURRENT_YEAR}]', currentYear)
-            # self.log.debug(r'Replaced [{CURRENT_YEAR}] with current year: ' + currentYear)
+            self.log.debug(r'Replaced [{CURRENT_YEAR}] with current year: ' + currentYear)
         return (topicContents)
 
     # If the file doesn't have anything in it, don't write it or remove existing file unless it's a hidden file
@@ -76,9 +79,8 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
             # but then when the sitemap content is generated, the folderPath and file_name is used
             # Open the file for writing
             write = False
-            if folderAndFile in details['rebuild_files_list']:
-                write = True
-            elif ((folderAndFile == self.sitemap_file) or (self.sitemap_file.endswith(folderPath + file_name))):
+            if ((folderAndFile == self.sitemap_file) or (self.sitemap_file.endswith(folderPath + file_name))):
+                '''
                 with open(details["source_dir"] + folderAndFile, 'r', encoding="utf8", errors="ignore") as fileName_write:
                     topicContentsSource = fileName_write.read()
                 topicContentsLines = topicContents.splitlines()
@@ -87,6 +89,10 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                     write = examineDiff()
                 else:
                     write = True
+                '''
+                write = examineDiff()
+            elif folderAndFile in details['rebuild_files_list']:
+                write = True
             elif ((('[{LAST_UPDATED_DATE}]' in topicContents) or
                    ('[{CURRENT_YEAR}]' in topicContents)) and
                   os.path.isfile(self.location_dir + folderPath + file_name)):

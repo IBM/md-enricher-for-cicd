@@ -30,14 +30,14 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
         for conrefUsed in conrefsUsedList:
             formattingCount = conrefUsed.count('{[')
             if formattingCount > 1:
-                self.log.info(conrefUsed + ' has too many')
+                self.log.debug(conrefUsed + ' has too many')
                 conrefsUsedList.remove(conrefUsed)
                 while '{[' in conrefUsed:
                     first, conrefUsed = conrefUsed.split('{[', 1)
                     if first.endswith(']}'):
                         conrefsUsedList.append('{[' + first)
-                        self.log.info('Appending ' + '{[' + first)
-                    self.log.info('conrefUsed: ' + conrefUsed)
+                        self.log.debug('Appending ' + '{[' + first)
+                    self.log.debug('conrefUsed: ' + conrefUsed)
                 if conrefUsed.startswith('{[') and conrefUsed.endswith(']}'):
                         conrefsUsedList.append(conrefUsed)
 

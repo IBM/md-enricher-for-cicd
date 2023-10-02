@@ -2,6 +2,18 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.1.5, released 02 October 2023
+<dl>
+<dt>Bug fixes</dt>
+<dd><ul>
+    <li>For branches that already existed, a 422 error occurred when creating pull requests.</li>
+    <li>New branches weren't pushed up to the remote repo.</li>
+    <li>Copyright date was not updating if it was the only change to the file.</li>
+    </ul>
+</dd>
+
+</dl>
+
 ## Version 1.1.4, released 01 September 2023
 <dl>
 <dt>Bug fix: Deletions not occurring downstream</dt>
