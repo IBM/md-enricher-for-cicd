@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
+def sourceFilesForThisBranch(self, details):
 
     # This section refines the list of files, puts them in the right directory to be committed later,
     # and calls another function to clean up the tagging in each file, if necessary
@@ -17,10 +17,10 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
     # from setup.exitBuild import exitBuild
 
     # Tweak the source file list depending on where stuff is running and where
-    # self.log.info('\n\n')
-    # self.log.info('----------------------------------')
-    # self.log.info('Source file list for ' + self.location_name + ':')
-    # self.log.info('----------------------------------')
+    # self.log.debug('\n\n')
+    # self.log.debug('----------------------------------')
+    # self.log.debug('Source file list for ' + self.location_name + ':')
+    # self.log.debug('----------------------------------')
 
     source_files = self.source_files_location_list.copy()
 
@@ -61,7 +61,7 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
                         source_files = addToList(self, details, self.log, self.sitemap_file, 'None',
                                                  'rebuild', self.sitemap_file, source_files, self.location_contents_files, self.location_contents_folders)
                 else:
-                    self.log.info('File does not exist: ' + details["source_dir"] + self.sitemap_file)
+                    self.log.debug('File does not exist: ' + details["source_dir"] + self.sitemap_file)
 
         if (details["reuse_snippets_folder"] in folderAndFile) and (str(details["reuse_phrases_file"]) in folderAndFile) and (details["builder"] != 'local'):
             while '+' in filePatch:
@@ -69,7 +69,7 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
                     filePatch = filePatch.split('@@', 2)[2]
                 except Exception:
                     self.log.debug('Not enough @@ to split. Trying + instead.')
-                    # self.log.info(filePatch)
+                    # self.log.debug(filePatch)
                 try:
                     filePatch = filePatch.split('+', 1)[1]
                 except Exception:
@@ -168,8 +168,8 @@ def sourceFilesForThisBranch(self, details, tags_hide, tags_show):
                                                     fileName_open.close
                                                     if ((('<' + featureFlagName + '>' in featureFlagTextCheck) or
                                                             ('</' + featureFlagName + '>' in featureFlagTextCheck)) and
-                                                            (featureFlagName not in tags_hide) and
-                                                            (featureFlagName not in tags_show)):
+                                                            (featureFlagName not in self.tags_hide) and
+                                                            (featureFlagName not in self.tags_show)):
                                                         addToErrors('The ' + featureFlagName + ' tag was removed from ' +
                                                                     'the feature flag file but is still used in ' +
                                                                     ALL_FILES_LISTEntry + '.', details["featureFlagFile"], '',

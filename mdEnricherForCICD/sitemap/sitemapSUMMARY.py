@@ -13,12 +13,12 @@ def sitemapSUMMARY(self, details):
     import re
     import shutil
 
-    self.log.info("\n")
-    self.log.info("Creating the sitemap from the SUMMARY.md file.")
+    self.log.debug("\n")
+    self.log.debug("Creating the sitemap from the SUMMARY.md file.")
     if details["builder"] == 'local':
-        self.log.info('Locally, the sitemap might be incomplete.' +
-                      'Credentials are not configured locally to go to Github and retrieve the' +
-                      'content defined in the TOC that is reused from other services.')
+        self.log.debug('Locally, the sitemap might be incomplete.' +
+                       'Credentials are not configured locally to go to Github and retrieve the' +
+                       'content defined in the TOC that is reused from other services.')
 
     self.log.debug("\n\n")
     self.log.debug("-------------------------------------------------------------")
@@ -39,13 +39,13 @@ def sitemapSUMMARY(self, details):
         H2_ENABLED = True
         H3_ENABLED = True
     else:
-        self.log.info(details["ibm_cloud_docs_sitemap_depth"])
-        self.log.info(details["ibm_cloud_docs_sitemap_depth"].lower())
+        self.log.debug(details["ibm_cloud_docs_sitemap_depth"])
+        self.log.debug(details["ibm_cloud_docs_sitemap_depth"].lower())
 
-    self.log.info('IBM_CLOUD_DOCS_SITEMAP_DEPTH: ' + details["ibm_cloud_docs_sitemap_depth"])
-    self.log.info('H1_ENABLED: True')
-    self.log.info('H2_ENABLED: ' + str(H2_ENABLED))
-    self.log.info('H3_ENABLED: ' + str(H3_ENABLED))
+    self.log.debug('IBM_CLOUD_DOCS_SITEMAP_DEPTH: ' + details["ibm_cloud_docs_sitemap_depth"])
+    self.log.debug('H1_ENABLED: True')
+    self.log.debug('H2_ENABLED: ' + str(H2_ENABLED))
+    self.log.debug('H3_ENABLED: ' + str(H3_ENABLED))
 
     workingDir = self.location_dir
     self.log.debug('Working directory: ' + workingDir)
@@ -169,8 +169,8 @@ def sitemapSUMMARY(self, details):
                                             source[file]['draft-h1'] = str(h1)
 
         # get h1s and append anchor
-        self.log.info('Including H1 headers.')
-        # self.log.info(list(source.items()))
+        self.log.debug('Including H1 headers.')
+        # self.log.debug(list(source.items()))
 
         for filename in source:
             # self.log.debug('Getting values for: ' + filename)
@@ -207,13 +207,13 @@ def sitemapSUMMARY(self, details):
 
         # get h2 and append anchors
         if H2_ENABLED is not True:
-            self.log.info('Skipping H2 headers.')
+            self.log.debug('Skipping H2 headers.')
         else:
-            self.log.info('Including H2 headers.')
+            self.log.debug('Including H2 headers.')
             for filename in source:
                 goodh2 = ''
                 # source[filename]['h2'] = {}
-                # self.log.info('h2: ' + filename)
+                # self.log.debug('h2: ' + filename)
                 try:
                     h2all = source[filename]['h2']
                 except Exception:
@@ -275,9 +275,9 @@ def sitemapSUMMARY(self, details):
 
         # get h3 and append anchors
         if H3_ENABLED is not True:
-            self.log.info('Skipping H3 headers.')
+            self.log.debug('Skipping H3 headers.')
         else:
-            self.log.info('Including H3 headers.')
+            self.log.debug('Including H3 headers.')
             for filename in source:
                 goodh3 = ''
                 # source[filename]['h2'] = {}
@@ -356,11 +356,11 @@ def sitemapSUMMARY(self, details):
                     for filename in source:
 
                         filenameShort = str(filename).replace(' ', '').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '').replace('\n', '')
-                        # self.log.info('Comparing: ' + filenameShort + ' and ' + tocFilename)
+                        # self.log.debug('Comparing: ' + filenameShort + ' and ' + tocFilename)
 
                         if str(filenameShort) == str(tocFilename):
                             # Now compare the repo names and file names of the two and if they match, then continue
-                            # self.log.info(filenameShort + ' is in ' + tocFilename)
+                            # self.log.debug(filenameShort + ' is in ' + tocFilename)
                             self.log.debug('\n')
                             debugFilename = str(source[filename])
                             self.log.debug('Working with: ' + str(debugFilename.encode('utf-8', errors='ignore')))
@@ -462,9 +462,9 @@ def sitemapSUMMARY(self, details):
                                         # self.log.debug('Not enough dollar signs to split: ' + listItem)
                             break
                         # elif str(filenameShort) in str(tempTocFilename):
-                            # self.log.info('Did not find: ' + filenameShort + ' in ' + tempTocFilename)
-                            # self.log.info('"' + filenameShort + '"')
-                            # self.log.info('"' + tempTocFilename + '"')
+                            # self.log.debug('Did not find: ' + filenameShort + ' in ' + tempTocFilename)
+                            # self.log.debug('"' + filenameShort + '"')
+                            # self.log.debug('"' + tempTocFilename + '"')
 
             with open(workingDir + '/SUMMARY.md', "r+", encoding="utf8", errors="ignore") as file_open_summary:
                 file_read_summary = file_open_summary.readlines()
@@ -474,10 +474,10 @@ def sitemapSUMMARY(self, details):
                         tocFilename = line.split('](')[1]
                         tocFilename = tocFilename.replace(')', '')
                         tocFilename = tocFilename.replace(' ', '').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '').replace('\n', '')
-                        # self.log.info('Running on ' + tocFilename)
+                        # self.log.debug('Running on ' + tocFilename)
                         loop(tocFilename)
 
-        self.log.info('Success!')
+        self.log.debug('Success!')
 
     if os.path.isdir(workingDir + '/sitemap-temp/'):
         shutil.rmtree(workingDir + '/sitemap-temp/')

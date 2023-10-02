@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def loggingConfig(details):
+def loggingConfig(details, fileName):
 
     # Send all INFO logs to the console and to the log files, but only send DEBUG logs to the log files.
 
@@ -13,7 +13,7 @@ def loggingConfig(details):
     import glob
 
     # create log
-    log = logging.getLogger(details["tool_name"])
+    log = logging.getLogger(fileName)
     log.setLevel(logging.DEBUG)
 
     # create CONSOLE handler and set level to INFO
@@ -27,15 +27,15 @@ def loggingConfig(details):
     # add ch to log
     log.addHandler(ch)
 
-    if os.path.isfile(details["output_dir"] + '/.' + details["tool_name"] + '.log'):
-        fileList = glob.glob(details["output_dir"] + '/.' + details["tool_name"] + '.log*')
+    if os.path.isfile(details["output_dir"] + '/.' + fileName + '.log'):
+        fileList = glob.glob(details["output_dir"] + '/.' + fileName + '.log*')
         for filePath in fileList:
             if os.path.isfile(filePath):
                 os.remove(filePath)
 
     # create FILE handler and set level to DEBUG
     # Github seems to have a 1MB limit on file updates, so using that as the maxBytes value
-    fh = logging.handlers.RotatingFileHandler(details["output_dir"] + '/.' + details["tool_name"] + '.log', 'a',
+    fh = logging.handlers.RotatingFileHandler(details["output_dir"] + '/.' + fileName + '.log', 'a',
                                               maxBytes=1000000, backupCount=75, encoding="utf-8")
     fh.setLevel(logging.DEBUG)
 

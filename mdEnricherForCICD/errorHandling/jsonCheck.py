@@ -18,7 +18,7 @@ def jsonCheck(details, log, ISSUE_WARNINGS, json_files_list, location_dir):
 
         # Conditional log
         if ISSUE_WARNINGS == 'False':
-            log.info('Validating markdown enricher JSON files.')
+            log.debug('Validating markdown enricher JSON files.')
 
         # First time this is run, only run it on the files needed for the markdown enricher to run.
         # Next time through, run it on all other JSON files found.

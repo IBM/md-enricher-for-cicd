@@ -18,10 +18,10 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
     from errorHandling.errorHandling import addToErrors
     from setup.exitBuild import exitBuild
 
-    log.info('\n\n')
-    log.info('---------------------------------------------------------')
-    log.info('SOURCE')
-    log.info('--------------------------------------------------------\n\n')
+    log.debug('\n\n')
+    log.debug('---------------------------------------------------------')
+    log.debug('SOURCE')
+    log.debug('--------------------------------------------------------\n\n')
 
     source_files_original_list: dict[dict[str, str], dict[str, str]] = {}  # type: ignore[misc]
     commitsList = []
@@ -315,6 +315,6 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
         log.info('These were the files changed since the last commit that a build ran on:')
         for source_file, source_file_info in source_files_original_list.items():
             log.info(str(source_file) + str(' (' + source_files_original_list[source_file]['fileStatus'] + ')'))
-        log.info('\n\n')
+        log.info('')
 
     return (current_commit_author, current_commit_id, current_commit_summary, previous_commit_id, source_files_original_list)

@@ -127,24 +127,36 @@ def exitBuild(details, log):
 
     log.info("\n\n\n")
     log.info("-------------------------------------------------------------")
-    log.info("TIME TO RUN")
+    log.info("OVERALL BUILD STATUS")
     log.info("-------------------------------------------------------------")
+    log.info("")
 
-    log.info('Build ended: ' + str(datetime.now(details["time_zone"])))
+    log.debug('Build ended: ' + str(datetime.now(details["time_zone"])))
     try:
         endTime = time.time()
         hours, rem = divmod(endTime-details["time_start"], 3600)
         minutes, seconds = divmod(rem, 60)
-        log.info("Took {:0>2} minutes {:05.2f} seconds to complete.".format(int(minutes), seconds))
+
+        minutes = str(str(minutes).split('.')[0])
+        if minutes == '1':
+            minutesString = 'minute'
+        else:
+            minutesString = 'minutes'
+
+        seconds = round(seconds)
+        if seconds == 1:
+            secondsString = 'second'
+        else:
+            secondsString = 'seconds'
+
+        if minutes == '0':
+            log.info("Completed in " + str(seconds) + " " + secondsString + ".")
+        else:
+            log.info("Completed in " + str(minutes) + " " + minutesString + " " + str(seconds) + " " + secondsString + ".")
     except Exception as e:
         log.info('Time could not be calculated.')
         log.debug(e)
-
-    log.info("\n\n\n")
-    log.info("-------------------------------------------------------------")
-    log.info("OVERALL BUILD STATUS")
-    log.info("-------------------------------------------------------------")
-    log.info("\n")
+    log.info("")
 
     errors = 0
     if os.path.exists(details["error_file"]):

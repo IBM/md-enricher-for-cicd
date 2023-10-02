@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide, tags_show, topicContents):
+def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicContents):
 
     # Check to make sure there are no unhandled tags left behind
 
@@ -59,7 +59,7 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide
         if not errorTag == '`':
             # Check if the error is a defined tag, if so make it an error, otherwise warning
             errorTagSlim = errorTag.replace('<', '').replace('>', '').replace('/', '')
-            if (errorTagSlim in tags_show) or (errorTagSlim in tags_hide):
+            if (errorTagSlim in self.tags_show) or (errorTagSlim in self.tags_hide):
                 addToErrors(errorTag + ' not removed or handled properly. ', folderAndFile, folderPath + file_name,
                             details, self.log, self.location_name, errorTag, topicContentsCheck)
             else:
@@ -113,7 +113,7 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide
         else:
             errorFound(folderAndFile, '<' + tag + '>', topicContents)
 
-    TAGS_HIDE_AND_SHOW = tags_hide + tags_show
+    TAGS_HIDE_AND_SHOW = self.tags_hide + self.tags_show
 
     if not ('/' + details["reuse_snippets_folder"] + '/') in folderPath:
 
@@ -121,8 +121,8 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide
         instances = topicContents.count('```')
         if not (instances % 2) == 0:
             addToWarnings('There are ' + str(instances) +
-                          ' code block tags. This number is odd but should be even. ' +
-                          'Check if there is a code block missing closing tags.', folderAndFile,
+                          ' code block tags. ' +
+                          'Check if there is a code block missing a closing tag.', folderAndFile,
                           folderPath + file_name, details, self.log, self.location_name, '', '')
         else:
             # 2. Check for correct code ticks, because otherwise the results are inccurate.
@@ -202,13 +202,13 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide
                     if ((not potentialTag == '') and (' ' not in potentialTag) and ('</code' not in potentialTag)):
                         # pattern = '(!<code>)<[/]?' + potentialTag + '>(!</code>)'  # or anything else
                         # for m in re.finditer(pattern, topicContents):
-                        # self.log.info(m.group(0))
+                        # self.log.debug(m.group(0))
                         # start = m.start()
                         # lineno = topicContents.count('\n', 0, start) + 1
                         # offset = start - topicContents.rfind('\n', 0, start)
                         # try:
                         # word = m.group(1)
-                        # self.log.info("(%s,%s): %s" % (lineno, offset, word))
+                        # self.log.debug("(%s,%s): %s" % (lineno, offset, word))
                         # except Exception:
-                        # self.log.info('Exception')
+                        # self.log.debug('Exception')
                         check(topicContents, folderPath, file_name, htmlCodeList, potentialTag)

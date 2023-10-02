@@ -15,13 +15,17 @@ def sitemapOLD(self, details):
     import subprocess
     import requests
     import base64
+    from subprocess import PIPE, STDOUT
 
-    self.log.info("\n")
-    self.log.info("Creating the sitemap from the toc file.")
+    from errorHandling.errorHandling import addToErrors
+    from errorHandling.parseSubprocessOutput import parseSubprocessOutput
+
+    self.log.debug("\n")
+    self.log.debug("Creating the sitemap from the toc file.")
     if details["builder"] == 'local':
-        self.log.info('Locally, the sitemap might be incomplete. ' +
-                      'Credentials are not configured locally to go to Github and retrieve the ' +
-                      'content defined in the TOC that is reused from other services.')
+        self.log.debug('Locally, the sitemap might be incomplete. ' +
+                       'Credentials are not configured locally to go to Github and retrieve the ' +
+                       'content defined in the TOC that is reused from other services.')
 
     self.log.debug("\n\n")
     self.log.debug("-------------------------------------------------------------")
@@ -39,13 +43,13 @@ def sitemapOLD(self, details):
         H2_ENABLED = True
         H3_ENABLED = True
     else:
-        self.log.info(details["ibm_cloud_docs_sitemap_depth"])
-        self.log.info(details["ibm_cloud_docs_sitemap_depth"].lower())
+        self.log.debug(details["ibm_cloud_docs_sitemap_depth"])
+        self.log.debug(details["ibm_cloud_docs_sitemap_depth"].lower())
 
-    self.log.info('ibm_cloud_docs_sitemap_depth: ' + details["ibm_cloud_docs_sitemap_depth"])
-    self.log.info('H1_ENABLED: True')
-    self.log.info('H2_ENABLED: ' + str(H2_ENABLED))
-    self.log.info('H3_ENABLED: ' + str(H3_ENABLED))
+    self.log.debug('ibm_cloud_docs_sitemap_depth: ' + details["ibm_cloud_docs_sitemap_depth"])
+    self.log.debug('H1_ENABLED: True')
+    self.log.debug('H2_ENABLED: ' + str(H2_ENABLED))
+    self.log.debug('H3_ENABLED: ' + str(H3_ENABLED))
 
     workingDir = self.location_dir
     self.log.debug('Working directory: ' + workingDir)
@@ -84,15 +88,17 @@ def sitemapOLD(self, details):
                     tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
                     repoName, backhalf = tocFilenameNoStartingSlash.split('/', 1)
 
-                    subprocess.call('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
-                                    details["username"] + ':' + details["token"] + '@' + self.location_github_domain + '/' +
-                                    cloudDocsOrg + '/' + repoName + ' ' + workingDir + '/sitemap-temp/' + repoName + ' --quiet',
-                                    shell=True)
+                    subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
+                                                        details["username"] + ':' + details["token"] + '@' + self.location_github_domain + '/' +
+                                                        cloudDocsOrg + '/' + repoName + ' ' + workingDir + '/sitemap-temp/' + repoName + ' --quiet',
+                                                        shell=True, stdout=PIPE, stderr=STDOUT)
+                    exitCode = parseSubprocessOutput(subprocessOutput, self.log)
                     if not os.path.isdir(workingDir + '/sitemap-temp/' + repoName):
-                        subprocess.call('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
-                                        self.username + ':' + details["token"] + '@' + self.location_github_domain + '/' +
-                                        cloudDocsOrg + '/' + repoName + ' ' + workingDir + '/sitemap-temp/' + repoName + ' --quiet',
-                                        shell=True)
+                        subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
+                                                            self.username + ':' + details["token"] + '@' + self.location_github_domain + '/' +
+                                                            cloudDocsOrg + '/' + repoName + ' ' + workingDir + '/sitemap-temp/' + repoName + ' --quiet',
+                                                            shell=True, stdout=PIPE, stderr=STDOUT)
+                        exitCode = parseSubprocessOutput(subprocessOutput, self.log)
 
                 # If it's a relative link to a file in another repo, clone that repo
                 elif ((line.startswith('/') or
@@ -118,10 +124,15 @@ def sitemapOLD(self, details):
                                                              topicID + '.md?ref=' + self.location_github_branch,
                                                              auth=(details["username"], details["token"]))
                             if not fileSourceGet.status_code == 200:
-                                subprocess.call('git clone --depth 1 -b ' + self.location_github_branch +
-                                                ' https://' + details["username"] + ':' + details["token"] + '@' +
-                                                self.location_github_domain + '/' + self.location_github_org + '/' +
-                                                repoName + ' ' + workingDir + '/sitemap-temp/' + repoName + ' --quiet', shell=True)
+                                subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + self.location_github_branch +
+                                                                    ' https://' + details["username"] + ':' + details["token"] + '@' +
+                                                                    self.location_github_domain + '/' + self.location_github_org + '/' +
+                                                                    repoName + ' ' + workingDir + '/sitemap-temp/' + repoName + ' --quiet', shell=True,
+                                                                    stdout=PIPE, stderr=STDOUT)
+                                exitCode = parseSubprocessOutput(subprocessOutput, self.log)
+                                if exitCode > 0:
+                                    addToErrors('The repo could not be cloned to resolve the sitemap.', 'sitemap', '',
+                                                details, self.log, self.location_name, '', '')
                             if fileSourceGet.status_code == 200:
                                 fileSourceJSON = fileSourceGet.json()
                                 fileSourceEncoded = fileSourceJSON['content']
@@ -280,7 +291,7 @@ def sitemapOLD(self, details):
                                             source[file]['draft-h1'] = str(h1)
 
         # get h1s and append anchor
-        self.log.info('Including H1 headers.')
+        self.log.debug('Including H1 headers.')
         for filename in source:
             # self.log.debug('Getting values for: ' + filename)
             try:
@@ -316,13 +327,13 @@ def sitemapOLD(self, details):
 
         # get h2 and append anchors
         if H2_ENABLED is not True:
-            self.log.info('Skipping H2 headers.')
+            self.log.debug('Skipping H2 headers.')
         else:
-            self.log.info('Including H2 headers.')
+            self.log.debug('Including H2 headers.')
             for filename in source:
                 goodh2 = ''
                 # source[filename]['h2'] = {}
-                # self.log.info('h2: ' + filename)
+                # self.log.debug('h2: ' + filename)
                 try:
                     h2all = source[filename]['h2']
                 except Exception:
@@ -384,9 +395,9 @@ def sitemapOLD(self, details):
 
         # get h3 and append anchors
         if H3_ENABLED is not True:
-            self.log.info('Skipping H3 headers.')
+            self.log.debug('Skipping H3 headers.')
         else:
-            self.log.info('Including H3 headers.')
+            self.log.debug('Including H3 headers.')
             for filename in source:
                 goodh3 = ''
                 # source[filename]['h2'] = {}
@@ -461,26 +472,26 @@ def sitemapOLD(self, details):
             def reuseLoop(tocFilename, topicGroup):
                 tocFilenameNoSpaces = tocFilename.replace(' ', '').replace('\n', '')
                 tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
-                # self.log.info(tocFilenameNoStartingSlash)
+                # self.log.debug(tocFilenameNoStartingSlash)
                 repoName, backhalf = tocFilenameNoStartingSlash.split('/', 1)
                 topicID = backhalf.split(repoName + '-', 1)[1]
-                # self.log.info('topicID: ' + topicID)
+                # self.log.debug('topicID: ' + topicID)
                 loop(topicID, topicGroup)
 
             def tocLoop(tocFilename, topicGroup):
                 self.log.debug('Still need to handle nested toc files.')
                 # This goes and gets the toc, but if there's content reuse in there, it's not handled yet
                 repoName = tocFilename.split('/')[1]
-                # self.log.info('sitemap-temp dir:')
-                # self.log.info(os.listdir(workingDir + '/sitemap-temp/'))
-                # self.log.info('sitemap-temp repo dir:')
-                # self.log.info(os.listdir(workingDir + '/sitemap-temp/' + repoName))
+                # self.log.debug('sitemap-temp dir:')
+                # self.log.debug(os.listdir(workingDir + '/sitemap-temp/'))
+                # self.log.debug('sitemap-temp repo dir:')
+                # self.log.debug(os.listdir(workingDir + '/sitemap-temp/' + repoName))
                 with open(workingDir + '/sitemap-temp/' + repoName + '/toc', 'r', encoding="utf8", errors="ignore") as file_open:
                     reusedTOC = file_open.readlines()
                     for line in reusedTOC:
                         if (('[' in line) or ('.md' in line)):
                             tocFilename = line.replace(' ', '')
-                            # self.log.info('Handling from toc: ' + tocFilename)
+                            # self.log.debug('Handling from toc: ' + tocFilename)
                             loop(tocFilename, topicGroup)
                         elif (line.startswith('/') or
                               line.startswith('    /') or
@@ -491,7 +502,7 @@ def sitemapOLD(self, details):
                             tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
                             repoName, backhalf = tocFilenameNoStartingSlash.split('/', 1)
                             topicID = backhalf.split(repoName + '-', 1)[1]
-                            # self.log.info('Handling from toc: ' + topicID + '.md')
+                            # self.log.debug('Handling from toc: ' + topicID + '.md')
                             loop(topicID + '.md', topicGroup)
 
             def loop(tocFilename, topicGroup):
@@ -499,7 +510,7 @@ def sitemapOLD(self, details):
                 # go get the file name from the dictionary first
                 if ('.md' not in tocFilename) and ('{' in tocFilename) and (not tocFilename == ''):
                     for filename, info in list(source.items()):
-                        # self.log.info(info)
+                        # self.log.debug(info)
                         if ('\'topicID\': \'' + tocFilename) in str(info):
                             filenameShort = str(filename).rsplit('/', 1)[1]
                             tocFilename = filenameShort
@@ -515,7 +526,7 @@ def sitemapOLD(self, details):
                     try:
                         tocFileNameBaseRepo = source[workingDir + '/' + tempTocFilename]['baseRepo']
                     except Exception:
-                        # self.log.info('\n\ntocFilename:' + tocFilename)
+                        # self.log.debug('\n\ntocFilename:' + tocFilename)
                         self.log.debug('1. File listed in the toc does not exist in this location: ' + workingDir + '/' + tempTocFilename)
                         tocFileNameBaseRepo = 'nomatch1'
                         # Check the temp directory for the other cloned repos for content reuse
@@ -523,7 +534,7 @@ def sitemapOLD(self, details):
                             if '/' in tempTocFilename:
                                 tocFileNameBaseRepo = tempTocFilename.rsplit('/', 1)[0]
                             tocFileNameBaseRepo = source[workingDir + '/sitemap-temp/' + tocFileNameBaseRepo + '/' + tempTocFilename]['baseRepo']
-                            # self.log.info('1. Found! tocFileNameBaseRepo: ' + tocFileNameBaseRepo)
+                            # self.log.debug('1. Found! tocFileNameBaseRepo: ' + tocFileNameBaseRepo)
                         except Exception:
                             self.log.debug('2. File listed in the toc does not exist in this location: ' +
                                            workingDir + '/sitemap-temp/' + tocFileNameBaseRepo + '/' + tempTocFilename)
@@ -533,8 +544,8 @@ def sitemapOLD(self, details):
                                     if '.git' not in root:
                                         try:
                                             tocFileNameBaseRepo = source[workingDir + '/sitemap-temp/' + directory + '/' + tempTocFilename]['baseRepo']
-                                            # self.log.info('2. Found! tocFileNameBaseRepo: ' + tocFileNameBaseRepo)
-                                            # print('baseRepo: ' + tocFileNameBaseRepo)
+                                            # self.log.debug('2. Found! tocFileNameBaseRepo: ' + tocFileNameBaseRepo)
+                                            # self.log.debug('baseRepo: ' + tocFileNameBaseRepo)
                                             matchFound = True
                                             break
                                         except Exception:
@@ -553,7 +564,7 @@ def sitemapOLD(self, details):
 
                         # Now compare the repo names and file names of the two and if they match, then continue
                         if ((sourceFileNameBaseRepo + '/' + str(filenameShort)) == (tocFileNameBaseRepo + '/' + str(tempTocFilename))):
-                            # self.log.info(filenameShort + ' is in ' + tocFilename)
+                            # self.log.debug(filenameShort + ' is in ' + tocFilename)
                             self.log.debug('\n')
                             debugFilename = str(source[filename])
                             self.log.debug('Working with: ' + str(debugFilename.encode('utf-8', errors='ignore')))
@@ -662,12 +673,12 @@ def sitemapOLD(self, details):
                                     # self.log.debug('Not enough dollar signs to split: ' + listItem)
                             break
                         # elif str(filenameShort) in str(tempTocFilename):
-                        # self.log.info('Did not find: ' + filenameShort + ' in ' + tempTocFilename)
-                        # self.log.info('"' + filenameShort + '"')
-                        # self.log.info('"' + tempTocFilename + '"')
+                        # self.log.debug('Did not find: ' + filenameShort + ' in ' + tempTocFilename)
+                        # self.log.debug('"' + filenameShort + '"')
+                        # self.log.debug('"' + tempTocFilename + '"')
 
                 elif '[' in tocFilename:
-                    # self.log.info('working with []: '+ tocFilename)
+                    # self.log.debug('working with []: '+ tocFilename)
 
                     if (('                ' in tocFilename) and (topicGroup is True)):
                         tocFilename = tocFilename.replace('    ', '')
@@ -752,7 +763,7 @@ def sitemapOLD(self, details):
                                     if isinstance(goodstuff, list):
                                         self.log.debug('goodstuff is a list 1!')
                                     if goodstuff not in listDividedByTopicGroups:
-                                        # self.log.info('Appending 1: ' + goodstuff)
+                                        # self.log.debug('Appending 1: ' + goodstuff)
                                         listDividedByTopicGroups.append(goodstuff)
                                 except Exception:
                                     goodstuff = listDividedByTopicGroup.split('\n    \n')
@@ -761,13 +772,13 @@ def sitemapOLD(self, details):
                                     for section in goodstuff:
                                         if section not in listDividedByTopicGroups:
                                             listDividedByTopicGroups.append(section)
-                                            # self.log.info('Appending 2: ' + section)
+                                            # self.log.debug('Appending 2: ' + section)
                             else:
                                 if listDividedByTopicGroup not in listDividedByTopicGroups:
                                     listDividedByTopicGroups.append(listDividedByTopicGroup)
-                                    # self.log.info('Appending 3: ' + listDividedByTopicGroup)
+                                    # self.log.debug('Appending 3: ' + listDividedByTopicGroup)
 
-                        # self.log.info('\nlistDividedByTopicGroups: ' + str(listDividedByTopicGroups))
+                        # self.log.debug('\nlistDividedByTopicGroups: ' + str(listDividedByTopicGroups))
                         # listDividedByTopicGroups = list(dict.fromkeys(listDividedByTopicGroups))
                         for listDividedByTopicGroup in listDividedByTopicGroups:
                             # self.log.debug('\n\nlistDividedByTopicGroup 2: ' + str(listDividedByTopicGroup))
@@ -820,7 +831,7 @@ def sitemapOLD(self, details):
                                     if ('toc' in tocFilename) and (not details["builder"] == 'local'):
                                         tocLoop(tocFilename, topicGroup)
                                     elif tocFilename.startswith(tuple(indentations)) and not details["builder"] == 'local':
-                                        # self.log.info('reuseloop for: ' + tocFilename)
+                                        # self.log.debug('reuseloop for: ' + tocFilename)
                                         reuseLoop(tocFilename, topicGroup)
                                     else:
                                         loop(tocFilename, topicGroup)
@@ -835,7 +846,7 @@ def sitemapOLD(self, details):
                                 reuseLoop(tocFilename, topicGroup)
                             else:
                                 loop(tocFilename, topicGroup)
-        self.log.info('Success!')
+        self.log.debug('Success!')
 
     if os.path.isdir(workingDir + '/sitemap-temp/'):
         shutil.rmtree(workingDir + '/sitemap-temp/')

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def cleanupEachFile(self, details, imageProcessing, location_github_branch_push, source_files, tags_hide, tags_show):
+def cleanupEachFile(self, details, imageProcessing):
 
     # Loop through every file in the files for this location and do the tag and reuse replacements
 
@@ -15,8 +15,7 @@ def cleanupEachFile(self, details, imageProcessing, location_github_branch_push,
     from errorHandling.errorHandling import addToErrors
     # from setup.exitBuild import exitBuild
 
-    def fileCleanUpLoop(self, details, conrefJSON, file_name,
-                        fileNamePrevious, fileStatus, folderAndFile, folderPath, tags_hide, tags_show):
+    def fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath):
 
         # Open the source file for reading and get its contents
         with open(details["source_dir"] + folderAndFile, 'r', encoding="utf8", errors="ignore") as fileName_open:
@@ -53,7 +52,7 @@ def cleanupEachFile(self, details, imageProcessing, location_github_branch_push,
             keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicContents)
 
         from tags.tagRemoval import tagRemoval
-        topicContents = tagRemoval(self, details, folderAndFile, folderPath, file_name, tags_hide, tags_show, topicContents)
+        topicContents = tagRemoval(self, details, folderAndFile, topicContents)
 
         if '```\n    ```' in topicContents:
             # Tested 1/6/21
@@ -89,13 +88,13 @@ def cleanupEachFile(self, details, imageProcessing, location_github_branch_push,
         if '.json' not in folderAndFile:
             # Tag validation happens no matter what the value is for the --validation flag because tag errors impact output
             from tags.htmlValidator import htmlValidator
-            htmlValidator(self, details, file_name, folderAndFile, folderPath, tags_hide, tags_show, topicContents)
+            htmlValidator(self, details, file_name, folderAndFile, folderPath, topicContents)
 
         from images.imagesUsed import imagesUsed
         imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContents)
 
-    if source_files == {}:
-        self.log.info('No files to process for ' + self.location_name + '.')
+    if self.source_files == {}:
+        self.log.debug('No files to process for ' + self.location_name + '.')
     else:
 
         if os.path.isfile(details["source_dir"] + '/' + details["reuse_snippets_folder"] + '/' + str(details["reuse_phrases_file"])):
@@ -109,7 +108,7 @@ def cleanupEachFile(self, details, imageProcessing, location_github_branch_push,
             conrefJSON = ''
 
         # Start handling each file individually from the source_files dictionary
-        sortedList = sorted(source_files.items())
+        sortedList = sorted(self.source_files.items())
         source_files = dict(sortedList)
 
         for source_file, source_file_info in source_files.items():
@@ -123,7 +122,7 @@ def cleanupEachFile(self, details, imageProcessing, location_github_branch_push,
             if file_name.endswith(tuple(details["img_output_filetypes"])) and imageProcessing is True:
                 self.log.debug('\n\n')
                 self.log.debug('----------------------------------')
-                self.log.info(folderAndFile)
+                self.log.debug(folderAndFile)
                 self.log.debug('(' + self.location_name + ')')
                 self.log.debug('----------------------------------')
                 self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
@@ -147,7 +146,7 @@ def cleanupEachFile(self, details, imageProcessing, location_github_branch_push,
 
                 self.log.debug('\n\n')
                 self.log.debug('----------------------------------')
-                self.log.info(folderAndFile)
+                self.log.debug(folderAndFile)
                 self.log.debug('(' + self.location_name + ')')
                 self.log.debug('----------------------------------')
                 self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
@@ -212,8 +211,7 @@ def cleanupEachFile(self, details, imageProcessing, location_github_branch_push,
                         # For Travis, only copy over the file that's being worked with
                         if ((os.path.isfile(details["source_dir"] + folderAndFile)) and
                                 (folderAndFile in self.all_files_dict)):
-                            fileCleanUpLoop(self, details, conrefJSON, file_name, fileNamePrevious, fileStatus,
-                                            folderAndFile, folderPath, tags_hide, tags_show)
+                            fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath)
                         elif folderAndFile in self.all_files_dict:
                             # --rebuild_files list might have a typo or something
                             addToWarnings('Does not exist in the source directory for ' + self.location_name + ': ' + folderAndFile,

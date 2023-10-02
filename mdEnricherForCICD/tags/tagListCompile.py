@@ -17,10 +17,10 @@ def tagListCompile(self, details):
     tags_show = []
     tags_hide = []
 
-    # self.log.info('\n')
-    # self.log.info('----------------------------------')
-    # self.log.info('Tag list and display settings for ' + self.location_name + ':')
-    # self.log.info('----------------------------------')
+    # self.log.debug('\n')
+    # self.log.debug('----------------------------------')
+    # self.log.debug('Tag list and display settings for ' + self.location_name + ':')
+    # self.log.debug('----------------------------------')
 
     for tag in self.all_tags:
         if ((tag == self.location_name) and (tag not in tags_show)):
@@ -65,7 +65,9 @@ def tagListCompile(self, details):
                     addToErrors('No location value for the ' + featureFlagName, details["featureFlagFile"], '',
                                 details, self.log, self.location_name, featureFlagName, str(details["featureFlags"]))
                 else:
-                    if ',' in featureFlagDisplay:
+                    if ', ' in featureFlagDisplay:
+                        featureFlagDisplayList = featureFlagDisplay.split(', ')
+                    elif ',' in featureFlagDisplay:
                         featureFlagDisplayList = featureFlagDisplay.split(',')
                     else:
                         featureFlagDisplayList = [featureFlagDisplay]
@@ -97,7 +99,7 @@ def tagListCompile(self, details):
                 tags_hide.append(directory)
 
     TAGS_SHOW_STRING = ", ".join(sorted(tags_show))
-    self.log.info('tags_show: ' + TAGS_SHOW_STRING)
+    self.log.debug('tags_show: ' + TAGS_SHOW_STRING)
     TAGS_HIDE_STRING = ", ".join(sorted(tags_hide))
     self.log.debug('tags_hide: ' + TAGS_HIDE_STRING)
 
