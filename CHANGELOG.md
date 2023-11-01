@@ -2,6 +2,15 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.1.6, released 01 November 2023
+<dl>
+<dt>Bug fix</dt>
+<dd><ul>
+    <li>Typo in the documentation</li>
+    </ul>
+</dd>
+</dl>
+
 ## Version 1.1.5, released 02 October 2023
 <dl>
 <dt>Bug fixes</dt>
@@ -11,7 +20,6 @@ Notable changes to this project are documented in this file.
     <li>Copyright date was not updating if it was the only change to the file.</li>
     </ul>
 </dd>
-
 </dl>
 
 ## Version 1.1.4, released 01 September 2023

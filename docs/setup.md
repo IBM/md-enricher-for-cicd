@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2023-10-02
+# Last updated: 2023-11-01
 -->
 
 
@@ -191,7 +191,7 @@ You can use a Slack bot and the Slack Python SDK to issue posts. You can choose 
                 "github_name": "Harry Dunne",
                 "slack_id": "W1A2B3C4D5"
             }
-    }
+    ]}
     ```
 1. Install the Slack app into the Slack channel.
 1. In the environment variables, add `SLACK_BOT_TOKEN` and `SLACK_CHANNEL`.

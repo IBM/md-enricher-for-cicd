@@ -31,7 +31,7 @@ def pushUpdatedFiles(self, details, pushQueue):
             pushQueue.append(self.location_github_org + '/' + self.location_github_repo)
             now = datetime.now()
             current_time = now.strftime("%H:%M:%S")
-            self.log.info('Adding ' + self.location_name + ' to push queue: ' + current_time)
+            self.log.info('Adding ' + self.location_name + ' location to push queue: ' + current_time)
             time.sleep(6)
 
     pushSuccessful = False
