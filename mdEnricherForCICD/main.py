@@ -510,8 +510,6 @@ def main(
             build_number = os.environ.get('TRAVIS_BUILD_NUMBER')
             if builder is None:
                 builder = 'travis'
-            current_commit_summary = os.environ.get('TRAVIS_COMMIT_MESSAGE')
-            current_commit_id = os.environ.get('TRAVIS_COMMIT')
 
         # Anticipating that other builders could use the workspace variable
         elif 'jenkins' in workspace:
@@ -519,22 +517,16 @@ def main(
             build_number = os.environ.get('build_number')
             if builder is None:
                 builder = 'jenkins'
-            current_commit_summary = os.environ.get('GIT_COMMIT')
-            current_commit_id = os.environ.get('GIT_COMMIT')
         else:
             if builder is None:
                 builder = 'local'
             build_id = None
             build_number = 'Local'
-            current_commit_summary = 'Local'
-            current_commit_id = 'local'
             workspace = source_dir
 
         details.update({"builder": builder})
         details.update({"build_id": build_id})
         details.update({"build_number": build_number})
-        details.update({"current_commit_summary": current_commit_summary})
-        details.update({"current_commit_id": current_commit_id})
         details.update({"workspace": workspace})
 
         # Create a list out of the rebuild_files values and make sure each entry starts with a slash
@@ -555,11 +547,11 @@ def main(
 
         if not os.path.exists(source_dir):
             os.makedirs(source_dir)
-        change_dir(details, source_dir)
+        change_dir(details, workspace)
 
         details.update({"source_dir": source_dir})
 
-        if os.path.isdir(details["source_dir"] + '/.git'):
+        if os.path.isdir(workspace + '/.git'):
             try:
                 source_github_url_bytes = subprocess.check_output(["git", "config", "--get", "remote.origin.url"])
                 source_github_url = source_github_url_bytes.decode("utf-8")
@@ -570,7 +562,7 @@ def main(
                 exitBuild(details, log)
         else:
             source_github_url = None
-            log.debug('Source directory is not a Git clone.')
+            log.info('Source directory is not a Git clone.')
 
         try:
             if details["builder"] == 'travis':
@@ -802,6 +794,7 @@ def main(
 
         join_comma = ', '
         log.info('Locations can be used as tags: %s', join_comma.join(all_tags))
+        details.update({"location_tags": all_tags})
 
         if (source_github_url + ',' + current_github_branch) in all_locations:
             addToWarnings('The ' + current_github_branch + ' branch in ' + source_github_url +
@@ -822,7 +815,7 @@ def main(
             source_files_original_list = {}
         else:
             # For remote current_github_branch that is not source_github_branch
-            previous_commit_result = previousCommitInfo(details, log, current_commit_id, current_commit_summary)
+            previous_commit_result = previousCommitInfo(details, log)
 
             current_commit_author = previous_commit_result[0]
             current_commit_id = previous_commit_result[1]
@@ -843,7 +836,11 @@ def main(
                     log.debug('%s: %s', detail, str(details[detail]))
             else:
                 if (('token' not in detail) and ('webhook' not in detail) and ('username' not in detail) and ('ibm_cloud_docs_product_names' not in detail)):
-                    log.info('%s: %s', detail, str(details[detail]))
+                    if len(str(details[detail])) > 500:
+                        detailsString = str(details[detail])[0:500] + '...'
+                    else:
+                        detailsString = str(details[detail])
+                    log.info('%s: %s', detail, detailsString)
         # log.info(details["username"])
 
         queueLock = threading.Lock()

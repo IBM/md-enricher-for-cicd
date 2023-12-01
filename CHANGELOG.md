@@ -2,6 +2,25 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.1.7, released 01 December 2023
+
+<dl>
+<dt>Multiple commits per build are now used so that source files get processed faster</dt>
+<dd>How the commit information is gathered has changed. Previously, there was a 1:1 matching of commits to Travis builds. Whatever the current commit ID was for the Travis build, that's what was used to compare against the last commit ID that the Markdown Enricher ran on. Now, the Markdown Enricher pulls source and gets the commit ID and related source files for the latest commit, allowing your changes to make it downstream with fewer builds. This change allows the Travis setting **Auto cancel branch builds** to be used and helps to alleviate problems with long queued Travis builds and wait times.</dd>
+
+<dt>Rebuilds that rebuild the files you want rebuilt</dt>
+<dd>Previously, if a build was kicked off but there were no new commits to process or Github was unaccessible, the Markdown Enricher exited. Now the build number, the previous commit ID, and the current commit ID are all stored in the last commit file in the logs branch rather than just the current commit ID. On rebuilds of already processed content, the build number can be found, then the compared commits from that build, and the same diff can be made to process those files again. In a Travis build, click the <b>Restart</b> button to try it out. With a rebuild, you might notice the landing page and sitemap dates update, but if no changes were found in a topic, the date in that topic is not updated downstream.</dd>
+
+<dt>Changed supported values for <code>location_commit_summary_style</code></dt>
+<dd>For <code>location_commit_summary_style</code> in locations files, revised acceptable values are <code>Author</code>, <code>AuthorAndSummary</code>, <code>BuildNumber</code>, <code>BuildNumberAndSummary</code>, <code>CommitID</code>, <code>CommitIDAndSummary</code>, <code>CommitIDAndAuthor</code>, and <code>Summary</code>.</dd>
+
+<dt>Location names can be used as feature flag names</dt>
+<dd>Location names can be used as feature flag names to allow content with the tag name to be delivered to multiple locations. For example, if you have <code>cli-draft</code> and <code>draft</code> as locations in your locations file, you can also set a feature flag name as <code>draft</code> with the value of <code>cli-draft,draft</code> to deliver upstream content tagged with <code>draft</code> to go to both of the downstream locations of <code>cli-draft</code> and <code>draft</code>.</dd>
+
+<dt>Improved messaging when permissions are insufficient upstream</dt>
+<dd>Instead of just exiting when an issue with permissions exists, a few workarounds have been added. If the Github user ID does not have write access in the upstream source repo, a warning is issued that logs cannot be stored. If a diff cannot be done on the changed files, all of the files are processed.</dd>
+</dl>
+
 ## Version 1.1.6, released 01 November 2023
 <dl>
 <dt>Bug fix</dt>

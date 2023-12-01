@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2023 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2023-11-01
+# Last updated: 2023-12-01
 -->
 
 # Locations file
@@ -32,7 +32,7 @@
 |`location_github_url`|String|Required when `location_output_action` is set to something other than `none`. The URL for the downstream location. Example: `https://github.com/org/repo`|
 |`location_github_branch`|String|Required when `location_output_action` is set to something other than `none`. The name of the branch to push output to in the downstream location. Example: `main`|
 |`location_comments`|<ul><li>`on` (default)</li><li>`off`</li></ul>|Optional. HTML comments can be included (`on`) or excluded (`off`) in the output.|
-|`location_commit_summary_style`|<ul><li>`AuthorAndSummary` (default)</li><li>`AuthorOnly`</li><li>`IDOnly`</li><li>`IDAndSummary`</li><li>`IDAndAuthor`</li><li>`SummaryOnly`</li><li>Enter your own text.</li></ul>|Optional. The display of the Git commit summary when pushing output downstream. |
+|`location_commit_summary_style`|<ul><li>`Author`</li><li>`AuthorAndSummary` (default)</li><li>`BuildNumber`</li><li>`BuildNumberAndSummary`</li><li>`CommitID`</li><li>`CommitIDAndSummary`</li><li>`CommitIDAndAuthor`</li><li>`Summary`</li><li>Enter your own text.</li></ul>|Optional. The display of the Git commit summary when pushing output downstream. |
 |`location_contents`|JSON|Optional. Special handling of individual files and folders for a downstream location.|
 
 
@@ -62,7 +62,7 @@
                 "location_github_branch_pr": "next-prod-push",
                 "location_output_action": "create-pr",
                 "location_comments": "off",
-                "location_commit_summary_style": "SummaryOnly"
+                "location_commit_summary_style": "Summary"
             }
         ]
     }

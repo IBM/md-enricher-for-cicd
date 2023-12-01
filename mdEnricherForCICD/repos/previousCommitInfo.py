@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
+def previousCommitInfo(details, log):
 
     # Get info from the last commit and the difference between that one and the last commit the build ran on
 
@@ -18,101 +18,145 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
     from errorHandling.errorHandling import addToErrors
     from setup.exitBuild import exitBuild
 
+    # Get the previous commit ID with the one that is stored in the file, if that file exists.
+    # This is important to do because pull requests include more than one commit, so if possible,
+    # we need to go back to the commit that was used in the last build, rather than the second to last commit in the repo.
+
+    def getLastTwoCommits():
+
+        commitsList = []
+
+        # Use the CLI to get the right commit ID that matches the local files if possible
+        # Otherwise, use the API, but it's possible the API could get ahead of the files that were checked out
+        try:
+            log.debug('Getting commits from the CLI')
+            logResponse = subprocess.check_output('git log -2 --format="%H"', shell=True)
+            logResponseDecoded = logResponse.decode("utf-8")
+            logLines = logResponseDecoded.split('\n')
+            while "" in logLines:
+                logLines.remove("")
+            for individualSha in logLines:
+                commitsList.append(individualSha)
+
+        except Exception:
+            log.debug('Getting commits from the API')
+            listCommits = requests.get(details["source_github_api_repos"] + '/commits?sha=' + details["current_github_branch"] +
+                                       '&per_page=2', auth=(details["username"], details["token"]))
+
+            try:
+                commitsJSON = listCommits.json()
+            except Exception:
+                addToErrors('The last two commits could not be retrieved. Review the request result.\n' + listCommits.text +
+                            '\nThe last two commits could not be retrieved.', 'commits', '', details, log, 'pre-build', '', '')
+                exitBuild(details, log)
+
+            for commitJSON in commitsJSON:
+                try:
+                    individualSha = commitJSON['sha']
+                    commitsList.append(individualSha)
+                except Exception as e:
+                    log.info('No previous commits to gather information from.')
+                    log.debug(e)
+                    break
+
+        try:
+            log.debug('Getting the current and previous commit ID from the last commits made to the repo.')
+            current_commit_id = commitsList[0]
+        except Exception as e:
+            print('Exception')
+            addToErrors('Commits could not be retrieved.\n' + str(e), 'commits', '', details, log, 'pre-build', '', '')
+            exitBuild(details, log)
+
+        try:
+            previous_commit_id = commitsList[1]
+        except Exception:
+            previous_commit_id = 'None'
+
+        return (current_commit_id, previous_commit_id)
+
     log.debug('\n\n')
     log.debug('---------------------------------------------------------')
     log.debug('SOURCE')
     log.debug('--------------------------------------------------------\n\n')
 
     source_files_original_list: dict[dict[str, str], dict[str, str]] = {}  # type: ignore[misc]
-    commitsList = []
-    messagesList = []
 
-    # Get the latest commit ID and the one right immediately before it. Really, we just need the last commit ID.
-    # Hopefully there's a commit ID file to get the commit before this one. But if not and this is not test,
-    # the second to last one here will be used.
-
-    # Get the last two commits to the current commit branch (though it seems like it's not filtering to just this branch)
-    # We may or may not need this info going forward
-    listCommits = requests.get(details["source_github_api_repos"] + '/commits?sha=' + details["current_github_branch"] +
-                               '&per_page=2', auth=(details["username"], details["token"]))
-
+    # Make sure the local files are from the most recent commit
     try:
-        commitsJSON = listCommits.json()
+        subprocess.check_output('git pull -q https://' +
+                                details["username"] + ':' + details["token"] + '@' +
+                                details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
+                                details["source_github_repo"], shell=True)
     except Exception:
-        addToErrors('The last two commits could not be retrieved. Review the request result.\n' + listCommits.text +
-                    '\nThe last two commits could not be retrieved.', 'commits', '', details, log, 'pre-build', '', '')
-        exitBuild(details, log)
+        log.debug('git pull exception.')
 
-    for commitJSON in commitsJSON:
-        try:
-            individualSha = commitJSON['sha']
-            individualMessage = commitJSON['commit']['message']
-            commitsList.append(individualSha)
-            messagesList.append(individualMessage)
-        except Exception as e:
-            log.info('No previous commits to gather information from.')
-            log.debug(e)
-            break
+    # Get the latest commit ID and the one right immediately before it.
+    current_commit_id, previous_commit_id = getLastTwoCommits()
 
-    # Get the previous commit ID with the one that is stored in the file, if that file exists.
-    # This is important to do because pull requests include more than one commit, so if possible,
-    # we need to go back to the commit that was used in the last build, rather than the second to last commit in the repo.
-
-    def getPreviousSha(commitsList):
-        try:
-            log.info(details["last_commit_id_file"] + ' might not exist yet. Getting the previous commit ID from the last commit made to the repo.')
-            previous_commit_id = commitsList[1]
-        except Exception as e:
-            addToErrors('Not enough commits to continue.\n' + str(e), 'commits', '', details, log, 'pre-build', '', '')
-            exitBuild(details, log)
-        return (previous_commit_id)
-
+    # If this is for the source branch, not a feature branch,
+    # get the details from the last commit file to compare against
+    # But for the feature branch, the branch is compared against the source branch, not the previous commit ID
     if details["test_only"] is False:
         try:
-            commitID = requests.get(details["source_github_api_repos"] + "/contents/" + details["last_commit_id_file"] +
-                                    "?ref=" + details["log_branch"], auth=(details["username"], details["token"]))
-            commitIDJSON = commitID.json()
-            previousVersionEncoded = commitIDJSON['content']
-            previous_commit_id_bytes = base64.b64decode(previousVersionEncoded)
-            previous_commit_id = previous_commit_id_bytes.decode("utf-8")
-        except Exception:
-            previous_commit_id = getPreviousSha(commitsList)
-    else:
-        previous_commit_id = getPreviousSha(commitsList)
+            commitIDFile = requests.get(details["source_github_api_repos"] + "/contents/" + details["last_commit_id_file"] +
+                                        "?ref=" + details["log_branch"], auth=(details["username"], details["token"]))
+            commitIDJSON = commitIDFile.json()
+            lastCommitIDsEncoded = commitIDJSON['content']
+            lastCommitIDsBytes = base64.b64decode(lastCommitIDsEncoded)
+            lastCommitIDsDecoded = lastCommitIDsBytes.decode("utf-8")
+            lastCommitIDsList = lastCommitIDsDecoded.split('\n')
 
-    # This is a backup - this should have already been set in the setup.py file
-    if (current_commit_id == 'None') or (current_commit_id == '') or (current_commit_id is None):
-        try:
-            current_commit_id = commitsList[0]
-        except Exception:
-            addToErrors('The last commit ID could not be retrieved. Verify that the ' + details["username"] +
-                        ' username has write permission in the https://' + details["source_github_domain"] + '/' +
-                        details["source_github_org"] + '/' + details["source_github_repo"] + ' repo.', 'commit ID', '',
-                        details, log, 'pre-build', '', '')
-            exitBuild(details, log)
+            # Check if this build is restarted by looking for the build number in the last commit file
+            rebuild = False
+            if '\n' + details["build_number"] + ':' in lastCommitIDsDecoded:
+                for lastCommitID in lastCommitIDsList:
+                    if lastCommitID.startswith(details["build_number"] + ':'):
+                        lastCommitIDsString = lastCommitID
+                        rebuild = True
+                        log.info('Rebuild detected for build ' + details["build_number"] + '. ' +
+                                 'Using the current and previous commit ID stored from the original build.')
+                        break
+            else:
+                # 0 is an empty newline to start the file
+                lastCommitIDsString = lastCommitIDsList[1]
 
-        current_commit_summary = messagesList[0]
+            # Get the previous commit ID from the last commit ID file
+            if ':' in lastCommitIDsString:
+                lastCommitIDsString = lastCommitIDsString.split(':', 1)[1]
+            if ',' in lastCommitIDsString:
 
-    # Is this necessary?
-    if (current_commit_summary == 'None') or (current_commit_summary == '') or (current_commit_summary is None):
-        commitJSON = requests.get(details["source_github_api_repos"] + '/commits/' + current_commit_id, auth=(details["username"], details["token"]))
-        current_commit_summary = commitJSON['commit']['message']
+                # If this is a rebuild, get both the current and previous from the file
+                if rebuild is True:
+                    previous_commit_id, current_commit_id = lastCommitIDsString.split(',', 1)
 
-    # This is a backup - this should have already been grabbed from the file
-    if (previous_commit_id == 'None') or (previous_commit_id == '') or (previous_commit_id is None):
-        try:
-            previous_commit_id = commitsList[1]
-            PREVIOUS_COMMIT_IDRetain = commitsList[1]
-        except Exception:
-            addToWarnings('The previous or next to last commit ID could not be retrieved.', 'commit ID', '', details,
-                          log, 'pre-build', '', '')
+                # If not a rebuild, then store both in case there are no new commits
+                else:
+                    original_previous_commit_id, previous_commit_id = lastCommitIDsString.split(',', 1)
 
-    # Make sure there are no line breaks in the summary
-    if '\n' in current_commit_summary:
-        current_commit_summary = current_commit_summary.split('\n', 1)[0]
+            # Legacy, only current commit ID was stored
+            else:
+                previous_commit_id = lastCommitIDsString
 
-    # Make sure there are no newlines in the commit ID. We only want the ID itself and no weirdness around it.
+        except Exception as e:
+            log.debug('The last commit ID file could not be retrieved. Using the last two commits to the repo instead.')
+            log.debug(e)
+
+    # Make sure there are no newlines in the commit ID
     previous_commit_id = re.sub('\n', '', previous_commit_id)
+
+    # If there is a rebuild and there seems to be no changes
+    # re-run on the same files that were previously run on
+    # assuming there was an issue that needs processed again
+    if current_commit_id == previous_commit_id:
+        log.debug('The current commit ID matches the previous that the Markdown Enricher ran on.')
+        try:
+            original_previous_commit_id
+        except Exception:
+            log.info('All changes have already been processed in a previous build. Exiting.')
+            sys.exit(0)
+        else:
+            previous_commit_id = original_previous_commit_id
+            log.debug('Resetting the previous commit ID to the one in the last commit ID file to re-run on the same files.')
 
     # If this isn't the source branch, compare it against the source branch and if it matches,
     # it's a new branch and therefore, doesn't need to run on these files. Exit if there's no difference.
@@ -137,21 +181,36 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
                      ' branch. The branch must be newly created and does not contain any new changes. Exiting.')
             sys.exit(0)
 
-    # Get the author's name
-    listCommits = requests.get(details["source_github_api_repos"] + '/commits/' + current_commit_id + '?sha=' +
-                               details["current_github_branch"], auth=(details["username"], details["token"]))
-    commitsJSON = listCommits.json()
-    current_commit_author = commitsJSON['commit']['author']['name']
+    # Get the author's name and the commit summary
+    log.debug('Getting the author\'s name and commit summary.')
+    try:
+        logResponse = subprocess.check_output('git show --format="%an" --quiet ' + current_commit_id, shell=True)
+        current_commit_author = logResponse.decode("utf-8")
+        logResponse = subprocess.check_output('git show --format="%s" --quiet ' + current_commit_id, shell=True)
+        current_commit_summary = logResponse.decode("utf-8")
+    except Exception:
+        try:
+            commitDetails = requests.get(details["source_github_api_repos"] + '/commits/' + current_commit_id, auth=(details["username"], details["token"]))
+            commitDetailsJSON = commitDetails.json()
+            current_commit_author = commitDetailsJSON['commit']['author']['name']
+            current_commit_summary = commitDetailsJSON['commit']['message']
+        except Exception:
+            current_commit_summary = 'None'
+            current_commit_author = 'Unknown'
 
-    # If there aren't enough commits to compare against, run on every file.
-    if len(commitsList) < 1:
-        log.info('No files retrieved.')
-        source_files_original_list = {}
+    # Make sure there are no line breaks in the summary
+    if '\n' in current_commit_summary:
+        current_commit_summary = current_commit_summary.split('\n', 1)[0]
+    if '\n' in current_commit_author:
+        current_commit_author = current_commit_author.split('\n', 1)[0]
+
+    source_files_original_list = {}
+    if str(previous_commit_id) == 'None':
+        log.info('First commit.')
     elif details["rebuild_all_files"] is True:
         log.info('Rebuilding all files.')
-        source_files_original_list = {}
     else:
-
+        filesJson = {}
         # log.info('Getting a list of files that have changed since the last build ran.')
         # Get a list of files that have changed since the last build ran
         if details["test_only"] is True:
@@ -163,24 +222,22 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
             # Compare the current ID with the previous ID
             compareDiffs = requests.get(details["source_github_api_repos"] + '/compare/' + previous_commit_id + '...' +
                                         current_commit_id + '?per_page=100', auth=(details["username"], details["token"]))
-
         try:
             # This workaround is needed when the last commit file contains a commit ID that is no longer in the repository.
             # Could happen when a commit history is blown away or if files are copied into a new repo
             if 'No common ancestor' in compareDiffs.text:
                 try:
                     compareDiffs = requests.get(details["source_github_api_repos"] + '/compare/' +
-                                                PREVIOUS_COMMIT_IDRetain + '...' + current_commit_id,
+                                                previous_commit_id + '...' + current_commit_id,
                                                 auth=(details["username"], details["token"]))
                 except Exception:
                     addToErrors('A diff between the two commit IDs could not be retrieved. ' +
-                                'The problem might be with the previous commit ID: ' + PREVIOUS_COMMIT_IDRetain + '.',
+                                'The problem might be with the previous commit ID: ' + previous_commit_id + '.',
                                 'commits', '', details, log, 'pre-build', '', '')
                     exitBuild(details, log)
         except Exception as e:
             addToErrors('A diff between the two commit IDs could not be retrieved.\n' + str(e), 'commits', '', details, log, 'pre-build', '', '')
             exitBuild(details, log)
-
         try:
             compareDiffJSON = compareDiffs.json()
         except Exception:
@@ -201,14 +258,12 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
                 # Single file
                 filesJson = compareDiffJSON['files']
             except Exception:
-                addToErrors('The list of files in the commit could not be retrieved. If there is a ' +
-                            details["last_commit_id_file"] + ' file, try deleting it and starting the build again.',
-                            'commits', '', details, log, 'pre-build', '', '')
-                exitBuild(details, log)
+                log.debug('A diff could not be made between the current commit ID and the previous commit ID. ' +
+                          'Check permissions for ' + details["username"] + ' in the upstream source repository.')
 
         fileCount = 0
-        if filesJson == []:
-            log.info('No files returned.')
+        if filesJson == {}:
+            log.debug('No files returned.')
             source_files_original_list = {}
 
         else:
@@ -306,15 +361,17 @@ def previousCommitInfo(details, log, current_commit_id, current_commit_summary):
                               'All of the files from the commit are being handled in this build, but deletions related ' +
                               'to file renames or removals might not happen as desired downstream on the files that ' +
                               'were over the first alphabetical 300.\n', 'commits', '', details, log, 'pre-build', '', '')
-
         # Summary of the information we got above
-        log.info('Previous commit ID: ' + previous_commit_id)
-        log.info('Current commit ID: ' + current_commit_id)
-        log.info('Current commit description: ' + current_commit_summary + '\n')
+        log.info('Previous commit ID: ' + str(previous_commit_id))
+        log.info('Current commit ID: ' + str(current_commit_id))
+        log.info('Current commit description: ' + str(current_commit_summary + '\n'))
 
         log.info('These were the files changed since the last commit that a build ran on:')
-        for source_file, source_file_info in source_files_original_list.items():
-            log.info(str(source_file) + str(' (' + source_files_original_list[source_file]['fileStatus'] + ')'))
+        if source_files_original_list == {}:
+            log.info('No changes found.')
+        else:
+            for source_file, source_file_info in source_files_original_list.items():
+                log.info(str(source_file) + str(' (' + source_files_original_list[source_file]['fileStatus'] + ')'))
         log.info('')
 
     return (current_commit_author, current_commit_id, current_commit_summary, previous_commit_id, source_files_original_list)
