@@ -150,7 +150,8 @@ def clone(self, details):
     location_github_branch_push = None
 
     if 'Not Found' in str(getBranchesJSON):
-        addToErrors('The repo was not found. Verify the domain, organization, and repo: https://' +
+        addToErrors('The downstream location_github_url was not found for ' + self.location_name + '. ' +
+                    'Verify the username, token, domain, organization, and repo: https://' +
                     self.location_github_domain + '/' + self.location_github_org + '/' + self.location_github_repo,
                     'cloning', '', details, self.log, self.location_name, '', '')
         if not self.location_output_action == 'none':

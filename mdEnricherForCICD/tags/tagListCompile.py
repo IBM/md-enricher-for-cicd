@@ -22,16 +22,15 @@ def tagListCompile(self, details):
     # self.log.debug('Tag list and display settings for ' + self.location_name + ':')
     # self.log.debug('----------------------------------')
 
-    for tag in self.all_tags:
-        if ((tag == self.location_name) and (tag not in tags_show)):
-            tags_show.append(tag)
-        elif ((not tag == self.location_name) and (tag not in tags_hide) and (tag not in tags_show)):
-            tags_hide.append(tag)
-        else:
-            self.log.debug('Already handled: ' + tag)
-
     tags_show.append('all')
     tags_hide.append('hidden')
+
+    if 'all' not in self.all_tags:
+        self.all_tags.append('all')
+    if 'hidden' not in self.all_tags:
+        self.all_tags.append('hidden')
+
+    tags_show.append(self.location_name)
 
     # Get the feature flags and replace them with staging/prod tags to be dealt with later in this script
     if not details["featureFlags"] == 'None':
@@ -39,7 +38,7 @@ def tagListCompile(self, details):
         for featureFlag in details["featureFlags"]:
             featureFlagName = featureFlag["name"]
 
-            if (featureFlagName in tags_show) or (featureFlagName in tags_hide):
+            if details["featureFlags"].count(featureFlag) > 1:
                 addToErrors('Check for duplicate "' + featureFlagName + '" flags in the feature flag file.', details["featureFlagFile"],
                             '', details, self.log, self.location_name, featureFlagName, str(details["featureFlags"]))
 
@@ -66,24 +65,35 @@ def tagListCompile(self, details):
                                 details, self.log, self.location_name, featureFlagName, str(details["featureFlags"]))
                 else:
                     if ', ' in featureFlagDisplay:
-                        featureFlagDisplayList = featureFlagDisplay.split(', ')
-                    elif ',' in featureFlagDisplay:
+                        featureFlagDisplay = featureFlagDisplay.replace(', ', ',')
+                    if ',' in featureFlagDisplay:
                         featureFlagDisplayList = featureFlagDisplay.split(',')
                     else:
                         featureFlagDisplayList = [featureFlagDisplay]
 
+                    # Get all of the show tags for each entry in the feature flag files
+                    featureFlagShow = False
                     for featureFlagDisplayEntry in featureFlagDisplayList:
-                        if ((featureFlagDisplayEntry in tags_show) and (featureFlagName not in tags_show)):
-                            if featureFlagName not in tags_show:
-                                tags_show.append(featureFlagName)
 
-                    for featureFlagDisplayEntry in featureFlagDisplayList:
-                        if ((featureFlagDisplayEntry in tags_hide) and (featureFlagName not in tags_hide) and (featureFlagName not in tags_show)):
-                            if featureFlagName not in tags_hide:
-                                tags_hide.append(featureFlagName)
+                        if featureFlagDisplayEntry not in details['location_tags']:
+                            addToErrors('The `' + featureFlagDisplayEntry + '` location specified for the `' + featureFlagName +
+                                        '` feature flag does not exist in the locations file. The available locations are: `' +
+                                        ', '.join(details['location_tags']) + '`', details["featureFlagFile"], '', details, self.log, self.location_name,
+                                        featureFlagName, str(details["featureFlags"]))
+
+                        if featureFlagName not in tags_show and featureFlagDisplayEntry == self.location_name:
+                            tags_show.append(featureFlagName)
+                            featureFlagShow = True
+
+                    if featureFlagShow is False and not featureFlagName == self.location_name:
+                        tags_hide.append(featureFlagName)
 
     else:
         self.log.debug('No feature flag to work with: ' + details["source_dir"] + details["featureFlagFile"])
+
+    for location_tag in details['location_tags']:
+        if (location_tag not in tags_show) and (location_tag not in tags_hide) and (location_tag != self.location_name):
+            tags_hide.append(location_tag)
 
     # If there's special handling for a folder, append that as a tag name
     for directory in self.location_contents_folders_keep:
