@@ -81,11 +81,18 @@ def tagListCompile(self, details):
                                         ', '.join(details['location_tags']) + '`', details["featureFlagFile"], '', details, self.log, self.location_name,
                                         featureFlagName, str(details["featureFlags"]))
 
-                        if featureFlagName not in tags_show and featureFlagDisplayEntry == self.location_name:
+                        if featureFlagDisplayEntry == 'all':
                             tags_show.append(featureFlagName)
                             featureFlagShow = True
 
-                    if featureFlagShow is False and not featureFlagName == self.location_name:
+                        elif featureFlagDisplayEntry == 'hidden':
+                            tags_hide.append(featureFlagName)
+
+                        elif featureFlagName not in tags_show and featureFlagDisplayEntry == self.location_name:
+                            tags_show.append(featureFlagName)
+                            featureFlagShow = True
+
+                    if (featureFlagShow is False) and (not featureFlagName == self.location_name) and (featureFlagName not in tags_hide):
                         tags_hide.append(featureFlagName)
 
     else:

@@ -145,24 +145,30 @@ def pushUpdatedLogFile(details, log):
 
             # Read the previous version of the file and set the contents to a max number of lines
             maxLines = 5
-            with open(details["output_dir"] + '/' + details["log_branch"] + '/' + details["last_commit_id_file"], "r") as commitFileOpen:
-                commitFilePrior = commitFileOpen.read()
-                commitFilePriorList = commitFilePrior.split('\n')
-                commitFileLength = len(commitFilePriorList)
-                if commitFileLength > maxLines:
-                    commitFilePrior = '\n'.join(commitFilePriorList[0:maxLines])
-                if not commitFilePrior.startswith('\n'):
-                    commitFilePrior = '\n' + commitFilePrior
+            commitFilePrior = ''
+            if os.path.isfile(details["output_dir"] + '/' + details["log_branch"] + '/' + details["last_commit_id_file"]):
+                with open(details["output_dir"] + '/' + details["log_branch"] + '/' + details["last_commit_id_file"], "r") as commitFileOpen:
+                    commitFilePrior = commitFileOpen.read()
+                    commitFilePriorList = commitFilePrior.split('\n')
+                    commitFileLength = len(commitFilePriorList)
+                    if commitFileLength > maxLines:
+                        commitFilePrior = '\n'.join(commitFilePriorList[0:maxLines])
+                    if not commitFilePrior.startswith('\n'):
+                        commitFilePrior = '\n' + commitFilePrior
 
             # Don't write the details again if this is a restart
-            if '\n' + details["build_number"] + ':' in commitFilePrior:
+            if '\n' + str(details["build_number"]) + ':' in commitFilePrior:
                 log.info('Commit information already stored in ' + details["last_commit_id_file"])
 
             # Write the old and new details
             else:
                 with open(details["output_dir"] + '/' + details["log_branch"] + '/' + details["last_commit_id_file"], "w+") as commitFileOpen:
-                    commitFileOpen.write('\n' + details["build_number"] + ':' + details["previous_commit_id"] + ',' +
-                                         details["current_commit_id"] + commitFilePrior)
+                    if details["build_number"] is None:
+                        commitFileOpen.write('\n' + details["previous_commit_id"] + ',' +
+                                             details["current_commit_id"] + commitFilePrior)
+                    else:
+                        commitFileOpen.write('\n' + str(details["build_number"]) + ':' + details["previous_commit_id"] + ',' +
+                                             details["current_commit_id"] + commitFilePrior)
 
                 try:
                     # If there is a JSON error in the locations file, the previous ID isn't set yet
@@ -175,7 +181,10 @@ def pushUpdatedLogFile(details, log):
         os.chdir(details["output_dir"] + '/' + details["log_branch"])
         subprocessOutput = subprocess.Popen('git add --all', shell=True, stdout=PIPE, stderr=STDOUT)
         exitCode = parseSubprocessOutput(subprocessOutput, log)
-        subprocessOutput = subprocess.Popen('git commit -m "[ci skip] Build #' + details["build_number"] + contains +
+        gitCommitCommand = 'git commit -m "[ci skip]'
+        if not details["build_number"] is None:
+            gitCommitCommand = gitCommitCommand + ' Build #' + details["build_number"]
+        subprocessOutput = subprocess.Popen(gitCommitCommand + contains +
                                             ' - ' + details["current_commit_summary"] + '" --quiet', shell=True,
                                             stdout=PIPE, stderr=STDOUT)
         exitCode = parseSubprocessOutput(subprocessOutput, log)
