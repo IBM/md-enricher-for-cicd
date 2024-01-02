@@ -2,6 +2,15 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.1.8, released 02 January 2024
+<dl>
+<dt>Bug fixes</dt>
+<dd><ul>
+    <li>An empty build number environment variable prevents logs from being committed to the logs branch.</li>
+    <li>Setting a feature flag to <code>all</code> allowed content to go to the wrong location.</li>
+    </ul></dd>
+</dl>
+
 ## Version 1.1.7, released 01 December 2023
 
 <dl>

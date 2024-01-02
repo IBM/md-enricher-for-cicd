@@ -737,6 +737,16 @@ def sitemapYML(self, details):
                                                 findAnchor = False
                                                 anchor = ''
 
+                                            elif ('{: ui}' in line or
+                                                  '{: cli}' in line or
+                                                  '{: terraform}' in line or
+                                                  '{: api}' in line):
+                                                interfaceType = re.findall('{: (.*?)}', line)[0]
+
+                                            elif '{: ' in line:
+                                                contentType = 'Something like help or support'
+                                                contentType = contentType
+
                                             else:
                                                 # self.log.debug('Creating anchor from title')
 
@@ -745,7 +755,7 @@ def sitemapYML(self, details):
                                                     # self.log.debug('413')
                                                     # self.log.debug(indent + '[' + title + '](' + linkIntro + fileTopicID + '#' + titleNoSpaces + ')')
 
-                                                if ' ' in anchor:
+                                                elif ' ' in anchor:
                                                     filePathShort = filePath.split(self.location_dir)[1]
                                                     addToWarnings('The anchor "' + anchor + '" in ' + filePathShort +
                                                                   ' contains a space and affects the sitemap link.',
@@ -754,8 +764,13 @@ def sitemapYML(self, details):
                                                                   self.location_name, '', '')
                                                     anchor = anchor.split(' ', 1)[0]
 
+                                                try:
+                                                    anchor = '&interface=' + interfaceType + '#' + anchor
+                                                except Exception:
+                                                    anchor = '#' + anchor
+
                                                 sitemapList = appendToFile('\n' + indent + '[' + title + '](' +
-                                                                           linkIntro + fileTopicID + '#' + anchor + ')', sitemapList)
+                                                                           linkIntro + fileTopicID + anchor + ')', sitemapList)
                                                 # self.log.debug('Appending: ' + indent + '[' + title + '](' + linkIntro + fileTopicID + '#' + anchor + ')')
                                                 findAnchor = False
                                                 anchor = ''
