@@ -2,6 +2,9 @@
 
 Notable changes to this project are documented in this file.
 
+## No release for 01 February 2024
+No changes were made to warrant a new release this month.
+
 ## Version 1.1.8, released 02 January 2024
 <dl>
 <dt>Bug fixes</dt>
