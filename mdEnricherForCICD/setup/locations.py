@@ -104,7 +104,17 @@ def locations(details, location, log):
                         'locations.json', '', details, log, 'pre-build', '', '')
             exitBuild(details, log)
 
+    try:
+        location_internal_framework = location["location_internal_framework"]
+    except KeyError:
+        location_internal_framework = None
+
+    try:
+        location_downstream_build_url = location["location_downstream_build_url"]
+    except KeyError:
+        location_downstream_build_url = None
+
     return (location_build, location_comments,
             location_commit_summary_style, location_contents, location_contents_files,
-            location_contents_folders, location_github_branch, location_github_branch_pr, location_github_url,
-            location_name, location_output_action, remove_all_other_files_folders)
+            location_contents_folders, location_downstream_build_url, location_github_branch, location_github_branch_pr, location_github_url,
+            location_internal_framework, location_output_action, remove_all_other_files_folders)

@@ -11,6 +11,7 @@ def pushUpdatedFiles(self, details, pushQueue):
     from datetime import datetime
     import json  # for sending data with and parsing data from requests
     import os  # for running OS commands like changing directories or listing files in directory
+    import re
     import requests  # for running curl-like API requests
     import subprocess
     from subprocess import PIPE, STDOUT
@@ -247,6 +248,7 @@ def pushUpdatedFiles(self, details, pushQueue):
 
         if self.pushSuccessful is True:
             self.log.debug('Push successful.')
+
             if (self.location_output_action == 'create-pr') and (not self.location_github_branch_push == self.location_github_branch):
                 # List PRs
                 listPRs = requests.get(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
@@ -262,10 +264,57 @@ def pushUpdatedFiles(self, details, pushQueue):
                         PRNumber = PR['number']
                         PRTitle = PR['title']
                         self.log.debug(str(PRNumber) + ': ' + PRTitle)
+
+                # Get topic links for the PR body
+                if self.location_internal_framework is not None:
+                    changedFileList = status.split('\n')
+                    linkList = []
+
+                    for changedFile in changedFileList:
+                        try:
+                            changedFile = changedFile.rsplit(' ', 1)[1]
+                            self.log.debug('Changed file: ' + changedFile)
+                            self.log.debug(self.source_files_location_list)
+                            for file_included in self.source_files:
+                                if self.source_files[file_included]['file_name'] == changedFile:
+                                    with open(self.location_dir + self.source_files[file_included]['folderPath'] +
+                                              self.source_files[file_included]['file_name'], 'r', encoding="utf8", errors="ignore") as fileName_write:
+                                        fileContents = fileName_write.read()
+                                    break
+                            topicID = re.findall('{: #(.*?)}', fileContents)[0]
+                            self.log.debug('Topic ID found: ' + topicID)
+                            subcollection = re.findall('subcollection: (.*?)\n', fileContents)[0]
+                            self.log.debug('Subcollection: ' + subcollection)
+                            linkList.append('[' + changedFile + '](' + self.location_internal_framework + '/' +
+                                            subcollection + '?topic=' + subcollection + '-' + topicID + ')')
+                            self.log.debug('[' + changedFile + '](' + self.location_internal_framework + '/' +
+                                           subcollection + '?topic=' + subcollection + '-' + topicID + ')')
+                        except Exception:
+                            if not changedFile == '':
+                                linkList.append(changedFile)
+                    self.log.debug(linkList)
+
+                if self.location_downstream_build_url is None:
+                    buildLink = 'IBM Cloud Docs builds'
+                else:
+                    buildLink = ('[IBM Cloud Docs builds](' + self.location_downstream_build_url)
+                    try:
+                        buildLink = buildLink + '/job/' + subcollection + ')'
+                    except Exception:
+                        buildLink = buildLink + ')'
+
+                PRBodyIntroTip = ('Tip: The changes in this PR might not be visible in the ' +
+                                  'framework immediately. If not, allow the ' + buildLink + ' to ' +
+                                  'complete and check back.\n\n')
+                PRBodyIntro = 'Changed topics:\n'
+
                 if self.location_github_branch_pr not in PRstring:
-                    g = {"title": "Next " + self.location_github_branch + " push", "body":
-                         "See the Commits and Files changed tabs for more information about what is " +
-                         "included in this pull request.",
+                    if self.location_internal_framework is not None:
+                        PRBody = PRBodyIntroTip + PRBodyIntro + '\n'.join(linkList)
+                    else:
+                        PRBody = ("See the Commits and Files changed tabs for more information about what is " +
+                                  "included in this pull request.")
+                    g = {"title": "Next " + self.location_github_branch + " push", "body": PRBody,
                          "head": self.location_github_branch_push, "base": self.location_github_branch}
                     r = requests.post(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
                                       auth=(details["username"], details["token"]), data=json.dumps(g))
@@ -301,6 +350,20 @@ def pushUpdatedFiles(self, details, pushQueue):
                             PRNumber = PR['number']
                             PRTitle = PR['title']
                             PRBase = PR['base']['ref']
+                            PRBody = PR['body']
+                            if PRBodyIntro in PRBody and self.location_internal_framework is not None:
+                                existingLinkListString = PRBody.split(PRBodyIntro, 1)[1]
+                                existingLinkList = existingLinkListString.split('\n')
+                                for link in linkList:
+                                    if link not in existingLinkList and not link == '':
+                                        existingLinkList.append(link)
+                                existingLinkList.sort()
+                                PRBodyRevised = PRBodyIntroTip + PRBodyIntro + '\n'.join(existingLinkList)
+                                if not PRBodyRevised == PRBody:
+                                    self.log.debug('Updating PR body.')
+                                    g = {"body": PRBodyRevised}
+                                    r = requests.patch(self.location_github_api_repos + '/pulls/' + str(PRNumber),
+                                                       auth=(details["username"], details["token"]), data=json.dumps(g))
                             self.log.debug('Updating pull request #' + str(PRNumber) + ': ' + PRTitle + ', head: ' + PRHead + ', base: ' + PRBase + '.')
             self.log.debug('File update complete.')
         else:

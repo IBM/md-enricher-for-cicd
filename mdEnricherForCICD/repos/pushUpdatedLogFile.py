@@ -96,6 +96,7 @@ def pushUpdatedLogFile(details, log):
                     os.remove(details["output_dir"] + '/' + details["log_branch"] + '/' + fileOrFolder)
 
         # Check each file to verify that the GHE_TOKEN and Slack token are not written into the file
+        contains = ''
         for logFile in os.listdir(details["output_dir"]):
             if logFile.startswith(details["log_file_name"]):
                 fileName_open = open(details["output_dir"] + '/' + logFile, 'r')
@@ -119,8 +120,6 @@ def pushUpdatedLogFile(details, log):
                     contains = ' contains ERRORS'
                 elif 'WARN' in fileContents:
                     contains = ' contains warnings'
-                else:
-                    contains = ''
 
         # Copy each log file to the log branch directory
         for fileOrFolder in sorted(os.listdir(details["output_dir"])):

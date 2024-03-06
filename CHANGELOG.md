@@ -2,6 +2,17 @@
 
 Notable changes to this project are documented in this file.
 
+
+## Version 1.1.9, released 06 March 2024
+<dl>
+<dt>Bug fixes</dt>
+<dd><ul>
+    <li>Error level too high for missing Github IDs in the user mapping file when posting ephemeral Slack messages.</li>
+    <li>Error when pushing log files to branch: <code>local variable 'contains' referenced before assignment</code>.</li>
+    </ul></dd>
+</dl>
+
+
 ## No release for 01 February 2024
 No changes were made to warrant a new release this month.
 
