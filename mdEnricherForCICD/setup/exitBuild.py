@@ -32,16 +32,16 @@ def exitBuild(details, log):
                         mapping = json.load(mapping_open)
                         userList = mapping["user_mapping"]
                         for user in userList:
-                            if user["github_name"] == details["current_commit_author"]:
+                            if user["github_name"] == details["current_commit_author"] or user["github_id"] == details["current_commit_author"]:
                                 userID = user["slack_id"]
                                 break
                         if userID is None:
-                            log.error('The ID for the commit author ' + details["current_commit_author"] +
-                                      ' does not exist in the user mapping file: ' +
-                                      details["slack_user_mapping"])
+                            log.info('Slack post is not ephemeral. The ID for the commit author ' + details["current_commit_author"] +
+                                     ' does not exist in the user mapping file: ' +
+                                     details["slack_user_mapping"])
                 except Exception as e:
-                    log.error(e)
-                    log.error('The ID for the commit author does not exist in the user mapping file: ' + details["slack_user_mapping"])
+                    log.info(e)
+                    log.info('Slack post is not ephemeral. There was an issue parsing the user mapping file: ' + details["slack_user_mapping"])
             else:
                 log.error('slack_user_mapping does not exist: ' + details["slack_user_mapping"])
 

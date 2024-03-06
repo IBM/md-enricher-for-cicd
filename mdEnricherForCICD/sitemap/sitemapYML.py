@@ -182,9 +182,16 @@ def sitemapYML(self, details):
                     # Replace the anchors with the reused anchors format: mainTopicID-include-reusedSectionID
                     reusedAnchors = re.findall('{: #(.*?)}', reusedSection)
                     mainTopicID = re.findall('{: #(.*?)}', topicContents)[0]
+                    mainTopicID = mainTopicID.replace('_', '-')
                     for reusedAnchor in reusedAnchors:
                         reusedSection = reusedSection.replace('{: #' + reusedAnchor + '}', '{: #' + mainTopicID + '-include-' + reusedAnchor + '}')
                     topicContents = topicContents.replace('{{../' + reuseEntry + '}}', reusedSection)
+
+        # Some # comments were getting interpreted as headings
+        codeblockList = re.findall('```(.*?)```', topicContents, flags=re.DOTALL)
+        for codeblock in codeblockList:
+            if '#' in codeblock:
+                topicContents = topicContents.replace('```' + codeblock + '```', '')
 
         return (topicContents)
 
@@ -274,7 +281,8 @@ def sitemapYML(self, details):
                                                         shell=True, stdout=PIPE, stderr=STDOUT)
                     exitCode = parseSubprocessOutput(subprocessOutput, self.log)
                     if exitCode > 0:
-                        addToErrors('The repo could not be cloned to resolve the sitemap.', 'sitemap', '', details, self.log, self.location_name, '', '')
+                        addToErrors('The repo could not be cloned to resolve the sitemap: ' + tempRepo[4],
+                                    'sitemap', '', details, self.log, self.location_name, '', '')
                 if (os.path.isdir(self.location_dir + '/includes/' + tempRepo[4] + '/.git')):
                     shutil.rmtree(self.location_dir + '/includes/' + tempRepo[4] + '/.git')
 

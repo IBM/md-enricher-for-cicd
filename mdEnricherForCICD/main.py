@@ -122,8 +122,9 @@ def main(
             self.log.debug('---------------------------------------------------------\n\n')
 
             (location_build, location_comments, location_commit_summary_style,
-             location_contents, location_contents_files, location_contents_folders, location_github_branch,
-             location_github_branch_pr, location_github_url, location_name, location_output_action,
+             location_contents, location_contents_files, location_contents_folders,
+             location_downstream_build_url, location_github_branch,
+             location_github_branch_pr, location_github_url, location_internal_framework, location_output_action,
              remove_all_other_files_folders) = locations(details, self.location, log)
 
             self.location_build = location_build
@@ -133,8 +134,10 @@ def main(
             self.location_contents_files = location_contents_files
             self.location_contents_folders = location_contents_folders
             self.location_dir = details["output_dir"] + '/' + self.location_name
+            self.location_downstream_build_url = location_downstream_build_url
             self.location_github_branch = location_github_branch
             self.location_github_branch_pr = location_github_branch_pr
+            self.location_internal_framework = location_internal_framework
             if str(location_github_url).endswith('/'):
                 location_github_url = location_github_url[:-1]
             self.location_github_url = location_github_url
@@ -146,7 +149,7 @@ def main(
             filesForOtherLocations = []  # type: ignore
 
             if self.location_build == 'off':
-                self.log.info('location_build is set to off in the locations file. Skipping this location.')
+                self.log.info('Skipping: ' + self.location_name + '. location_build is off.')
                 self.conref_files_list = conref_files_list
                 self.filesForOtherLocations = filesForOtherLocations
             else:
@@ -320,9 +323,7 @@ def main(
                         # Revise the source list based on the branch.
                         # For example, the original commit might only contain a conref file.
                         # We need to get a list of all of the files that use that conref to work with.
-                        source_files = sourceFilesForThisBranch(self, details)
-
-                        self.source_files = source_files
+                        self.source_files = sourceFilesForThisBranch(self, details)
 
                         if self.source_files == {}:
                             self.log.debug('No changes to process for this location.')
@@ -388,6 +389,7 @@ def main(
                                                   'toc.yaml', '', details, log, 'pre-build', '', '')
 
                             # Don't actually push the updated files if any of these ifs are met
+                            # self.log.info(json.dumps(self.source_files, indent=2))
                             if (((details['builder'] == 'local') and (self.location_output_action == 'none')) or
                                     (self.location_output_action == 'none') or
                                     (details["test_only"] is True)):
@@ -409,6 +411,7 @@ def main(
                                             else:
                                                 self.log.debug('These files are changed, but are not being committed at this time:')
                                                 self.log.debug(status)
+
                             else:
                                 # Push the updated files to the downstream branches
                                 pushUpdatedFiles(self, details, pushQueue)
