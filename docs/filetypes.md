@@ -1,14 +1,14 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-03-06
+# Last updated: 2024-04-03
 -->
 
 # Supported file types
 
 By default, these are the supported file types the Markdown Enricher can handle.
 ```
-'.html, .json, .md, .nojekyll, .yml, .yaml, .txt, toc'
+.html, .json, .md, .nojekyll, .yml, .yaml, .txt, toc
 ```
 
 

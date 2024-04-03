@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 pythonpath = [
-  "mdEnricherForCICD"
+  "mdenricher"
 ]
-addopts = "-ra --cov=mdEnricherForCICD --cov-report html:pytest-coverage"
+addopts = "-ra --cov=mdenricher --cov-report html:pytest-coverage"
 testpaths = [
     "tests",
 ]

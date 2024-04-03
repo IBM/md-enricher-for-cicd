@@ -1,10 +1,10 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-03-06
+# Last updated: 2024-04-03
 -->
 
-# Start command options reference
+# `mdenricher` command options reference
 
 |Option|Description|
 |----------|-----------|
@@ -23,9 +23,10 @@
 |`--slack_webhook ${SLACK_WEBHOOK}`|Optional. The webhook for a Slack channel to post error messages to. This value can be an environment variable.|
 |`--source_dir <path_to_source_directory>`|Required. The path to a content directory or a cloned Github repo.|
 |`--test_only`|Optional. Performs a check without pushing the results anywhere.|
+|`--version`|View the installed version of the Markdown Enricher.|
 
 ## Example
 
 ```
-python <PATH>/md-enricher-for-cicd/mdEnricherForCICD/start.py --source_dir <PATH_TO_UPSTREAM_LOCAL_CLONE> --output_dir <OUTPUT_DIRECTORY> --locations_file <PATH_TO>/locations.json 
+mdenricher --source_dir <PATH_TO_UPSTREAM_LOCAL_CLONE> --output_dir <OUTPUT_DIRECTORY> --locations_file <PATH_TO>/locations.json 
 ```
