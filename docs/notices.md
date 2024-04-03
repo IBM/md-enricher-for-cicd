@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-03-06
+# Last updated: 2024-04-03
 -->
 # Notices
 
@@ -16,7 +16,7 @@ Only users with access to the Slack channels or read access to the upstream repo
 
 ## Removing author names from Slack posts or commit summaries
 
-To remove author names from Slack posts, include the `--slack_show_author False` flag with your `start` command.
+To remove author names from Slack posts, include the `--slack_show_author False` flag with your `mdenricher` command.
 
 
 ## Removing author names from Slack posts or commit summaries

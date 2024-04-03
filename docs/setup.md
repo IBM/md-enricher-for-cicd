@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-03-06
+# Last updated: 2024-04-03
 -->
 
 
@@ -133,8 +133,8 @@ For security, there are values that must be set in the environment variables.
 
 
 
-## Start command options
-The `python start.py` command kicks things off. These are the available options to set with the command.  
+## `mdenricher` command options
+The `mdenricher` command kicks things off. These are the available options to set with the command.  
 
 |Option|Description|
 |----------|-----------|
@@ -153,11 +153,12 @@ The `python start.py` command kicks things off. These are the available options 
 |`--slack_webhook ${SLACK_WEBHOOK}`|Optional. The webhook for a Slack channel to post error messages to. This value can be an environment variable.|
 |`--source_dir <path_to_source_directory>`|Required. The path to a content directory or a cloned Github repo.|
 |`--test_only`|Optional. Performs a check without pushing the results anywhere.|
+|`--version`|View the installed version of the Markdown Enricher.|
 
 
 CLI help:
 ```
-python3 <PATH>/md-enricher-for-cicd/mdEnricherForCICD/start.py --help
+mdenricher --help
 ```
 
 
@@ -171,7 +172,7 @@ Create a Slack channel and webhook so errors can be posted for you.
 1. Create a Slack channel. 
 1. Create an incoming webhook in the Slack app. 
 1. In the environment variables, add the `SLACK_WEBHOOK` environment variable.
-1. In the `start.py` command, add `--slack_webhook ${SLACK_WEBHOOK}`.
+1. In the `mdenricher` command, add `--slack_webhook ${SLACK_WEBHOOK}`.
 
 ### Slack bot posts with optional ephemeral messages
 You can use a Slack bot and the Slack Python SDK to issue posts. You can choose to set up ephemeral messages by including a mapping of Github user information to Slack IDs. If a change is made in a branch that is not the main source branch, the Slack posts are only visible to the committer of the change and not to everyone else in the channel. Recommended for larger teams to eliminate unnecessary noise in the channel. Ephemeral messages disappear after about 24 hours and are not stored in the Slack history.
@@ -196,4 +197,4 @@ You can use a Slack bot and the Slack Python SDK to issue posts. You can choose 
     ```
 1. Install the Slack app into the Slack channel.
 1. In the environment variables, add `SLACK_BOT_TOKEN` and `SLACK_CHANNEL`.
-1. In the `start.py` command, add `--slack_bot_token ${SLACK_BOT_TOKEN} --slack_channel ${SLACK_CHANNEL} --slack_user_mapping <path_to_mapping_file>`.
+1. In the `mdenricher` command, add `--slack_bot_token ${SLACK_BOT_TOKEN} --slack_channel ${SLACK_CHANNEL} --slack_user_mapping <path_to_mapping_file>`.

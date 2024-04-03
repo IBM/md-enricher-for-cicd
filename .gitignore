@@ -6,3 +6,5 @@ content
 ~$*.*
 .coverage
 example-output
+build/*
+example/output

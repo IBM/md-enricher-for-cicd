@@ -2,6 +2,24 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.0, released 03 April 2024
+<dl>
+<dt>Updated packaging</dt>
+<dd>Install directly from Github as a Python module. </dd>
+<dd>Run the tool as <code>mdenricher</code> instead of running as a Python file.<dd>
+<dd>Added <code>--version</code>.</dd>
+
+<dt>Additional build support</dt>
+<dd>Added Dockerfile.</dd>
+<dd>Added support for IBM Cloud Toolchains.</dd>
+
+<dt>Inline and whole file reuse formatting within comments are no longer transformed.</dt>
+<dd>In upstream content, you can hide inline and whole file snippets by enclosing them within HTML comments. Those snippets are not transformed.</dd>
+
+<dt>Bug fixes</dt>
+<dd>All dates updated in the output of <code>--rebuild_all_files</code> instead of only in the files that were updated.</dd>
+</dl>
+
 
 ## Version 1.1.9, released 06 March 2024
 <dl>

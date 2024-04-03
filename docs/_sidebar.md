@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-03-06
+# Last updated: 2024-04-03
 -->
 
 - Getting started
@@ -24,7 +24,7 @@
   - [Environment variables](ref-env-vars.md)
   - [Locations file](ref-locations.md)
   - [Feature flag file](ref-feature-flags.md)
-  - [Start command options](ref-start.md)
+  - [mdenricher command options](ref-start.md)
 - Troubleshooting
   - [Linters](linters.md)
   - [Logs](logs.md)
