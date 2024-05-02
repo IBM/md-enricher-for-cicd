@@ -12,11 +12,13 @@ def previousCommitInfo(details, log):
     import requests  # for running curl-like API requests
     import subprocess
     import sys
+    from subprocess import PIPE, STDOUT
 
     from mdenricher.sourceFileList.addToList import addToList
     from mdenricher.errorHandling.errorHandling import addToWarnings
     from mdenricher.errorHandling.errorHandling import addToErrors
     from mdenricher.setup.exitBuild import exitBuild
+    from mdenricher.errorHandling.parseSubprocessOutput import parseSubprocessOutput
 
     # Get the previous commit ID with the one that is stored in the file, if that file exists.
     # This is important to do because pull requests include more than one commit, so if possible,
@@ -83,10 +85,13 @@ def previousCommitInfo(details, log):
 
     # Make sure the local files are from the most recent commit
     try:
-        subprocess.check_output('git pull -q https://' +
-                                details["username"] + ':' + details["token"] + '@' +
-                                details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
-                                details["source_github_repo"], shell=True)
+        subprocessOutput = subprocess.Popen('git pull -q https://' +
+                                            details["token"] + '@' +
+                                            details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
+                                            details["source_github_repo"], shell=True, stdout=PIPE, stderr=STDOUT)
+        exitCode = parseSubprocessOutput(subprocessOutput, log)
+        log.debug(exitCode)
+
     except Exception:
         log.debug('git pull exception.')
 

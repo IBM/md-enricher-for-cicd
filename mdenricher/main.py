@@ -42,6 +42,8 @@ from mdenricher.tags.tagListCompile import tagListCompile
 
 def main(
          builder,
+         gh_username,
+         gh_token,
          ibm_cloud_docs,
          ibm_cloud_docs_keyref_check,
          ibm_cloud_docs_sitemap_depth,
@@ -124,7 +126,8 @@ def main(
             (location_build, location_comments, location_commit_summary_style,
              location_contents, location_contents_files, location_contents_folders,
              location_downstream_build_url, location_github_branch,
-             location_github_branch_pr, location_github_url, location_internal_framework, location_output_action,
+             location_github_branch_pr, location_github_url, location_ibm_cloud_docs,
+             location_internal_framework, location_output_action,
              remove_all_other_files_folders) = locations(details, self.location, log)
 
             self.location_build = location_build
@@ -137,10 +140,11 @@ def main(
             self.location_downstream_build_url = location_downstream_build_url
             self.location_github_branch = location_github_branch
             self.location_github_branch_pr = location_github_branch_pr
-            self.location_internal_framework = location_internal_framework
             if str(location_github_url).endswith('/'):
                 location_github_url = location_github_url[:-1]
             self.location_github_url = location_github_url
+            self.location_ibm_cloud_docs = location_ibm_cloud_docs
+            self.location_internal_framework = location_internal_framework
             # location_name set in init
             self.location_output_action = location_output_action
             self.remove_all_other_files_folders = remove_all_other_files_folders
@@ -168,8 +172,9 @@ def main(
                 # Get a list of all of the files that the scripts work with
                 all_files_get_result = allFilesGet(details, self.location_contents_files, self.location_contents_files_keep,
                                                    self.location_contents_files_remove, self.location_contents_folders,
-                                                   self.location_contents_folders_keep, self.location_contents_folders_remove,
-                                                   self.location_contents_folders_remove_and_files, self.log,
+                                                   self.location_contents_folders_keep,
+                                                   self.location_contents_folders_remove_and_files,
+                                                   self.location_ibm_cloud_docs, self.log,
                                                    self.remove_all_other_files_folders, self.source_files_original_list)
                 all_files_dict = all_files_get_result[0]
                 conref_files_list = all_files_get_result[1]
@@ -333,7 +338,8 @@ def main(
                             self.log.debug('Handling files for ' + self.location_name + '.')
 
                             if ((self.sitemap_file in self.source_files) and
-                                    (not details["ibm_cloud_docs_sitemap_depth"] == 'off')):
+                                    (not details["ibm_cloud_docs_sitemap_depth"] == 'off') and
+                                    (os.path.isfile(self.location_dir + '/sitemap.md'))):
                                 with open(self.location_dir + '/sitemap.md', 'r', encoding="utf8", errors="ignore") as fileName_read:
                                     topicContentsDownstream = fileName_read.read()
                                 self.source_files[self.sitemap_file]['downstream_sitemap_contents'] = topicContentsDownstream
@@ -345,8 +351,8 @@ def main(
                             cleanupEachFile(self, details, True)
 
                             # If images are not all stored in the /images directory, issue a warning
-                            if ((not os.path.isdir(details["source_dir"] + '/images')) and
-                                    (not self.image_files_list == []) and details["ibm_cloud_docs"] is True):
+                            if ((not os.path.isdir(self.location_dir + '/images')) and
+                                    (not self.image_files_list == []) and self.location_ibm_cloud_docs is True):
                                 addToWarnings('Images were found in the repo, but they were not stored in a single ' +
                                               '/images/ directory in the root of the repo.', '/images/', '', details, self.log,
                                               self.location_name, '', '')
@@ -382,7 +388,7 @@ def main(
                             # This needs to happen after comments are handled
                             if ((self.sitemap_file in self.source_files) and
                                     (not details["ibm_cloud_docs_sitemap_depth"] == 'off')):
-                                if 'toc.yaml' in str(self.all_files_dict) and details["ibm_cloud_docs"] is True:
+                                if 'toc.yaml' in str(self.all_files_dict) and self.location_ibm_cloud_docs is True:
                                     sitemapYML(self, details)
 
                                 elif 'SUMMARY.md' in str(self.all_files_dict) and details["ibm_docs"] is True:
@@ -459,19 +465,19 @@ def main(
 
         # Need to remove the old output directory and create a new one before the log file starts
         if os.path.isdir(details["output_dir"]):
-            shutil.rmtree(details["output_dir"])
-        os.makedirs(details["output_dir"])
+            for file in os.listdir(details["output_dir"]):
+                if '.log' in file or '.txt' in file:
+                    os.remove(details["output_dir"] + '/' + file)
+        else:
+            # shutil.rmtree(details["output_dir"])
+            os.makedirs(details["output_dir"])
 
-        # Remove old check files
+        # Store check file names
         phraseUsageFile = details["output_dir"] + '/phraseUsageFile.txt'
         details.update({"phraseUsageFile": phraseUsageFile})
-        if os.path.isfile(phraseUsageFile):
-            os.remove(phraseUsageFile)
 
         snippetUsageFile = details["output_dir"] + '/snippetUsageFile.txt'
         details.update({"snippetUsageFile": snippetUsageFile})
-        if os.path.isfile(snippetUsageFile):
-            os.remove(snippetUsageFile)
 
         # Import the logging config
         log = loggingConfig(details, details["tool_name"])
@@ -508,8 +514,15 @@ def main(
         log.debug('Build began: %s', str(datetime.now(details["time_zone"])))
 
         # Github credentials
-        token = str(os.environ.get('GH_TOKEN'))
-        username = os.environ.get('GH_USERNAME')
+        if gh_username is None:
+            username = os.environ.get('GH_USERNAME')
+        else:
+            username = gh_username
+        if gh_token is None:
+            token = str(os.environ.get('GH_TOKEN'))
+        else:
+            token = gh_token
+
         details.update({"token": token})
         details.update({"username": username})
 
@@ -526,10 +539,11 @@ def main(
             if builder is None:
                 builder = 'travis'
 
-        # Anticipating that other builders could use the workspace variable
+        # Jenkins
         elif 'jenkins' in workspace:
-            build_id = os.environ.get('build_id')
-            build_number = os.environ.get('build_number')
+            build_id = os.environ.get('BUILD_ID')
+            build_number = os.environ.get('BUILD_NUMBER')
+            workspace = source_dir
             if builder is None:
                 builder = 'jenkins'
 
@@ -598,17 +612,17 @@ def main(
                 current_github_branch = current_github_branch_bytes.decode("utf-8")
                 current_github_branch = current_github_branch.replace('\n', '')
             # Jenkins pipeline
-            # if 'HEAD' == current_github_branch:
-            # current_github_branch_bytes = subprocess.check_output(["git", "branch", "--show-current"])
-            # current_github_branch = current_github_branch_bytes.decode("utf-8")
-            # current_github_branch = current_github_branch.replace('\n', '')
+            if 'HEAD' == current_github_branch:
+                current_github_branch_bytes = subprocess.check_output(["git", "branch", "--show-current"])
+                current_github_branch = current_github_branch_bytes.decode("utf-8")
+                current_github_branch = current_github_branch.replace('\n', '')
             if 'origin/' in current_github_branch:
                 current_github_branch = current_github_branch.split('origin/')[1]
             details.update({"current_github_branch": current_github_branch})
             # log.debug('current_github_branch: ' + current_github_branch)
         except Exception as e:
             addToErrors('The current branch name could not be found.', 'start.py-command', '', details, log, 'pre-build', '', '')
-            log.debug(str(e))
+            log.info(str(e))
         validateArguments(details, log)
 
         # Get the contents of the feature flags file
@@ -625,6 +639,9 @@ def main(
         else:
             details.update({"featureFlagFile": 'None'})
             details.update({"featureFlags": 'None'})
+
+        filesToScanFirst = ['.build.yaml', 'keyref.yaml']
+        details.update({"filesToScanFirst": filesToScanFirst})
 
         # This has to come before the allfilesget
         log.debug('Getting values from: %s', details["locations_file"])
@@ -668,13 +685,6 @@ def main(
         if details["log_branch"] == details["current_github_branch"]:
             log.info('Exiting. Not running on the %s.', details["current_github_branch"])
             sys.exit(0)
-
-        # Delete the .git directory from the tool clone so those files get detected by the push later
-        # This has to go after the remote origin URL get
-        # if not details["builder"] == 'local':
-            # if os.path.isdir(workspace + '/.git'):
-            # log.debug('Deleted: %s/.git', workspace)
-            # shutil.rmtree(workspace + '/.git')
 
         # EX: https://DOMAIN/ORG/REPO.git
         if str(source_github_url).startswith('https'):

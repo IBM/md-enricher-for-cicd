@@ -24,7 +24,7 @@ def pushUpdatedFiles(self, details, pushQueue):
     from mdenricher.errorHandling.pushErrors import pushErrors
     from mdenricher.setup.exitBuild import exitBuild
 
-    if details['ibm_cloud_docs'] is True:
+    if self.location_ibm_cloud_docs is True:
         while (self.location_github_org + '/' + self.location_github_repo) in pushQueue:
             time.sleep(1)
 
@@ -371,7 +371,7 @@ def pushUpdatedFiles(self, details, pushQueue):
             addToErrors('The changes could not be pushed to the ' + str(self.location_github_branch_push) + ' branch of the repo.',
                         'push', '', details, self.log, 'post-build', '', '')
 
-    if details['ibm_cloud_docs'] is True:
+    if self.location_ibm_cloud_docs is True:
         pushQueue.remove(self.location_github_org + '/' + self.location_github_repo)
         now = datetime.now()
         current_time = now.strftime("%H:%M:%S")

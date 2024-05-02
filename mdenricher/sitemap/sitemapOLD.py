@@ -89,7 +89,7 @@ def sitemapOLD(self, details):
                     repoName, backhalf = tocFilenameNoStartingSlash.split('/', 1)
 
                     subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
-                                                        details["username"] + ':' + details["token"] + '@' + self.location_github_domain + '/' +
+                                                        details["token"] + '@' + self.location_github_domain + '/' +
                                                         cloudDocsOrg + '/' + repoName + ' ' + workingDir + '/sitemap-temp/' + repoName + ' --quiet',
                                                         shell=True, stdout=PIPE, stderr=STDOUT)
                     exitCode = parseSubprocessOutput(subprocessOutput, self.log)
@@ -125,7 +125,7 @@ def sitemapOLD(self, details):
                                                              auth=(details["username"], details["token"]))
                             if not fileSourceGet.status_code == 200:
                                 subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + self.location_github_branch +
-                                                                    ' https://' + details["username"] + ':' + details["token"] + '@' +
+                                                                    ' https://' + details["token"] + '@' +
                                                                     self.location_github_domain + '/' + self.location_github_org + '/' +
                                                                     repoName + ' ' + workingDir + '/sitemap-temp/' + repoName + ' --quiet', shell=True,
                                                                     stdout=PIPE, stderr=STDOUT)

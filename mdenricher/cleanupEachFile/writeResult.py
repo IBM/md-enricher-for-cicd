@@ -44,8 +44,12 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
             # Open the file for writing
             write = False
 
+            currentFileLastUpdatedDate = None
+            copyrightDate = None
+
             if folderAndFile in details['rebuild_files_list']:
                 write = True
+                self.log.debug('Rebuilding because the file is in the rebuild_files_list.')
             elif os.path.isfile(self.location_dir + folderPath + file_name):
                 self.log.debug('Examining diff.')
 
@@ -55,24 +59,33 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                     with open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore") as fileName_read:
                         topicContentsDownstream = fileName_read.read()
 
-                if 'lastupdated: "' in topicContentsDownstream:
+                if ((self.location_ibm_cloud_docs is True) and
+                        ('---' in topicContents.split('\n'[0])) and
+                        ('subcollection' in topicContents) and
+                        ('x-trestle-template-version' not in topicContents)):
                     self.log.debug('Examining diff in IBM Cloud Docs content.')
                     topicContentsDownstreamMeat = topicContentsDownstream
                     topicContentsMeat = topicContents
 
-                    # Make sure the last updated dates don't affect comparison
-                    downstreamDateDownstream = re.findall('lastupdated: "(.*?)"', topicContentsDownstreamMeat)[0]
-                    topicContentsDownstreamMeat = str(topicContentsDownstreamMeat).replace(str(downstreamDateDownstream), '', 1)
+                    if 'lastupdated: "' in topicContentsMeat and 'lastupdated: "' in topicContentsDownstreamMeat:
 
-                    lastUpdatedDate = re.findall('lastupdated: "(.*?)"', topicContentsMeat)[0]
-                    topicContentsMeat = topicContentsMeat.replace(lastUpdatedDate, '', 1)
+                        # Make sure the last updated dates don't affect comparison
+                        downstreamDateDownstream = re.findall('lastupdated: "(.*?)"', topicContentsDownstreamMeat)[0]
+                        topicContentsDownstreamMeat = str(topicContentsDownstreamMeat).replace(str(downstreamDateDownstream), '', 1)
+                        self.log.debug('Downstream file date: ' + downstreamDateDownstream)
 
-                    # Make sure that the copyright years don't affect comparison
-                    copyrightDateDownstream = re.findall('years: (.*?)\n', topicContentsDownstreamMeat)[0]
-                    topicContentsDownstreamMeat = topicContentsDownstreamMeat.replace('years: ' + copyrightDateDownstream, '', 1)
+                        currentFileLastUpdatedDate = re.findall('lastupdated: "(.*?)"', topicContentsMeat)[0]
+                        topicContentsMeat = topicContentsMeat.replace(currentFileLastUpdatedDate, '', 1)
+                        self.log.debug('Current file date: ' + currentFileLastUpdatedDate)
 
-                    copyrightDate = re.findall('years: (.*?)\n', topicContentsMeat)[0]
-                    topicContentsMeat = topicContentsMeat.replace('years: ' + copyrightDate, '', 1)
+                    if 'years: ' in topicContentsMeat and 'years: ' in topicContentsDownstreamMeat:
+
+                        # Make sure that the copyright years don't affect comparison
+                        copyrightDateDownstream = re.findall('years: (.*?)\n', topicContentsDownstreamMeat)[0]
+                        topicContentsDownstreamMeat = topicContentsDownstreamMeat.replace('years: ' + copyrightDateDownstream, '', 1)
+
+                        copyrightDate = re.findall('years: (.*?)\n', topicContentsMeat)[0]
+                        topicContentsMeat = topicContentsMeat.replace('years: ' + copyrightDate, '', 1)
 
                     if topicContentsDownstreamMeat == topicContentsMeat:
                         if ((folderAndFile == self.sitemap_file) or (self.sitemap_file.endswith(folderPath + file_name))) and (compareSitemapContents is True):
@@ -89,6 +102,7 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                     else:
                         write = True
             else:
+                self.log.debug('Downstream file did not exist before.')
                 write = True
 
             if write is True:
@@ -97,10 +111,16 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                 lastUpdatedDate = currentYear + '-' + currentMonth + '-' + currentDay
 
                 if '[{LAST_UPDATED_DATE}]' in topicContents:
-                    topicContents = topicContents.replace('[{LAST_UPDATED_DATE}]', lastUpdatedDate)
+                    topicContents = topicContents.replace('[{LAST_UPDATED_DATE}]', lastUpdatedDate, 1)
+                    self.log.debug(r'Replaced [{LAST_UPDATED_DATE}] with current date: ' + lastUpdatedDate)
+                elif 'lastupdated: "' in topicContents and currentFileLastUpdatedDate is not None:
+                    topicContents = topicContents.replace(currentFileLastUpdatedDate, lastUpdatedDate, 1)
                     self.log.debug(r'Replaced [{LAST_UPDATED_DATE}] with current date: ' + lastUpdatedDate)
                 if '[{CURRENT_YEAR}]' in topicContents:
-                    topicContents = topicContents.replace('[{CURRENT_YEAR}]', lastUpdatedDate.split('-', 1)[0])
+                    topicContents = topicContents.replace('[{CURRENT_YEAR}]', lastUpdatedDate.split('-', 1)[0], 1)
+                    self.log.debug(r'Replaced [{CURRENT_YEAR}] with current year: ' + lastUpdatedDate.split('-', 1)[0])
+                elif 'years: "' in topicContents and copyrightDate is not None:
+                    topicContents = topicContents.replace(copyrightDate, lastUpdatedDate.split('-', 1)[0], 1)
                     self.log.debug(r'Replaced [{CURRENT_YEAR}] with current year: ' + lastUpdatedDate.split('-', 1)[0])
                 # For running markdown enricher on markdown enricher docs, don't replace the examples
                 # First curly brace then square bracket

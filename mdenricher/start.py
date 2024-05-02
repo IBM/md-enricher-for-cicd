@@ -5,7 +5,7 @@
 
 def start():
 
-    versionNumber = '1.2.0.20240403'
+    versionNumber = '1.2.1.20240501'
 
     # Process the command-line options
 
@@ -26,6 +26,12 @@ def start():
     my_parser.add_argument('--cleanup_flags_not_content', action='store', type=str,
                            help='In a local clone of the source files, remove the feature flags, but leave the content between them.' +
                            'List the comma-separated flags without spaces between them.')
+
+    my_parser.add_argument('--gh_token', action='store', type=str,
+                           help='The Github token to access the upstream and downstream repositories.')
+
+    my_parser.add_argument('--gh_username', action='store', type=str,
+                           help='The Github username to access the upstream and downstream repositories.')
 
     my_parser.add_argument('--ibm_cloud_docs', action='store_true', help='Identifies repos as IBM Cloud Docs repos.')
 
@@ -97,6 +103,8 @@ def start():
     builder = args.builder
     cleanup_flags_and_content = args.cleanup_flags_and_content
     cleanup_flags_not_content = args.cleanup_flags_not_content
+    gh_username = args.gh_username
+    gh_token = args.gh_token
     ibm_cloud_docs = args.ibm_cloud_docs
     ibm_cloud_docs_keyref_check = args.ibm_cloud_docs_keyref_check
     ibm_cloud_docs_locations = args.ibm_cloud_docs_locations
@@ -123,34 +131,41 @@ def start():
     if version is True:
         print('Doctopus Markdown Enricher ' + versionNumber)
 
+    try:
+        locations_file
+    except Exception:
+        locations_file = None
+
     if ibm_cloud_docs_product_name_check is True:
         ibm_cloud_docs_keyref_check = True
 
     if ibm_cloud_docs_locations is True:
         try:
             from mdenricher.internal.locations.locationsIBMCloudDocs import locationsIBMCloudDocs
-            locationsIBMCloudDocs()
+            locationsIBMCloudDocs(locations_file, source_dir)
         except Exception:
             print('Option not available outside of IBM.')
             sys.exit(1)
 
-    if ibm_cloud_docs_prep is True:
+    elif ibm_cloud_docs_prep is True:
         try:
             from mdenricher.internal.locations.prepIBMCloudDocs import prepIBMCloudDocs
-            prepIBMCloudDocs()
+            prepIBMCloudDocs(gh_username, gh_token, locations_file, source_dir)
         except Exception:
             print('Option not available outside of IBM.')
             sys.exit(1)
 
-    if cleanup_flags_and_content is not None or cleanup_flags_not_content is not None:
+    elif cleanup_flags_and_content is not None or cleanup_flags_not_content is not None:
         from mdenricher.tags.cleanup import cleanup
         cleanup(cleanup_flags_and_content,
                 cleanup_flags_not_content,
                 source_dir)
 
-    elif source_dir is not None:
+    if source_dir is not None:
         from mdenricher.main import main
         main(builder,
+             gh_username,
+             gh_token,
              ibm_cloud_docs,
              ibm_cloud_docs_keyref_check,
              ibm_cloud_docs_sitemap_depth,
@@ -169,6 +184,3 @@ def start():
              source_dir,
              test_only,
              validation)
-
-    else:
-        print('--source not defined. Exiting.')

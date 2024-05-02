@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-04-03
+# Last updated: 2024-05-02
 -->
 
 # `mdenricher` command options reference
@@ -11,6 +11,8 @@
 |`--builder`| Optional. Include `--builder local` to force builds running in Travis or Jenkins to behave like a `local` build. Ensures that source Git repository information retrieval or output handling do not affect the outcome of the build. |
 |`--cleanup_flags_and_content <tag1,tag2,tag3>`| Optional. Include locally with `--source_dir` to remove an outdated feature flag and all of the content within it from all files in the directory. For example, you might have set outdated content within a specific flag to hidden, now that flag and the content within it can be removed. Separate more than one tag with a comma. Do not include spaces.|
 |`--cleanup_flags_not_content <tag1,tag2,tag3>`| Optional. Include locally with `--source_dir` to remove an outdated feature flag from all files in the directory, but not the content within it. For example, you might have set new content within a specific flag to `all` or all of the locations it needs to be in, so now that flag can be removed, but the content within the tags must remain. Separate more than one tag with a comma. Do not include spaces.|
+|`--gh_token`| The Github token to access the upstream and downstream repositories.|
+|`--gh_username`| The Github username to access the upstream and downstream repositories.|
 |`--locations_file <path_to_locations_file>`|Required. The path to the JSON file of locations to create content for.|
 |`--output_dir <path_to_output_directory>`|Optional. The path to the output location.|
 |`--rebuild_files <file1,file2,file3>`|Optional. Force a rebuild of specific files no matter what changes kicked off the build. For multiple files, include them as a comma-separated list. This flag is helpful for something like a landing page, so that the date updates even though the content itself does not change often. Example: `--rebuild_files landing.json,folder/file.md`|

@@ -15,8 +15,6 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
     from mdenricher.errorHandling.errorHandling import addToErrors
     # from mdenricher.setup.exitBuild import exitBuild
 
-    # Do not run this in Jenkins or local
-    # if not self.location_output_action == 'none':
     if details['ibm_cloud_docs_keyref_check'] is True:
 
         # Get all keyref names
@@ -77,17 +75,20 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
                                           '{{site.data.keyword.' + keyref + '}}' + '". ', folderAndFile, folderPath + file_name,
                                           details, self.log, self.location_name, " a " + '{{site.data.keyword.' + keyref + '}}', topicContents)
             # Then check if it's in the keyref.yaml file
-            if os.path.isfile(details['source_dir'] + '/keyref.yaml') and productNameFound is False:
-                with open(details['source_dir'] + '/keyref.yaml', "r", encoding="utf8", errors="ignore") as stream:
+            if os.path.isfile(self.location_dir + '/keyref.yaml') and productNameFound is False:
+                with open(self.location_dir + '/keyref.yaml', "r", encoding="utf8", errors="ignore") as stream:
                     try:
                         keyrefsAll = yaml.safe_load(stream)
+                    except yaml.YAMLError as exc:
+                        self.log.warning(exc)
+                        addToErrors('YML not formatted properly. Check keyref.yaml for errors. ' +
+                                    str(exc), folderAndFile, '', details, self.log, self.location_name, '', '')
+                    else:
                         keyrefs = keyrefsAll['keyword']
                         if keyref not in keyrefs:
                             addToErrors('{{site.data.keyword.' + keyref + '}} could not be found in cloudoekeyrefs.yml or in keyref.yaml.',
                                         folderAndFile, folderPath + file_name, details, self.log,
                                         self.location_name, '', topicContents)
-                    except yaml.YAMLError as exc:
-                        self.log.warning(exc)
             # Since it's not in a keyref, it must be a product name error
             elif productNameFound is False:
                 addToErrors('{{site.data.keyword.' + keyref + '}} could not be found in cloudoekeyrefs.yml.',

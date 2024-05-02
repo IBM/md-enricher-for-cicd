@@ -275,7 +275,7 @@ def sitemapYML(self, details):
                 if (not os.path.isdir(self.location_dir + '/includes/' + tempRepo[4])):
                     self.log.debug('Cloning ' + tempRepo[4] + ' to resolve sitemap content.')
                     subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + self.location_github_branch + ' https://' +
-                                                        details["username"] + ':' + details["token"] + '@' +
+                                                        details["token"] + '@' +
                                                         tempRepo[2] + '/' + tempRepo[3] + '/' + tempRepo[4] + ' ' +
                                                         self.location_dir + '/includes/' + tempRepo[4] + ' --quiet',
                                                         shell=True, stdout=PIPE, stderr=STDOUT)
@@ -994,6 +994,9 @@ def sitemapYML(self, details):
                                                                  relativeTOC, sitemapAnchorList, sitemapList)
 
                     except Exception as e:
+                        # exc_type, exc_obj, exc_tb = sys.exc_info()
+                        # fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                        # self.log.debug(exc_type, fname, exc_tb.tb_lineno)
                         addToErrors('The sitemap could not be generated because of an error in the toc: ' +
                                     str(e) + '\n' + str(section), location_sitemap_file, '', details, self.log,
                                     self.location_name, '', '')
@@ -1026,7 +1029,10 @@ def sitemapYML(self, details):
                         self.location_dir + input_file, location_sitemap_file, '', details, self.log, self.location_name, '', '')
 
     except Exception as e:
+        # exc_type, exc_obj, exc_tb = sys.exc_info()
+        # fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        # self.log.debug(exc_type, fname, exc_tb.tb_lineno)
         addToErrors('The sitemap could not be generated: ' + str(e), location_sitemap_file, '', details, self.log, self.location_name, '', '')
 
-    # if os.path.isdir(self.location_dir + '/includes'):
-    # shutil.rmtree(self.location_dir + '/includes')
+    if os.path.isdir(self.location_dir + '/includes'):
+        shutil.rmtree(self.location_dir + '/includes')

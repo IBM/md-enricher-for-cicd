@@ -141,7 +141,7 @@ def cleanupEachFile(self, details, imageProcessing):
                             if file_name in topicContentsCheckImages:
                                 self.log.debug('Confirmed ' + file_name + ' used in ' + entry + '.')
                                 from mdenricher.images.imagesUsed import copyImage
-                                copyImage(self, details, file_name, folderAndFile, folderPath)
+                                copyImage(self, details, file_name, folderAndFile, folderPath, details["source_dir"])
                                 imageFound = True
                                 break
                 if imageFound is False:

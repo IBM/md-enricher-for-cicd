@@ -98,9 +98,24 @@ def tagListCompile(self, details):
     else:
         self.log.debug('No feature flag to work with: ' + details["source_dir"] + details["featureFlagFile"])
 
+    internal_tag = 'staging'
+    external_tag = 'prod'
     for location_tag in details['location_tags']:
         if (location_tag not in tags_show) and (location_tag not in tags_hide) and (location_tag != self.location_name):
             tags_hide.append(location_tag)
+
+        # Add staging and prod as tags by default for IBM Cloud Docs
+        if details['ibm_cloud_docs'] is True:
+            if ('draft' in location_tag or 'review' in location_tag or 'test' in location_tag) and (self.location_name == location_tag):
+                if internal_tag not in tags_show:
+                    tags_show.append(internal_tag)
+                if external_tag not in tags_hide:
+                    tags_hide.append(external_tag)
+            elif ('publish' in location_tag or 'production' in location_tag) and (self.location_name == location_tag):
+                if internal_tag not in tags_hide:
+                    tags_hide.append(internal_tag)
+                if external_tag not in tags_show:
+                    tags_show.append(external_tag)
 
     # If there's special handling for a folder, append that as a tag name
     for directory in self.location_contents_folders_keep:

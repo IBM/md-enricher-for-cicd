@@ -2,6 +2,27 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.1, released 01 May 2024
+
+<dt>Added <code>--gh_username</code> and <code>--gh_token</code> options</dt>
+<dd>As an alternative to setting the <code>GH_USERNAME</code> and <code>GH_USERNAME</code> environment variables, you can include authentication by using the <code>--gh_username</code> and <code>--gh_token</code> options with the <code>mdenricher</code> command.</dd>
+
+<dt>marked-it improvements</dt>
+<dd><code>_include-segments</code> topics not outputting to the correct filepath.</dd>
+<dd>Added support for tags used in <code>.build.yaml</code> and <code>keyref.yaml</code> files.</dd>
+<dd>Added warnings when a date can't be updated because the last updated or copyright metadata is not structured properly.</dd></dd>
+
+<dt>Jenkins improvements</dt>
+<dd>Includes fixes for variables, branch name gathering, and directory level setting.</dd>
+
+<dt>Bug fixes</dt>
+<dd>
+    <dd>If the log branch did not already exist, the branch could not be created and logs were not stored.</dd>
+    <dd>Last updated and copyright date warnings issued when they don't apply.</dd>
+    <dd>Image warning for images that exist.</ldd>
+    <dd>Github usernames with <code>@</code> in them fail to authenticate during cloning.</dd>
+    </dd>
+
 ## Version 1.2.0, released 03 April 2024
 <dl>
 <dt>Updated packaging</dt>

@@ -41,7 +41,14 @@ def ymlCheck(details, log, ISSUE_WARNINGS, yml_files_list, yml_files_list_folder
                 try:
                     log.debug('Validating YML.')
                     with open(path + ymlFile, 'r', encoding="utf8", errors="ignore") as ymlFileVar:
-                        configuration = yaml.safe_load(ymlFileVar)
+                        try:
+                            configuration = yaml.safe_load(ymlFileVar)
+                        except yaml.YAMLError as exc:
+                            log.warning(exc)
+                            addToErrors('YML not formatted properly. Check ' + ymlFile + ' for errors. ' +
+                                        exc, folderAndFile, '', details, log, build, '', '')
+                        else:
+                            log.debug('YML validated: ' + ymlFile)
                     # For IBM Cloud, verify the toc.yaml against the toc_schema.json
                     if (ymlFile == '/toc.yaml') and (details["ibm_cloud_docs"] is True):
                         if os.path.isfile(details["workspace"] + '/toc_schema.json'):
@@ -52,6 +59,7 @@ def ymlCheck(details, log, ISSUE_WARNINGS, yml_files_list, yml_files_list_folder
                                     log.debug(str(config_schema)[0:500])
                                 except yaml.YAMLError as exc:
                                     log.warning(exc)
+
                                 try:
                                     jsonschema.validate(configuration, config_schema, cls=None)
                                 except Exception as e:
@@ -63,7 +71,7 @@ def ymlCheck(details, log, ISSUE_WARNINGS, yml_files_list, yml_files_list_folder
                                                 error, folderAndFile, '', details, log, build, '', '')
                         else:
                             log.debug('toc_schema.json was not found. The toc.yaml cannot be verified.')
-                    log.debug('YML validated: ' + ymlFile)
+
                 except Exception as e:
                     log.error(e)
                     error = str(e)

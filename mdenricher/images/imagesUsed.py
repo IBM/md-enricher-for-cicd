@@ -39,7 +39,7 @@ def copySourceImage(self, details, imageFileName, imgOutputDir):
                         # self.log.debug(imgSource + ': Up to date already')
 
 
-def copyImage(self, details, file_name, folderAndFile, folderPath):
+def copyImage(self, details, file_name, folderAndFile, folderPath, expectedPath):
 
     # Copy the image downstream
 
@@ -54,17 +54,17 @@ def copyImage(self, details, file_name, folderAndFile, folderPath):
 
     # Delete the old version
     if os.path.isfile(self.location_dir + folderPath + file_name):
-        self.log.debug('Removing old version: ' + folderPath + file_name)
+        self.log.debug('Removing old version: ' + self.location_dir + folderPath + file_name)
         os.remove(self.location_dir + folderPath + file_name)
     # Copy the new version
-    if os.path.isfile(details["source_dir"] + folderAndFile):
-        shutil.copy(details["source_dir"] + folderAndFile, self.location_dir + folderPath)
-        self.log.debug('Copying: ' + details["source_dir"] + folderAndFile + ' to ' + self.location_dir + folderPath + file_name)
+    if os.path.isfile(expectedPath + folderAndFile):
+        shutil.copy(expectedPath + folderAndFile, self.location_dir + folderPath)
+        self.log.debug('Copying: ' + expectedPath + folderAndFile + ' to ' + self.location_dir + folderPath + file_name)
         from mdenricher.images.imagesUsed import copySourceImage
         copySourceImage(self, details, folderPath + file_name, self.location_dir + folderPath)
     else:
-        addToWarnings(folderPath + file_name + ': Does not exist in the referenced path (as ' +
-                      folderPath + file_name + ').', folderPath + file_name, folderPath + file_name, details, self.log,
+        addToWarnings(folderPath + file_name + ': Does not exist at ' +
+                      expectedPath + folderAndFile, folderPath + file_name, folderPath + file_name, details, self.log,
                       self.location_name, folderPath + file_name, '')
 
 
@@ -99,15 +99,22 @@ def imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContent
                 else:
                     img_file_name = imageName
                     img_folderPath = '/'
-                img_folderPath = img_folderPath.replace('../', '')
+                expectedFolderPath = details["source_dir"] + folderAndFile.rsplit('/', 1)[0]
+                if '../' in img_folderPath:
+                    while '../' in img_folderPath:
+                        img_folderPath = img_folderPath.replace('../', '', 1)
+                        expectedFolderPath = expectedFolderPath.rsplit('/', 1)[0]
                 if not img_folderPath.startswith('/'):
                     img_folderPath = '/' + img_folderPath
                 if not img_folderPath.endswith('/'):
                     img_folderPath = img_folderPath + '/'
                 imgfolderAndFile = img_folderPath + img_file_name
 
-                if os.path.isfile(details['source_dir'] + imgfolderAndFile):
-                    copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath)
+                if os.path.isfile(expectedFolderPath + imgfolderAndFile):
+                    copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath, expectedFolderPath)
+                    imageNameVerified = 'True'
+                elif os.path.isfile(details['source_dir'] + imgfolderAndFile):
+                    copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath, details['source_dir'])
                     imageNameVerified = 'True'
                 elif not folderAndFile.startswith(img_folderPath):
                     extraFolder = folderAndFile.rsplit('/', 1)[0]
@@ -119,27 +126,11 @@ def imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContent
                         except Exception:
                             pass
                         self.log.debug('img_folderPath: ' + img_folderPath)
-                        copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath)
+                        copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath, details['source_dir'])
                         imageNameVerified = 'True'
-                else:
-                    # Look through the list of images found and see if that image is even there to compare against
-                    for image in self.image_files_list:
-                        if '/' in imageName:
-                            imageNameShort = imageName.rsplit('/', 1)[1]
-                        else:
-                            imageNameShort = imageName
-                        if image.endswith('/' + imageNameShort):
-                            # Compare the file path of the image from the list of all images with the filepath of the markdown file
-                            # and see if the suggested relative path between those two files matches the image path used in the
-                            # markdown file
-                            expectedRelativePath = os.path.relpath(self.location_dir + image, self.location_dir + folderPath)
-                            if expectedRelativePath == imageName:
-                                copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath)
-                                imageNameVerified = 'True'
-                                break
+
             if imageNameVerified == 'False':
-                addToWarnings(imageNameOriginal + ' does not exist in the expected location: ' + details['source_dir'] +
-                              imgfolderAndFile, folderAndFile, folderPath + file_name, details, self.log,
+                addToWarnings(imageNameOriginal + ' does not exist.', folderAndFile, folderPath + file_name, details, self.log,
                               self.location_name, imageNameOriginal, topicContents)
 
     if not self.image_files_list == []:
