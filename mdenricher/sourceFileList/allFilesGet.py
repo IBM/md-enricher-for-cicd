@@ -4,8 +4,9 @@
 #
 
 def allFilesGet(details, location_contents_files, location_contents_files_keep, location_contents_files_remove,
-                location_contents_folders, location_contents_folders_keep, location_contents_folders_remove,
-                location_contents_folders_remove_and_files, log, remove_all_other_files_folders, source_files_original_list):
+                location_contents_folders, location_contents_folders_keep,
+                location_contents_folders_remove_and_files, location_ibm_cloud_docs,
+                log, remove_all_other_files_folders, source_files_original_list):
 
     # Create a list of all of the files in the repo so we can sort through them and choose which ones to loop over.
     # Like if a conref file changes, this list will be used to look inside each file to see if that conref is used in it
@@ -25,7 +26,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
             log.debug('Not handling user mapping file: ' + file)
 
         # Always ignore the user mapping file
-        elif (((file == 'user-mapping.json') or (file == 'cloudoekeyrefs.yml') or (file == 'toc_schema.json')) and (details["ibm_cloud_docs"] is True)):
+        elif (((file == 'user-mapping.json') or (file == 'cloudoekeyrefs.yml') or (file == 'toc_schema.json')) and (location_ibm_cloud_docs is True)):
             filesForOtherLocations.append(file)
             log.debug('Not handling IBM Cloud files: ' + file)
 
@@ -80,7 +81,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                                        folder_name + file, all_files_dict, location_contents_files,
                                        location_contents_folders)
             # log.debug('Handling image filetypes: ' + folder_name + file)
-            if details["ibm_cloud_docs"] is True:
+            if location_ibm_cloud_docs is True:
                 # log.debug('Checking to see if any images are not in the /images or /images-ui-only directories.')
                 if (('/images/' not in folder_name) and ('/images-ui-only/' not in folder_name)):
                     if os.path.isdir(details["source_dir"] + '/images-ui-only'):
@@ -142,7 +143,13 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
             folder_name = path.split(details["source_dir"])[1]
             if not folder_name.endswith('/'):
                 folder_name = folder_name + '/'
+            if not folder_name.startswith('/'):
+                folder_name = '/' + folder_name
             allFiles = allFiles + files
+            for filesToScanFirst in details['filesToScanFirst']:
+                if filesToScanFirst in allFiles:
+                    allFiles.remove(filesToScanFirst)
+                    allFiles.insert(0, filesToScanFirst)
             for file in sorted(files):
 
                 all_files_dict, conref_files_list, filesForOtherLocations, image_files_list, sitemap_file = allFileCheck(details, path, file, folder_name,

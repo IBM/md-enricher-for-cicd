@@ -48,7 +48,7 @@ def sourceFilesForThisBranch(self, details):
         # If there is a heading changed, sitemap rebuild always, release notes for IBM Cloud, always add the sitemap to the source file list
         if not self.sitemap_file == 'None':
             if (((details["ibm_cloud_docs_sitemap_rebuild_always"] is True) or
-                 ((details["ibm_cloud_docs"] is True) and
+                 ((self.location_ibm_cloud_docs is True) and
                   (potentialSitemapImpact is False) and
                   (('# ' in filePatch) or
                    ('toc.yaml' in folderAndFile) or

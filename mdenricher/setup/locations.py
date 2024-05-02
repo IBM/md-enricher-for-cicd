@@ -105,6 +105,14 @@ def locations(details, location, log):
             exitBuild(details, log)
 
     try:
+        location_ibm_cloud_docs = location["location_ibm_cloud_docs"]
+    except KeyError:
+        if details["ibm_cloud_docs"] is True:
+            location_ibm_cloud_docs = True
+        else:
+            location_ibm_cloud_docs = False
+
+    try:
         location_internal_framework = location["location_internal_framework"]
     except KeyError:
         location_internal_framework = None
@@ -117,4 +125,4 @@ def locations(details, location, log):
     return (location_build, location_comments,
             location_commit_summary_style, location_contents, location_contents_files,
             location_contents_folders, location_downstream_build_url, location_github_branch, location_github_branch_pr, location_github_url,
-            location_internal_framework, location_output_action, remove_all_other_files_folders)
+            location_ibm_cloud_docs, location_internal_framework, location_output_action, remove_all_other_files_folders)

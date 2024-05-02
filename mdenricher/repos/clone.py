@@ -54,7 +54,7 @@ def clone(self, details):
         try:
             # Clone the repo
             subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + BRANCH_TO_CLONE + " https://" +
-                                                str(details["username"]) + ":" + str(details["token"]) + '@' +
+                                                str(details["token"]) + '@' +
                                                 self.location_github_domain + '/' + self.location_github_org + '/' +
                                                 self.location_github_repo + ".git " + self.location_dir + ' --quiet',
                                                 shell=True, stdout=PIPE, stderr=STDOUT)
@@ -70,7 +70,7 @@ def clone(self, details):
             try:
                 # Try again to clone the repo
                 subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + BRANCH_TO_CLONE + " https://" +
-                                                    str(details["username"]) + ":" + str(details["token"]) + '@' +
+                                                    str(details["token"]) + '@' +
                                                     self.location_github_domain + '/' + self.location_github_org + '/' +
                                                     self.location_github_repo + ".git " + self.location_dir + ' --quiet',
                                                     shell=True, stdout=PIPE, stderr=STDOUT)
