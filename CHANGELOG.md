@@ -3,7 +3,7 @@
 Notable changes to this project are documented in this file.
 
 ## Version 1.2.1, released 01 May 2024
-
+<dl>
 <dt>Added <code>--gh_username</code> and <code>--gh_token</code> options</dt>
 <dd>As an alternative to setting the <code>GH_USERNAME</code> and <code>GH_USERNAME</code> environment variables, you can include authentication by using the <code>--gh_username</code> and <code>--gh_token</code> options with the <code>mdenricher</code> command.</dd>
 
@@ -22,6 +22,7 @@ Notable changes to this project are documented in this file.
     <dd>Image warning for images that exist.</ldd>
     <dd>Github usernames with <code>@</code> in them fail to authenticate during cloning.</dd>
     </dd>
+    </dl>
 
 ## Version 1.2.0, released 03 April 2024
 <dl>
