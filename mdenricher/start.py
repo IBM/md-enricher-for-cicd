@@ -5,7 +5,7 @@
 
 def start():
 
-    versionNumber = '1.2.1.20240425'
+    versionNumber = '1.2.1.20240501'
 
     # Process the command-line options
 
@@ -131,13 +131,18 @@ def start():
     if version is True:
         print('Doctopus Markdown Enricher ' + versionNumber)
 
+    try:
+        locations_file
+    except Exception:
+        locations_file = None
+
     if ibm_cloud_docs_product_name_check is True:
         ibm_cloud_docs_keyref_check = True
 
     if ibm_cloud_docs_locations is True:
         try:
             from mdenricher.internal.locations.locationsIBMCloudDocs import locationsIBMCloudDocs
-            locationsIBMCloudDocs(source_dir)
+            locationsIBMCloudDocs(locations_file, source_dir)
         except Exception:
             print('Option not available outside of IBM.')
             sys.exit(1)
@@ -145,7 +150,7 @@ def start():
     elif ibm_cloud_docs_prep is True:
         try:
             from mdenricher.internal.locations.prepIBMCloudDocs import prepIBMCloudDocs
-            prepIBMCloudDocs(gh_username, gh_token, source_dir)
+            prepIBMCloudDocs(gh_username, gh_token, locations_file, source_dir)
         except Exception:
             print('Option not available outside of IBM.')
             sys.exit(1)
@@ -156,7 +161,7 @@ def start():
                 cleanup_flags_not_content,
                 source_dir)
 
-    elif source_dir is not None:
+    if source_dir is not None:
         from mdenricher.main import main
         main(builder,
              gh_username,
