@@ -2,6 +2,7 @@
 
 Notable changes to this project are documented in this file.
 
+
 ## Version 1.2.2, released 07 June 2024
 <dl>
 <dt>New and updated <code>mdenricher</code> command options</dt>
