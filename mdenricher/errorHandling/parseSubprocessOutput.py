@@ -10,7 +10,7 @@ def parseSubprocessOutput(subprocessOutput, log):
         else:
             raise Exception("Code: " + str(exitCode))
         '''
-        log.debug(exitCode)
+        log.debug('Subprocess result: ' + str(exitCode))
 
     if result is not None:
         result = result.decode()

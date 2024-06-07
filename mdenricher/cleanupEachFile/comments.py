@@ -21,7 +21,7 @@ def comments(self, details, folderAndFile, topicContents):
                 (linkCheckerSkipText in topicContents) or
                 ('<style>' in topicContents) or
                 (self.location_comments == 'on') or
-                ('<!--Do not transform-->' in topicContents) or
+                ('ME_ignore' in topicContents) or
                 ('SPDX-License-Identifier' in topicContents) or
                 ('<!-Snippet' in topicContents)):
 
@@ -33,12 +33,13 @@ def comments(self, details, folderAndFile, topicContents):
 
                 # For transforming on the md-enricher-for-cicd docs
                 # Do not remove so that the example code phrases to show the metadata variables won't be replaced
-                elif 'Do not transform' in comment:
-                    self.log.debug('Not removing Do not transform signifiers.')
-                    # topicContents = topicContents.replace('<!--' + comment + '-->', '')
+                elif 'ME_ignore' in comment and not 'ME_ignore' == comment:
+                    self.log.debug('Not removing ME_ignore signifiers.')
+                    comment_noIgnore = comment.replace('ME_ignore', '')
+                    topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + comment_noIgnore + '-->')
 
                 # If there's a heading in the section, just remove it to avoid having it added into the sitemap
-                elif '# ' in comment:
+                elif '# ' in comment and not self.sitemap_file == 'None':
                     topicContents = topicContents.replace('<!--' + comment + '-->', '')
                     self.log.debug('Removing comment because a heading is in it. Avoiding including it in the sitemap.')
 

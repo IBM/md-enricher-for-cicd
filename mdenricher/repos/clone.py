@@ -38,6 +38,7 @@ def clone(self, details):
         return (BRANCH_EXISTS)
 
     def cloneBranch(BRANCH_TO_CLONE, details):
+
         exitCode = 0
         # Verify that the username and token are specified
         if ((details["username"] is None) or (details["token"] is None)):
@@ -61,10 +62,11 @@ def clone(self, details):
             exitCode = parseSubprocessOutput(subprocessOutput, self.log)
 
         # If the clone fails, download a zip and extract the files.
-        except Exception:
+        except Exception as e:
             self.log.debug('Could not be cloned: https://' + self.location_github_domain + '/' + self.location_github_org +
                            '/' + self.location_github_repo + ".git")
             self.log.debug('Waiting 5 seconds to try again.')
+            self.log.debug(str(e))
             time.sleep(5)
 
             try:

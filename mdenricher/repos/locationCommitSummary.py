@@ -9,8 +9,13 @@ def locationCommitSummary(self, details):
 
     if self.location_commit_summary_style == 'Author':
         LOCATION_COMMIT_SUMMARY = details["current_commit_author"]
+
     elif self.location_commit_summary_style == 'AuthorAndSummary':
-        LOCATION_COMMIT_SUMMARY = details["current_commit_author"] + ': ' + details["current_commit_summary"]
+        # Workaround for alchemy-containers/documentation
+        if (details["current_commit_author"] + ': ') in details["current_commit_summary"]:
+            LOCATION_COMMIT_SUMMARY = details["current_commit_summary"]
+        else:
+            LOCATION_COMMIT_SUMMARY = details["current_commit_author"] + ': ' + details["current_commit_summary"]
 
     elif self.location_commit_summary_style == 'BuildNumber':
         LOCATION_COMMIT_SUMMARY = 'Build ' + details["build_number"]

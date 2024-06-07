@@ -5,7 +5,7 @@
 
 def start():
 
-    versionNumber = '1.2.1.20240501'
+    versionNumber = '1.2.2.20240607'
 
     # Process the command-line options
 
@@ -26,6 +26,10 @@ def start():
     my_parser.add_argument('--cleanup_flags_not_content', action='store', type=str,
                            help='In a local clone of the source files, remove the feature flags, but leave the content between them.' +
                            'List the comma-separated flags without spaces between them.')
+
+    my_parser.add_argument('--debug', action='store_true', help=argparse.SUPPRESS)
+
+    my_parser.add_argument('--feature_flag_migration', action='store_true', help=argparse.SUPPRESS)
 
     my_parser.add_argument('--gh_token', action='store', type=str,
                            help='The Github token to access the upstream and downstream repositories.')
@@ -78,6 +82,9 @@ def start():
     my_parser.add_argument('--slack_post_success', action='store_true',
                            help='When True, posts errors, warnings, and successes to Slack. When False, posts errors and warnings to Slack.')
 
+    my_parser.add_argument('--slack_post_start', action='store_true',
+                           help='When True, posts a build start message to Slack.')
+
     my_parser.add_argument('--slack_show_author', choices=[True, False], default=True,
                            help='Includes the commit author\'s Github ID in the Slack post.')
 
@@ -92,6 +99,9 @@ def start():
     my_parser.add_argument('--test_only', action='store_true',
                            help='Performs a check without pushing the results anywhere.')
 
+    my_parser.add_argument('--unprocessed', action='store_true',
+                           help='Use the Markdown Enricher to move files, but do not process content. Tags and styling remain.')
+
     my_parser.add_argument('--validation', action='store', type=str,
                            help='Check tags and image file paths.', default='off', choices=['on', 'off'])
 
@@ -103,6 +113,8 @@ def start():
     builder = args.builder
     cleanup_flags_and_content = args.cleanup_flags_and_content
     cleanup_flags_not_content = args.cleanup_flags_not_content
+    debug = args.debug
+    feature_flag_migration = args.feature_flag_migration
     gh_username = args.gh_username
     gh_token = args.gh_token
     ibm_cloud_docs = args.ibm_cloud_docs
@@ -119,12 +131,14 @@ def start():
     rebuild_files = args.rebuild_files
     slack_bot_token = args.slack_bot_token
     slack_channel = args.slack_channel
+    slack_post_start = args.slack_post_start
     slack_post_success = args.slack_post_success
     slack_show_author = args.slack_show_author
     slack_user_mapping = args.slack_user_mapping
     slack_webhook = args.slack_webhook
     source_dir = args.source_dir
     test_only = args.test_only
+    unprocessed = args.unprocessed
     validation = args.validation
     version = args.version
 
@@ -151,8 +165,9 @@ def start():
         try:
             from mdenricher.internal.locations.prepIBMCloudDocs import prepIBMCloudDocs
             prepIBMCloudDocs(gh_username, gh_token, locations_file, source_dir)
-        except Exception:
+        except Exception as e:
             print('Option not available outside of IBM.')
+            print(e)
             sys.exit(1)
 
     elif cleanup_flags_and_content is not None or cleanup_flags_not_content is not None:
@@ -161,9 +176,19 @@ def start():
                 cleanup_flags_not_content,
                 source_dir)
 
+    if feature_flag_migration is True:
+        try:
+            from mdenricher.internal.locations.featureFlagMigration import featureFlagMigration
+            featureFlagMigration(locations_file, source_dir)
+        except Exception as e:
+            print(e)
+            print('Option not available outside of IBM.')
+            sys.exit(1)
+
     if source_dir is not None:
         from mdenricher.main import main
         main(builder,
+             debug,
              gh_username,
              gh_token,
              ibm_cloud_docs,
@@ -177,10 +202,12 @@ def start():
              rebuild_files,
              slack_bot_token,
              slack_channel,
+             slack_post_start,
              slack_post_success,
              slack_show_author,
              slack_user_mapping,
              slack_webhook,
              source_dir,
              test_only,
+             unprocessed,
              validation)

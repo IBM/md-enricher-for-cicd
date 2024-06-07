@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-05-02
+# Last updated: 2024-06-07
 -->
 
 
@@ -148,11 +148,12 @@ The `mdenricher` command kicks things off. These are the available options to se
 |`--rebuild_files <file1,file2,file3>`|Optional. Force a rebuild of specific files no matter what changes kicked off the build. For multiple files, include them as a comma-separated list. This flag is helpful for something like a landing page, so that the date updates even though the content itself does not change often. Example: `--rebuild_files landing.json,folder/file.md`|
 |`--rebuild_all_files`|Optional. Force a rebuild of all files no matter what changes kicked off the build. This option is helpful when you're running the Markdown Enricher for the first time on new downstream branches.|
 |`--slack_bot_token ${SLACK_BOT_TOKEN}`|Optional. The token for the Slack bot. This value can be an environment variable.|
-|`--slack_channel ${SLACK_CHANNEL}`|Required with the `--slack_bot_token` flag. The ID for the Slack channel. This value can be an environment variable.|
+|`--slack_channel ${SLACK_CHANNEL}`|Required with the `--slack_bot_token` flag. The ID for one or more comma-separated Slack channels. This value can be an environment variable.|
+|`--slack_post_start`|Optional. When also using the `--slack_webhook` or `--slack_bot_token` options, you can post a build start message to Slack.|
 |`--slack_post_success`|Optional. When also using the `--slack_webhook` or `--slack_bot_token` options, you can post success messages to Slack in addition to errors and warnings.|
 |`--slack_show_author <True_or_False>`|Optional. When also using the `--slack_webhook` option, you can include (True) or exclude (False) the commit author's Github ID in the Slack post.|
 |`--slack_user_mapping <path_to_mapping_file>`|Optional to include with the --slack_bot_token flag. A JSON file that maps a Github ID to a Slack ID.|
-|`--slack_webhook ${SLACK_WEBHOOK}`|Optional. The webhook for a Slack channel to post error messages to. This value can be an environment variable.|
+|`--slack_webhook ${SLACK_WEBHOOK}`|Optional. One or more comma-separated webhooks for Slack channels to post error messages to. This value can be an environment variable.|
 |`--source_dir <path_to_source_directory>`|Required. The path to a content directory or a cloned Github repo.|
 |`--test_only`|Optional. Performs a check without pushing the results anywhere.|
 |`--version`|View the installed version of the Markdown Enricher.|

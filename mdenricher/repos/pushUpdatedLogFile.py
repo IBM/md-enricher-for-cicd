@@ -180,9 +180,11 @@ def pushUpdatedLogFile(details, log):
         os.chdir(details["output_dir"] + '/' + details["log_branch"])
         subprocessOutput = subprocess.Popen('git add --all', shell=True, stdout=PIPE, stderr=STDOUT)
         exitCode = parseSubprocessOutput(subprocessOutput, log)
-        gitCommitCommand = 'git commit -m "[ci skip]'
+        gitCommitCommand = 'git commit -m "'
+        if details["builder"] == 'travis':
+            gitCommitCommand = gitCommitCommand + '[ci skip]'
         if not details["build_number"] is None:
-            gitCommitCommand = gitCommitCommand + ' Build #' + details["build_number"]
+            gitCommitCommand = gitCommitCommand + ' Build ' + details["build_number"]
         subprocessOutput = subprocess.Popen(gitCommitCommand + contains +
                                             ' - ' + details["current_commit_summary"] + '" --quiet', shell=True,
                                             stdout=PIPE, stderr=STDOUT)

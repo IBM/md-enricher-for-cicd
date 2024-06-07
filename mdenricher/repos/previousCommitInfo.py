@@ -214,6 +214,8 @@ def previousCommitInfo(details, log):
         current_commit_author = current_commit_author.split('\n', 1)[0]
     if '\n' in current_commit_email:
         current_commit_email = current_commit_email.split('\n', 1)[0]
+    if '"' in current_commit_summary:
+        current_commit_summary = current_commit_summary.replace('"', '')
 
     source_files_original_list = {}
     if str(previous_commit_id) == 'None':

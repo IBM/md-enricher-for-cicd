@@ -40,17 +40,17 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
                 missingBothCount = topicContentsNoGood.count('{site.data.keyword.' + keyref + '}')
 
                 if missingStartCount > 0:
-                    addToErrors('Missing starting curly brace for ' + '{site.data.keyword.' + keyref + '}}.',
-                                folderAndFile, folderPath + file_name, details, self.log,
-                                self.location_name, '{site.data.keyword.' + keyref + '}}', topicContents)
+                    addToWarnings('Missing starting curly brace for ' + '{site.data.keyword.' + keyref + '}}.',
+                                  folderAndFile, folderPath + file_name, details, self.log,
+                                  self.location_name, '{site.data.keyword.' + keyref + '}}', topicContents)
                 if missingEndCount > 0:
-                    addToErrors('Missing end curly brace for ' + '{{site.data.keyword.' + keyref + '}.',
-                                folderAndFile, folderPath + file_name, details, self.log,
-                                self.location_name, '{{site.data.keyword.' + keyref + '}', topicContents)
+                    addToWarnings('Missing end curly brace for ' + '{{site.data.keyword.' + keyref + '}.',
+                                  folderAndFile, folderPath + file_name, details, self.log,
+                                  self.location_name, '{{site.data.keyword.' + keyref + '}', topicContents)
                 if missingBothCount > 0:
-                    addToErrors('Missing start and end curly brace for ' + '{site.data.keyword.' + keyref + '}.',
-                                folderAndFile, folderPath + file_name, details, self.log,
-                                self.location_name, '{site.data.keyword.' + keyref + '}', topicContents)
+                    addToWarnings('Missing start and end curly brace for ' + '{site.data.keyword.' + keyref + '}.',
+                                  folderAndFile, folderPath + file_name, details, self.log,
+                                  self.location_name, '{site.data.keyword.' + keyref + '}', topicContents)
 
             # Check first if the keyref is an IBM Cloud Docs product name
             productNameFound = False
@@ -81,16 +81,16 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
                         keyrefsAll = yaml.safe_load(stream)
                     except yaml.YAMLError as exc:
                         self.log.warning(exc)
-                        addToErrors('YML not formatted properly. Check keyref.yaml for errors. ' +
-                                    str(exc), folderAndFile, '', details, self.log, self.location_name, '', '')
+                        addToWarnings('YML not formatted properly. Check keyref.yaml for errors. ' +
+                                      str(exc), folderAndFile, '', details, self.log, self.location_name, '', '')
                     else:
                         keyrefs = keyrefsAll['keyword']
-                        if keyref not in keyrefs:
-                            addToErrors('{{site.data.keyword.' + keyref + '}} could not be found in cloudoekeyrefs.yml or in keyref.yaml.',
-                                        folderAndFile, folderPath + file_name, details, self.log,
-                                        self.location_name, '', topicContents)
+                        if keyref not in keyrefs and not details['ibm_cloud_docs_product_names'] == []:
+                            addToWarnings('{{site.data.keyword.' + keyref + '}} could not be found in cloudoekeyrefs.yml or in keyref.yaml.',
+                                          folderAndFile, folderPath + file_name, details, self.log,
+                                          self.location_name, '', topicContents)
             # Since it's not in a keyref, it must be a product name error
-            elif productNameFound is False:
-                addToErrors('{{site.data.keyword.' + keyref + '}} could not be found in cloudoekeyrefs.yml.',
-                            folderAndFile, folderPath + file_name, details, self.log,
-                            self.location_name, '', topicContents)
+            elif productNameFound is False and not details['ibm_cloud_docs_product_names'] == []:
+                addToWarnings('{{site.data.keyword.' + keyref + '}} could not be found in cloudoekeyrefs.yml.',
+                              folderAndFile, folderPath + file_name, details, self.log,
+                              self.location_name, '', topicContents)

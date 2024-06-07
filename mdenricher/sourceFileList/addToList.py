@@ -12,7 +12,6 @@ def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folde
 
     from mdenricher.sourceFileList.checkLocationsPaths import checkLocationsPaths
     import os
-    import subprocess
 
     # folderAndFile = upstream folder and file location
     # folderPath = downstream folder location - starts and ends with slash
@@ -30,31 +29,7 @@ def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folde
         dictionary[folderAndFile]['fileStatus'] = fileStatus
         dictionary[folderAndFile]['filePatch'] = filePatch
         dictionary[folderAndFile]['fileNamePrevious'] = fileNamePrevious
-        if not folderAndFile.endswith(tuple(details['img_filetypes'])):
 
-            try:
-                if os.getcwd() == details['source_dir']:
-                    getDateFrom = folderAndFile[1:]
-                elif os.getcwd() == self.location_dir:
-                    getDateFrom = returnedFolderName[1:] + returnedFileName
-                else:
-                    getDateFrom = folderAndFile[1:]
-                modified_date_bytes = subprocess.check_output(["git", "log", details['current_commit_id'], "--format=%ai", "--", getDateFrom],
-                                                              stderr=subprocess.DEVNULL)
-            except Exception:
-                try:
-                    modified_date_bytes = subprocess.check_output(["git", "log", "-n", "1", "--format=%ai", "--", getDateFrom], stderr=subprocess.DEVNULL)
-                except Exception:
-                    pass
-
-            try:
-                modified_date = modified_date_bytes.decode("utf-8")
-                if '\n' in modified_date:
-                    modified_date = modified_date.split('\n', 1)[0]
-                modified_date = modified_date.split(' ', 1)[0]
-                dictionary[folderAndFile]['modified_date'] = modified_date
-            except Exception:
-                pass
         log.debug('Adding: ' + folderAndFile + ' (upstream path), ' + returnedFolderName + returnedFileName + ' (downstream path)')
 
         if (os.path.isfile(details["source_dir"] + folderAndFile)) and (folderAndFile.endswith(tuple(details["filetypes"]))):

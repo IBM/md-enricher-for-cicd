@@ -8,86 +8,11 @@ def exitBuild(details, log):
     # Compile end of build info and post to Slack, if specified
 
     from datetime import datetime
-    import json
     import os
     import re
-    import requests
     import sys
     import time
-    from slack_sdk import WebClient
-    # from slack_sdk.errors import SlackApiError
-
-    def postToSlack(payload):
-        log.info('\n\n')
-
-        userID = None
-        if (details["slack_user_mapping"] is not None) and (details["slack_bot_token"] is not None):
-            # https://slack.dev/python-slack-sdk/web/index.html
-
-            log.info('Getting Slack ID from user mapping.')
-
-            if os.path.isfile(details["slack_user_mapping"]):
-                try:
-                    with open(details["slack_user_mapping"], 'r', encoding="utf8", errors="ignore") as mapping_open:
-                        mapping = json.load(mapping_open)
-                        userList = mapping["user_mapping"]
-                        for user in userList:
-                            if user["github_name"] == details["current_commit_author"] or user["github_id"] == details["current_commit_author"]:
-                                userID = user["slack_id"]
-                                break
-                        if userID is None:
-                            log.info('Slack post is not ephemeral. The ID for the commit author ' + details["current_commit_author"] +
-                                     ' does not exist in the user mapping file: ' +
-                                     details["slack_user_mapping"])
-                except Exception as e:
-                    log.info(e)
-                    log.info('Slack post is not ephemeral. There was an issue parsing the user mapping file: ' + details["slack_user_mapping"])
-            else:
-                log.error('slack_user_mapping does not exist: ' + details["slack_user_mapping"])
-
-        if ((details["slack_bot_token"] is not None) and (details["slack_channel"] is not None)):
-
-            log.info('Posting results to Slack via bot token.')
-
-            try:
-                client = WebClient(token=details["slack_bot_token"])
-
-                # Post ephemeral messages only when not running against the source branch
-                # Slack issues warning if you don't include the text parameter
-                if ((userID is not None) and
-                        (not details["current_github_branch"] == details["source_github_branch"])):
-                    log.info('Posting ephemeral message.')
-                    response = client.chat_postEphemeral(
-                        channel=details["slack_channel"],
-                        user=userID,
-                        text='<@' + userID + '> Markdown enricher:',
-                        attachments=payload
-                    )
-                else:
-                    log.info('Posting message.')
-                    response = client.chat_postMessage(
-                        channel=details["slack_channel"],
-                        text='Markdown enricher:',
-                        attachments=payload
-                    )
-                if not response.status_code == 200:
-                    log.error('The message could not be posted to Slack. ' +
-                              'Check that the Slack bot token and the channel ID are valid. Error code: ' +
-                              str(response.status_code))
-            except Exception as e:
-                # You will get a SlackApiError if "ok" is False
-                log.error(e)    # str like 'invalid_auth', 'channel_not_found'
-
-        elif details["slack_webhook"] is not None:
-
-            log.info('Posting results to Slack via incoming webhook.')
-
-            try:
-                requestResponse = requests.post(details["slack_webhook"], json.dumps({"attachments": payload}), headers={'content-type': 'application/json'})
-                if not requestResponse.status_code == 200:
-                    log.error('The message could not be posted to Slack. Check that the webhook is valid. Error code: ' + str(requestResponse.status_code))
-            except Exception as e:
-                log.error('The message could not be posted to Slack.' + str(e))
+    from mdenricher.setup.postToSlack import postToSlack
 
     def instanceCleanup(details, itemList, log, logBranchCommit):
         # This section is to remove duplicate errors and warnings that are the same in different locations.
@@ -227,10 +152,7 @@ def exitBuild(details, log):
         possessive = ''
 
     # Making sure these variables have been specified so far - does this defeat the purpose of having details?
-    try:
-        build_url = details["build_url"]
-    except Exception:
-        build_url = ''
+
     try:
         current_github_branch = details["current_github_branch"] + ' branch '
     except Exception:
@@ -267,12 +189,12 @@ def exitBuild(details, log):
                 instanceList = errorList
         log.info(instanceList)
 
-        payload = [{"color": "danger", "title_link": build_url,
+        payload = [{"color": "danger", "title_link": details["build_url"],
                     "title": current_commit_author + possessive + ' ' + current_github_branch +
                     buildNumberPost + " failed with " + str(errors) + " " + errorsString + ", " +
                     str(warnings) + " " + warningsString + " in " + errorLocation,
                     "text": instanceList}]
-        postToSlack(payload)
+        postToSlack(log, details, payload)
 
         log.info('BUILD FAILED')
         log.info('\n\n')
@@ -285,11 +207,11 @@ def exitBuild(details, log):
             instanceList = warningList
         log.info(instanceList)
 
-        payload = [{"color": "warning", "title_link": build_url,
+        payload = [{"color": "warning", "title_link": details["build_url"],
                     "title": current_commit_author + possessive + ' ' + current_github_branch + buildNumberPost +
                     " passed with " + str(warnings) + " " + warningsString + " in " + errorLocation,
                     "text": instanceList}]
-        postToSlack(payload)
+        postToSlack(log, details, payload)
 
         log.info('BUILD SUCCESSFUL WITH WARNINGS')
         log.info('\n\n')
@@ -298,10 +220,10 @@ def exitBuild(details, log):
     else:
         if (details["slack_post_success"] is True):
 
-            payload = [{"color": "good", "title_link": build_url,
+            payload = [{"color": "good", "title_link": details["build_url"],
                        "title": current_commit_author + possessive + ' ' + current_github_branch +
                         buildNumberPost + " passed"}]
-            postToSlack(payload)
+            postToSlack(log, details, payload)
 
         log.info('BUILD SUCCESSFUL')
         log.info('\n\n')
