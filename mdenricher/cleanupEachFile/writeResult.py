@@ -51,56 +51,71 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                 write = True
                 self.log.debug('Rebuilding because the file is in the rebuild_files_list.')
             elif os.path.isfile(self.location_dir + folderPath + file_name):
-                self.log.debug('Examining diff.')
 
+                # For the sitemap, grab the version before it was replaced with the empty stub
                 if ((folderAndFile == self.sitemap_file) or (self.sitemap_file.endswith(folderPath + file_name))) and (compareSitemapContents is True):
-                    topicContentsDownstream = self.source_files[self.sitemap_file]['downstream_sitemap_contents']
+                    try:
+                        topicContentsDownstream = self.source_files[self.sitemap_file]['downstream_sitemap_contents']
+                    except Exception:
+                        if os.path.isfile(self.location_dir + folderPath + file_name):
+                            with open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore") as fileName_read:
+                                topicContentsDownstream = fileName_read.read()
                 else:
                     with open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore") as fileName_read:
                         topicContentsDownstream = fileName_read.read()
 
-                if ((self.location_ibm_cloud_docs is True) and
-                        ('---' in topicContents.split('\n'[0])) and
-                        ('subcollection' in topicContents) and
-                        ('x-trestle-template-version' not in topicContents)):
-                    self.log.debug('Examining diff in IBM Cloud Docs content.')
-                    topicContentsDownstreamMeat = topicContentsDownstream
+                if '[{LAST_UPDATED_DATE}]' in topicContents or '[{CURRENT_YEAR}]' in topicContents:
                     topicContentsMeat = topicContents
+                    topicContentsDownstreamMeat = topicContentsDownstream
+                    if 'lastupdated:' in topicContentsMeat or 'years:' in topicContentsMeat:
+                        self.log.debug('Examining diff in IBM Cloud Docs content.')
 
-                    if 'lastupdated: "' in topicContentsMeat and 'lastupdated: "' in topicContentsDownstreamMeat:
+                        if 'lastupdated: "' in topicContentsMeat and 'lastupdated: "' in topicContentsDownstreamMeat:
 
-                        # Make sure the last updated dates don't affect comparison
-                        downstreamDateDownstream = re.findall('lastupdated: "(.*?)"', topicContentsDownstreamMeat)[0]
-                        topicContentsDownstreamMeat = str(topicContentsDownstreamMeat).replace(str(downstreamDateDownstream), '', 1)
-                        self.log.debug('Downstream file date: ' + downstreamDateDownstream)
+                            # Make sure the last updated dates don't affect comparison
+                            downstreamDateDownstream = re.findall('lastupdated: "(.*?)"', topicContentsDownstreamMeat)[0]
+                            topicContentsDownstreamMeat = str(topicContentsDownstreamMeat).replace(str(downstreamDateDownstream), '', 1)
+                            # self.log.debug('Downstream file date: ' + downstreamDateDownstream)
 
-                        currentFileLastUpdatedDate = re.findall('lastupdated: "(.*?)"', topicContentsMeat)[0]
-                        topicContentsMeat = topicContentsMeat.replace(currentFileLastUpdatedDate, '', 1)
-                        self.log.debug('Current file date: ' + currentFileLastUpdatedDate)
+                            currentFileLastUpdatedDate = re.findall('lastupdated: "(.*?)"', topicContentsMeat)[0]
+                            topicContentsMeat = topicContentsMeat.replace(currentFileLastUpdatedDate, '', 1)
+                            # self.log.debug('Current file date: ' + currentFileLastUpdatedDate)
 
-                    if 'years: ' in topicContentsMeat and 'years: ' in topicContentsDownstreamMeat:
+                        if 'years: ' in topicContentsMeat and 'years: ' in topicContentsDownstreamMeat:
 
-                        # Make sure that the copyright years don't affect comparison
-                        copyrightDateDownstream = re.findall('years: (.*?)\n', topicContentsDownstreamMeat)[0]
-                        topicContentsDownstreamMeat = topicContentsDownstreamMeat.replace('years: ' + copyrightDateDownstream, '', 1)
+                            # Make sure that the copyright years don't affect comparison
+                            copyrightDateDownstream = re.findall('years: (.*?)\n', topicContentsDownstreamMeat)[0]
+                            topicContentsDownstreamMeat = topicContentsDownstreamMeat.replace('years: ' + copyrightDateDownstream, '', 1)
 
-                        copyrightDate = re.findall('years: (.*?)\n', topicContentsMeat)[0]
-                        topicContentsMeat = topicContentsMeat.replace('years: ' + copyrightDate, '', 1)
+                            copyrightDate = re.findall('years: (.*?)\n', topicContentsMeat)[0]
+                            topicContentsMeat = topicContentsMeat.replace('years: ' + copyrightDate, '', 1)
 
-                    if topicContentsDownstreamMeat == topicContentsMeat:
-                        if ((folderAndFile == self.sitemap_file) or (self.sitemap_file.endswith(folderPath + file_name))) and (compareSitemapContents is True):
-                            # Write the old version of the sitemap again and undo the writing of the sub file again
-                            topicContents = topicContentsDownstream
-                            write = True
+                        if topicContentsDownstreamMeat == topicContentsMeat:
+                            if ((folderAndFile == self.sitemap_file) or
+                                    (self.sitemap_file.endswith(folderPath + file_name))) and (compareSitemapContents is True):
+                                # Write the old version of the sitemap again and undo the writing of the sub file again
+                                topicContents = topicContentsDownstream
+                                write = True
+                                self.log.debug('Changes found in IBM Cloud Docs sitemap.')
+                            else:
+                                write = False
+                                self.log.debug('No changes found in IBM Cloud Docs file.')
                         else:
-                            write = False
+                            self.log.debug('Changes found in IBM Cloud Docs content.')
+                            write = True
                     else:
+                        self.log.debug('Changes found. Date variables are used.')
                         write = True
+                elif ((folderAndFile == self.sitemap_file) or
+                        (self.sitemap_file.endswith(folderPath + file_name))) and (compareSitemapContents is True):
+                    write = True
+                    self.log.debug('Changes found in sitemap.')
+                elif topicContentsDownstream == topicContents:
+                    write = False
+                    self.log.debug('No changes found to write.')
                 else:
-                    if topicContentsDownstream == topicContents:
-                        write = False
-                    else:
-                        write = True
+                    self.log.debug('Changes found. No date variables used.')
+                    write = True
             else:
                 self.log.debug('Downstream file did not exist before.')
                 write = True
@@ -111,29 +126,22 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                 lastUpdatedDate = currentYear + '-' + currentMonth + '-' + currentDay
 
                 if '[{LAST_UPDATED_DATE}]' in topicContents:
-                    topicContents = topicContents.replace('[{LAST_UPDATED_DATE}]', lastUpdatedDate, 1)
-                    self.log.debug(r'Replaced [{LAST_UPDATED_DATE}] with current date: ' + lastUpdatedDate)
-                elif 'lastupdated: "' in topicContents and currentFileLastUpdatedDate is not None:
-                    topicContents = topicContents.replace(currentFileLastUpdatedDate, lastUpdatedDate, 1)
+                    topicContents = topicContents.replace('[{LAST_UPDATED_DATE}]', lastUpdatedDate)
                     self.log.debug(r'Replaced [{LAST_UPDATED_DATE}] with current date: ' + lastUpdatedDate)
                 if '[{CURRENT_YEAR}]' in topicContents:
-                    topicContents = topicContents.replace('[{CURRENT_YEAR}]', lastUpdatedDate.split('-', 1)[0], 1)
+                    topicContents = topicContents.replace('[{CURRENT_YEAR}]', lastUpdatedDate.split('-', 1)[0])
                     self.log.debug(r'Replaced [{CURRENT_YEAR}] with current year: ' + lastUpdatedDate.split('-', 1)[0])
-                elif 'years: "' in topicContents and copyrightDate is not None:
-                    topicContents = topicContents.replace(copyrightDate, lastUpdatedDate.split('-', 1)[0], 1)
-                    self.log.debug(r'Replaced [{CURRENT_YEAR}] with current year: ' + lastUpdatedDate.split('-', 1)[0])
+
                 # For running markdown enricher on markdown enricher docs, don't replace the examples
                 # First curly brace then square bracket
-                if '{[<!--Do not transform-->' in topicContents:
-                    topicContents = topicContents.replace('{[<!--Do not transform-->', '{[')
+                if '{[<!--ME_ignore-->' in topicContents:
+                    topicContents = topicContents.replace('{[<!--ME_ignore-->', '{[')
                 # Second square bracket then curly brace
-                if '[{<!--Do not transform-->' in topicContents:
-                    topicContents = topicContents.replace('[{<!--Do not transform-->', '[{')
+                if '[{<!--ME_ignore-->' in topicContents:
+                    topicContents = topicContents.replace('[{<!--ME_ignore-->', '[{')
                 with open(self.location_dir + folderPath + file_name, 'w+', encoding="utf8", errors="ignore") as fileName_write:
                     fileName_write.write(topicContents)
                     self.log.debug('Wrote: ' + self.location_dir + folderPath + file_name)
-            else:
-                self.log.debug('No changes found to write.')
 
         # Double-check that nothing is getting written that shouldn't
         else:

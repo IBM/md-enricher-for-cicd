@@ -11,6 +11,7 @@ def sourceFilesForThisBranch(self, details):
     from mdenricher.sourceFileList.addToList import addToList
     # import json
     import os  # for running OS commands like changing directories or listing files in directory
+    import re
 
     from mdenricher.errorHandling.errorHandling import addToWarnings
     from mdenricher.errorHandling.errorHandling import addToErrors
@@ -80,7 +81,7 @@ def sourceFilesForThisBranch(self, details):
                     conrefID, filePatch = filePatch.split(']}', 1)
                     self.log.debug('Conref ID found in patch: ' + conrefID)
                     conrefChangeList.append(conrefID)
-            if source_file in source_files:
+            if source_file in source_files and details['unprocessed'] is False:
                 del source_files[source_file]
                 self.log.debug(source_file + ': Skipping phrases content reuse file')
 
@@ -92,7 +93,7 @@ def sourceFilesForThisBranch(self, details):
                 except Exception as e:
                     self.log.debug('Failed to parse: ' + folderAndFile)
                     self.log.debug(e)
-            if source_file in source_files:
+            if source_file in source_files and details['unprocessed'] is False:
                 del source_files[source_file]
                 self.log.debug(source_file + ": Skipping content reuse files")
 
@@ -101,22 +102,62 @@ def sourceFilesForThisBranch(self, details):
             source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
                                      folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
 
-        # 2 If the feature-flags.json file was updated, see if any other markdown files use those IDs also need to be updated
+        # Adding landing.json to update date automatically
+        elif (file_name == 'landing.json' and
+              details['ibm_cloud_docs'] is True):
+            try:
+                if '[{LAST_UPDATED_DATE}]' in self.all_files_dict[folderAndFile]['fileContents']:
+                    source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
+                                             folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
+            except Exception:
+                pass
+
+        # If the toc.yaml file was updated, see if any other markdown files use those IDs also need to be updated
+        elif ('toc.yaml' in folderAndFile) and (details['ibm_cloud_docs'] is True):
+
+            source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
+                                     folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
+
+            if details['unprocessed'] is False:
+                toc_diff = source_files[folderAndFile]['filePatch']
+                tocLines = toc_diff.split('\n')
+                for toc_line in tocLines:
+                    while toc_line.endswith(' '):
+                        toc_line = toc_line[:-1]
+                    if '<' in toc_line:
+                        tagsInLine = re.findall('<.*?>', toc_line)
+                        for tagInLine in tagsInLine:
+                            toc_line = toc_line.replace(tagInLine, '')
+                    if toc_line.endswith(tuple(details["filetypes"])) and (toc_line.startswith('-') or toc_line.startswith('+')):
+                        while toc_line.startswith(' ') or toc_line.startswith('-') or toc_line.startswith('+'):
+                            toc_line = toc_line[1:]
+                        if os.path.isfile(details["source_dir"] + '/' + toc_line):
+                            modifiedFile = '/' + toc_line
+                            fileStatus = 'Modified tag in toc file affects this file.'
+                            source_files = addToList(self, details, self.log, 'None', 'None',
+                                                     fileStatus, modifiedFile, source_files,
+                                                     self.location_contents_files,
+                                                     self.location_contents_folders)
+
+        # If the feature-flags.json file was updated, see if any other markdown files use those IDs also need to be updated
         elif (details["featureFlagFile"] in folderAndFile) and (os.path.isfile(details["source_dir"] + details["featureFlagFile"])):
-            if details["builder"] == 'local':
+
+            if ((details['unprocessed'] is True) and (details["featureFlagFile"] in folderAndFile)):
+                if source_file in source_files:
+                    del source_files[source_file]
+                    self.log.debug(source_file + ': Skipping feature flags file')
+            elif (details["builder"] == 'local'):
                 if source_file in source_files:
                     del source_files[source_file]
                     self.log.debug(source_file + ': Skipping feature flags file')
             else:
+                source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
+                                         folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
                 featureFlagList = []
                 featureFlagsChangedList = []
-                featureFlag_diff = source_files[details["featureFlagFile"]]['filePatch']
+                featureFlag_diff = source_files[folderAndFile]['filePatch']
                 self.log.debug('Feature flag diff:')
                 self.log.debug(featureFlag_diff)
-
-                if source_file in source_files:
-                    del source_files[source_file]
-                    self.log.debug(source_file + ': Skipping feature flags file')
 
                 # Verify that every feature flag has a location and gather then into a list.
                 # Also use this list to see later if a feature flag was removed.

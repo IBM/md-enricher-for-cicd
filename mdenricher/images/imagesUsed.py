@@ -39,7 +39,7 @@ def copySourceImage(self, details, imageFileName, imgOutputDir):
                         # self.log.debug(imgSource + ': Up to date already')
 
 
-def copyImage(self, details, file_name, folderAndFile, folderPath, expectedPath):
+def copyImage(self, details, file_name, folderAndFile, folderPath):
 
     # Copy the image downstream
 
@@ -57,14 +57,14 @@ def copyImage(self, details, file_name, folderAndFile, folderPath, expectedPath)
         self.log.debug('Removing old version: ' + self.location_dir + folderPath + file_name)
         os.remove(self.location_dir + folderPath + file_name)
     # Copy the new version
-    if os.path.isfile(expectedPath + folderAndFile):
-        shutil.copy(expectedPath + folderAndFile, self.location_dir + folderPath)
-        self.log.debug('Copying: ' + expectedPath + folderAndFile + ' to ' + self.location_dir + folderPath + file_name)
-        from mdenricher.images.imagesUsed import copySourceImage
-        copySourceImage(self, details, folderPath + file_name, self.location_dir + folderPath)
+    if os.path.isfile(details['source_dir'] + folderAndFile):
+        shutil.copy(details['source_dir'] + folderAndFile, self.location_dir + folderPath)
+        self.log.debug('Copying: ' + details['source_dir'] + folderAndFile + ' to ' + self.location_dir + folderPath + file_name)
+        # from mdenricher.images.imagesUsed import copySourceImage
+        # copySourceImage(self, details, folderPath + file_name, self.location_dir + folderPath)
     else:
         addToWarnings(folderPath + file_name + ': Does not exist at ' +
-                      expectedPath + folderAndFile, folderPath + file_name, folderPath + file_name, details, self.log,
+                      details['source_dir'] + folderAndFile, folderPath + file_name, folderPath + file_name, details, self.log,
                       self.location_name, folderPath + file_name, '')
 
 
@@ -72,7 +72,7 @@ def imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContent
 
     import os
     import re
-    from mdenricher.errorHandling.errorHandling import addToWarnings
+    # from mdenricher.errorHandling.errorHandling import addToWarnings
     # from mdenricher.errorHandling.errorHandling import addToErrors
     # from mdenricher.setup.exitBuild import exitBuild
 
@@ -89,17 +89,17 @@ def imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContent
         if imageNameOriginal.endswith(tuple(details["img_output_filetypes"])):
 
             imageName = imageNameHandling(imageNameOriginal)
-            imageNameVerified = 'False'
-            if imageName.startswith('http'):
-                imageNameVerified = 'http'
-            else:
+            # imageNameVerified = 'False'
+            if not imageName.startswith('http'):
+                # imageNameVerified = 'http'
+                # else:
                 # Get the folder path and file name of the image referenced
                 if '/' in imageName:
                     img_folderPath, img_file_name = imageName.rsplit('/', 1)
                 else:
                     img_file_name = imageName
                     img_folderPath = '/'
-                expectedFolderPath = details["source_dir"] + folderAndFile.rsplit('/', 1)[0]
+                expectedFolderPath = folderAndFile.rsplit('/', 1)[0]
                 if '../' in img_folderPath:
                     while '../' in img_folderPath:
                         img_folderPath = img_folderPath.replace('../', '', 1)
@@ -108,30 +108,16 @@ def imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContent
                     img_folderPath = '/' + img_folderPath
                 if not img_folderPath.endswith('/'):
                     img_folderPath = img_folderPath + '/'
-                imgfolderAndFile = img_folderPath + img_file_name
+                imgfolderAndFile = expectedFolderPath + img_folderPath + img_file_name
 
-                if os.path.isfile(expectedFolderPath + imgfolderAndFile):
-                    copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath, expectedFolderPath)
-                    imageNameVerified = 'True'
-                elif os.path.isfile(details['source_dir'] + imgfolderAndFile):
-                    copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath, details['source_dir'])
-                    imageNameVerified = 'True'
-                elif not folderAndFile.startswith(img_folderPath):
-                    extraFolder = folderAndFile.rsplit('/', 1)[0]
-                    if os.path.isfile(details['source_dir'] + extraFolder + img_folderPath + img_file_name):
-                        self.log.debug('Image path verified: ' + extraFolder + img_folderPath + img_file_name)
-                        imgfolderAndFile = extraFolder + img_folderPath + img_file_name
-                        try:
-                            img_folderPath = self.source_files[imgfolderAndFile]['folderPath']
-                        except Exception:
-                            pass
-                        self.log.debug('img_folderPath: ' + img_folderPath)
-                        copyImage(self, details, img_file_name, imgfolderAndFile, img_folderPath, details['source_dir'])
-                        imageNameVerified = 'True'
+                # if imgfolderAndFile in self.image_files_list:
+                if os.path.isfile(details['source_dir'] + imgfolderAndFile):
+                    copyImage(self, details, img_file_name, imgfolderAndFile, expectedFolderPath + img_folderPath)
+                    # imageNameVerified = 'True'
 
-            if imageNameVerified == 'False':
-                addToWarnings(imageNameOriginal + ' does not exist.', folderAndFile, folderPath + file_name, details, self.log,
-                              self.location_name, imageNameOriginal, topicContents)
+            # if imageNameVerified == 'False':
+            # addToWarnings(imageNameOriginal + ' does not exist.', folderAndFile, folderPath + file_name, details, self.log,
+            # self.location_name, imageNameOriginal, topicContents)
 
     if not self.image_files_list == []:
 

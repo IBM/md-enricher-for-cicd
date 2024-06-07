@@ -81,18 +81,14 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                                        folder_name + file, all_files_dict, location_contents_files,
                                        location_contents_folders)
             # log.debug('Handling image filetypes: ' + folder_name + file)
-            if location_ibm_cloud_docs is True:
-                # log.debug('Checking to see if any images are not in the /images or /images-ui-only directories.')
-                if (('/images/' not in folder_name) and ('/images-ui-only/' not in folder_name)):
-                    if os.path.isdir(details["source_dir"] + '/images-ui-only'):
-                        addToWarnings('Image is not stored in either the /images or /images-ui-only directories.',
-                                      folder_name + file, folder_name + file, details, log, 'pre-build', '', '')
-                    else:
-                        addToWarnings('Image is not stored in /images directory.', folder_name + file,
-                                      folder_name + file, details, log, 'pre-build', '', '')
 
-        if (details["reuse_snippets_folder"] in path) and (not file == str(details["reuse_phrases_file"])):
-            conref_files_list.append(folder_name + file)
+        if (details["reuse_snippets_folder"] in path):
+            if (not file == str(details["reuse_phrases_file"])) and details['unprocessed'] is False:
+                conref_files_list.append(folder_name + file)
+            elif details['unprocessed'] is True:
+                all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
+                                           folder_name + file, all_files_dict, location_contents_files,
+                                           location_contents_folders)
 
         # If this is a sitemap file and it does exist in the all files list,
         # then set it as the sitemap file
@@ -107,7 +103,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     import os  # for running OS commands like changing directories or listing files in directory
 
     from mdenricher.sourceFileList.addToList import addToList
-    from mdenricher.errorHandling.errorHandling import addToWarnings
+    # from mdenricher.errorHandling.errorHandling import addToWarnings
     # from mdenricher.errorHandling.errorHandling import addToErrors
     # from mdenricher.setup.exitBuild import exitBuild
 
@@ -119,7 +115,6 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # filesForOtherLocations to collect all file names from all locations
     # for complete validation even when not all locations are built
     filesForOtherLocations: list[str] = []  # type: ignore[misc]
-    allFiles: list[str] = []  # type: ignore[misc]
 
     for (path, dirs, files) in os.walk(details["source_dir"]):
         # Allow the running of the example and docs directories, but not anything else
@@ -140,6 +135,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                  ('md-enricher-for-cicd' not in path) and
                  (details["output_dir"] not in path))):
 
+            allFiles: list[str] = []  # type: ignore[misc]
             folder_name = path.split(details["source_dir"])[1]
             if not folder_name.endswith('/'):
                 folder_name = folder_name + '/'
@@ -150,14 +146,14 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                 if filesToScanFirst in allFiles:
                     allFiles.remove(filesToScanFirst)
                     allFiles.insert(0, filesToScanFirst)
-            for file in sorted(files):
-
+            for file in sorted(allFiles):
                 all_files_dict, conref_files_list, filesForOtherLocations, image_files_list, sitemap_file = allFileCheck(details, path, file, folder_name,
                                                                                                                          all_files_dict,
                                                                                                                          conref_files_list,
                                                                                                                          filesForOtherLocations,
                                                                                                                          image_files_list, sitemap_file)
 
+    # Add things that might have been deleted
     for source_file in source_files_original_list:
         if source_file[1:] not in allFiles:
             if '/' in source_file[1:]:
@@ -175,6 +171,56 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                                                                                                             conref_files_list, filesForOtherLocations,
                                                                                                             image_files_list, sitemap_file))
 
+    # Check TOC files for tagging to apply to the contnet files
+    if ('/toc.yaml' in all_files_dict) and (details['ibm_cloud_docs'] is True) and ('<' in all_files_dict['/toc.yaml']['fileContents']):  # type: ignore
+        log.debug('Found tags in toc.yaml')
+
+        def findTaggedContent(all_files_dict, tag):
+            tocTopicContents = all_files_dict['/toc.yaml']['fileContents']
+            if '</' + tag + '>' in tocTopicContents:
+                taggedContent = []
+                splitOnEnds = tocTopicContents.split('</' + tag + '>')
+                for splitOnEnd in splitOnEnds:
+                    if '<' + tag + '>' in splitOnEnd:
+                        isolatedContent = splitOnEnd.split('<' + tag + '>')[1]
+                        taggedContent.append(isolatedContent)
+                for taggedSection in taggedContent:
+                    taggedLines = taggedSection.split('\n')
+                    for taggedLine in taggedLines:
+                        while taggedLine.endswith(' '):
+                            taggedLine = taggedLine[:-1]
+                        taggedNoSpaces = taggedLine.split(' ')
+                        for taggedLineNoSpaces in taggedNoSpaces:
+                            if taggedLineNoSpaces.endswith(tuple(details['filetypes'])):
+                                try:
+                                    originalFileContents = all_files_dict['/' + taggedLineNoSpaces]['fileContents']
+                                except Exception:
+                                    pass
+                                else:
+                                    if originalFileContents.startswith('<' + tag + '>') and originalFileContents.endswith('</' + tag + '>'):
+                                        log.debug(' /' + taggedLineNoSpaces + ' is already surrounded with ' + tag + ' tags.')
+                                    elif originalFileContents.startswith('<') and originalFileContents.endswith('>'):
+                                        log.debug(' /' + taggedLineNoSpaces +
+                                                  ' is already surrounded with different tags. Adding section tagged with ' +
+                                                  tag + '.')
+                                        removedFirstTag = originalFileContents.split('>', 1)[1]
+                                        removedLastTag = removedFirstTag.rsplit('<', 1)[0]
+                                        all_files_dict['/' + taggedLineNoSpaces]['fileContents'] = (originalFileContents +
+                                                                                                    '<' + tag + '>' + removedLastTag + '</' + tag + '>')
+                                    else:
+                                        all_files_dict['/' + taggedLineNoSpaces]['fileContents'] = '<' + tag + '>' + originalFileContents + '</' + tag + '>'
+                                        log.debug('Adding ' + tag + ' tag around /' + taggedLineNoSpaces + ' file contents.')
+            return (all_files_dict)
+
+        for tag in details['location_tags']:
+            all_files_dict = findTaggedContent(all_files_dict, tag)
+
+        for tagJSON in details['featureFlags']:
+            try:
+                all_files_dict = findTaggedContent(all_files_dict, tagJSON['name'])
+            except Exception:
+                pass
+
     conref_files_list.sort()
     image_files_list.sort()
     # if not all_files_dict == {}:
@@ -183,7 +229,8 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # log.debug('Conref files gathered.')
     # if not image_files_list == []:
     # log.debug('Image files gathered.')
-    # log.info(json.dumps(all_files_dict, indent=4))
+    # import json, sys
+    # log.info(json.dumps(all_files_dict['/va_index.md'], indent=4))
     # log.info('\nIMAGE_FILES_LIST:')
     # log.info(image_files_list)
 

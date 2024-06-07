@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-05-02
+# Last updated: 2024-06-07
 -->
 
 - Getting started
@@ -26,6 +26,6 @@
   - [Feature flag file](ref-feature-flags.md)
   - [mdenricher command options](ref-start.md)
 - Troubleshooting
-  - [Linters](linters.md)
+  - [Checks](linters.md)
   - [Logs](logs.md)
   - [Common errors](errors.md)

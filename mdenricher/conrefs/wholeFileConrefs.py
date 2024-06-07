@@ -27,7 +27,7 @@ def wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicC
                 conrefsUsedList = re.findall(r"\{\[.*?.md\]\}", topicContents)
                 if not conrefsUsedList == []:
                     for conrefUsed in conrefsUsedList:
-                        conrefUsedDoNotTransform = conrefUsed.replace('{[', '{[<!--Do not transform-->')
+                        conrefUsedDoNotTransform = conrefUsed.replace('{[', '{[<!--ME_ignore-->')
                         commentDoNotTransform = comment.replace(conrefUsed, conrefUsedDoNotTransform)
                         topicContents = topicContents.replace(comment, commentDoNotTransform)
 
@@ -35,7 +35,7 @@ def wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicC
             snippetsUsedList = re.findall(r"\{\[.*?.md\]\}", topicContents)
             snippetsUsedList = list(dict.fromkeys(snippetsUsedList))
             for snippet in snippetsUsedList:
-                if 'Do not transform' in snippet:
+                if 'ME_ignore' in snippet:
                     continue
                 # This is getting picked up sometimes: {[SatStorage]} | {[def-storage.md]}
                 if ' ' in snippet:
@@ -67,7 +67,7 @@ def wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicC
         mdConrefErrors = ''
         mdConrefErrorsSlack = ''
         for errantMDConref in errantMDConrefs:
-            if 'Do not transform' in errantMDConref:
+            if 'ME_ignore' in errantMDConref:
                 continue
             if '\n' in errantMDConref:
                 errantMDConrefList = errantMDConref.split('\n')

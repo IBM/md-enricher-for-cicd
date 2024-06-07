@@ -25,7 +25,7 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
             conrefsUsedList = re.findall(r"\{\[.*?(?!\.md)\]\}", comment)
             if not conrefsUsedList == []:
                 for conrefUsed in conrefsUsedList:
-                    conrefUsedDoNotTransform = conrefUsed.replace('{[', '{[<!--Do not transform-->')
+                    conrefUsedDoNotTransform = conrefUsed.replace('{[', '{[<!--ME_ignore-->')
                     commentDoNotTransform = comment.replace(conrefUsed, conrefUsedDoNotTransform)
                     topicContents = topicContents.replace(comment, commentDoNotTransform)
 
@@ -63,7 +63,7 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
 
         # Go through all of the conrefs found. Ignore the .md or core team ones.
         for conrefUsed in conrefsUsedList:
-            if ('.md' not in conrefUsed) and ('<!--Do not transform-->' not in conrefUsed):
+            if ('.md' not in conrefUsed) and ('<!--ME_ignore-->' not in conrefUsed):
                 conrefFileName = conrefUsed.replace('{[', '').replace(']}', '')
                 if (('site.data' not in conrefUsed) and ('FIRST_ANCHOR' not in conrefUsed)):
                     if (conrefUsed.count('{[') > 1) or (conrefUsed.count(']}') > 1) or ((conrefUsed.count('{[') + conrefUsed.count(']}')) != 2):
@@ -95,7 +95,7 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
 
     conrefErrors = list(dict.fromkeys(conrefErrors))
     for conrefError in conrefErrors:
-        if 'Do not transform' in str(conrefError):
+        if 'ME_ignore' in str(conrefError):
             continue
         if ' ' in str(conrefError):
             continue

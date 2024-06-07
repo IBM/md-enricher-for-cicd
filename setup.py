@@ -8,7 +8,7 @@ from setuptools import setup
 if __name__ == "__main__":
     setup(
     name='doctopus-markdown-enricher',
-    version='1.2.0.20240403',
+    version='1.2.2.20240607',
     description='Single source your markdown documentation.',
     author='Kristin Brown',
     author_email='kakronst@us.ibm.com',
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     install_requires=[
         'pytz>=2022.2.1',
         'PyYAML>=6.0',
-        'requests>=2.31.0',
+        'requests>=2.32.0',
         'python-dotenv>=0.20.0',
         'jsonschema',
         'slack_sdk'

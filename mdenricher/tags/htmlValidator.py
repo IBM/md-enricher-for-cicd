@@ -23,38 +23,7 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
                      "strong", "style", "sub", "summary", "sup", "table", "tbody", "td", "textarea", "tfoot", "th",
                      "thead", "title", "tr", "tt", "ul", "var", "varname", "wintitle"]
 
-    validHtmlTagsWithSpaces = []
-    for validHtmlTag in validHtmlTags:
-        validHtmlTagsWithSpaces.append(validHtmlTag + ' ')
-
     def errorFound(folderAndFile, errorTag, topicContentsCheck):
-
-        # Removed the guess about where the instance was in the text since that's handled later to get the line
-        '''
-        instances = topicContentsCheck.count(errorTag)
-
-        topicContentsSplit = topicContentsCheck.splitlines()
-        lineNumber = 0
-        lineNumberList = ''
-        instanceNumber = 0
-        for line in topicContentsSplit:
-            lineNumber = lineNumber + 1
-            if errorTag in line:
-                instanceNumber = instanceNumber + 1
-                partitioned_string = line.partition(errorTag)
-                beforeError = partitioned_string[0]
-                if len(beforeError) > 50:
-                    beforeError = beforeError[-50]
-                afterError = partitioned_string[2]
-                if len(afterError) > 50:
-                    afterError = afterError[50]
-                lineAbbr = '#' + str(instanceNumber) + '. ' + beforeError + errorTag + afterError
-
-                if lineNumberList == '':
-                    lineNumberList = lineAbbr
-                else:
-                    lineNumberList = lineNumberList + ', ' + lineAbbr
-        '''
 
         if not errorTag == '`':
             # Check if the error is a defined tag, if so make it an error, otherwise warning
@@ -70,7 +39,7 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
 
         validInstances = []
 
-        if ((tag in validHtmlTags) or (tag[1:] in validHtmlTags) or tag.startswith(tuple(validHtmlTagsWithSpaces))):
+        if ((tag in validHtmlTags) or (tag[1:] in validHtmlTags) or (tag.replace(' ', '') in validHtmlTags)):
             validInstances.append(tag)
         elif ((tag in TAGS_HIDE_AND_SHOW) or (tag[1:] in TAGS_HIDE_AND_SHOW)):
             errorFound(folderAndFile, '<' + tag + '>', topicContents)
@@ -126,16 +95,22 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
                           folderPath + file_name, details, self.log, self.location_name, '', '')
         else:
             # 2. Check for correct code ticks, because otherwise the results are inccurate.
-
-            # Get a list of the codeblocks
-            mdCodeblockList = re.findall('```(.*?)```', topicContents, flags=re.DOTALL)
-
-            # Get a list of code phrases from a version of the topicContents that DO NOT have the code blocks in them.
-            # There are instances in satellite where there are backticks in code blocks.
-            # This makes sure that that doesn't mess up our list of code phrases.
             topicContentsCodeCheck = topicContents
-            for codeListItem in mdCodeblockList:
-                topicContentsCodeCheck = topicContentsCodeCheck.replace('```' + codeListItem + '```', '')
+
+            def checkCodeblocks(codeblockTag, topicContentsCodeCheck):
+                # Get a list of the codeblocks
+                mdCodeblockListDef = re.findall(codeblockTag + '(.*?)' + codeblockTag, topicContents, flags=re.DOTALL)
+
+                # Get a list of code phrases from a version of the topicContents that DO NOT have the code blocks in them.
+                # There are instances in satellite where there are backticks in code blocks.
+                # This makes sure that that doesn't mess up our list of code phrases.
+
+                for codeListItem in mdCodeblockListDef:
+                    topicContentsCodeCheck = topicContentsCodeCheck.replace(codeblockTag + codeListItem + codeblockTag, '')
+                return (mdCodeblockListDef, topicContentsCodeCheck)
+            mdCodeblock4, topicContentsCodeCheck = checkCodeblocks('````', topicContentsCodeCheck)
+            mdCodeblock3, topicContentsCodeCheck = checkCodeblocks('```', topicContentsCodeCheck)
+            mdCodeblockList = mdCodeblock4 + mdCodeblock3
 
             # Check for uneven number of single ticks
             instancesSingle = topicContentsCodeCheck.count('`')
@@ -212,3 +187,7 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
                         # except Exception:
                         # self.log.debug('Exception')
                         check(topicContents, folderPath, file_name, htmlCodeList, potentialTag)
+
+            if not file_name == 'landing.json':
+                from mdenricher.images.imagesUsed import imagesUsed
+                imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContentsCodeCheck)

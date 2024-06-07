@@ -2,8 +2,41 @@
 
 Notable changes to this project are documented in this file.
 
-## Version 1.2.1, released 01 May 2024
+## Version 1.2.2, released 07 June 2024
+<dl>
+<dt>New and updated <code>mdenricher</code> command options</dt>
+<dd>
+<ul><li>Added <code>--slack_post_start</code>.</li>
+<li>Added <code>--unprocessed</code> to allow files to be pushed to a downstream location without processing any content.</li>
+<li>Enabled values specified with the <code>--slack_webhook</code> and <code>--slack_channel</code> options to be comma-separated lists.</li><ul>
+</dd>
+</dl>
 
+<dl>
+<dt>Content processing improvements</dt>
+<dd>
+<ul><li>Stopped pushing image source files downstream automatically.</li>
+<li>For code block validation, added handling for example codeblocks that use four backticks.</li>
+<li>Added <code>ME_ignore</code> to prevent transformation of specific comments and reuse snippets.</li>
+<li>If errors exist, such as a mismatched tag, changes are not pushed downstream.</li>
+<li>Speed improvements.</li><ul>
+</dd>
+</dl>
+
+<dl>
+<dt>Bug fixes</dt>
+<dd>
+<ul><li>Commits where summaries include quotation marks do not get pushed downstream.</li>
+<li>Comments with <code>#</code> in them removed even when comments are enabled and sitemaps are not enabled.</li>
+<li>Images copied to wrong downstream folder.</li>
+<li>Changes to feature flag locations don't affect the files that use those tags.</li>
+<li>Sitemap exception.</li><ul>
+</dd>
+</dl>
+
+
+## Version 1.2.1, released 01 May 2024
+<dl>
 <dt>Added <code>--gh_username</code> and <code>--gh_token</code> options</dt>
 <dd>As an alternative to setting the <code>GH_USERNAME</code> and <code>GH_USERNAME</code> environment variables, you can include authentication by using the <code>--gh_username</code> and <code>--gh_token</code> options with the <code>mdenricher</code> command.</dd>
 
@@ -21,7 +54,7 @@ Notable changes to this project are documented in this file.
     <dd>Last updated and copyright date warnings issued when they don't apply.</dd>
     <dd>Image warning for images that exist.</ldd>
     <dd>Github usernames with <code>@</code> in them fail to authenticate during cloning.</dd>
-    </dd>
+    </dd></dl>
 
 ## Version 1.2.0, released 03 April 2024
 <dl>

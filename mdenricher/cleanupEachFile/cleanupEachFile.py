@@ -10,16 +10,14 @@ def cleanupEachFile(self, details, imageProcessing):
     import json
     import os  # for running OS commands like changing directories or listing files in directory
     import re
+    import shutil
+    import time
 
     from mdenricher.errorHandling.errorHandling import addToWarnings
     from mdenricher.errorHandling.errorHandling import addToErrors
     # from mdenricher.setup.exitBuild import exitBuild
 
-    def fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath):
-
-        # Open the source file for reading and get its contents
-        with open(details["source_dir"] + folderAndFile, 'r', encoding="utf8", errors="ignore") as fileName_open:
-            topicContents = fileName_open.read()
+    def fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath, topicContents):
 
         # Get first topic ID
         try:
@@ -29,6 +27,9 @@ def cleanupEachFile(self, details, imageProcessing):
         except Exception:
             # self.log.debug('No anchors in the page.')
             firstAnchor = '{[FIRST_ANCHOR]}'
+
+        if details['debug'] is True:
+            startTime = time.time()
 
         # Replace all of the conrefs in this file
         if os.path.isdir(details["source_dir"] + '/' + details["reuse_snippets_folder"] + '/'):
@@ -47,25 +48,67 @@ def cleanupEachFile(self, details, imageProcessing):
                 else:
                     self.log.debug('No inline snippets to handle.')
 
+        if details['debug'] is True:
+            endTime = time.time()
+            totalTime = endTime - startTime
+            reuseTime = str(round(totalTime, 2))
+
+        if details['debug'] is True:
+            startTime = time.time()
+
         if (('{{' in topicContents) and (details["ibm_cloud_docs_keyref_check"] is True)):
             from mdenricher.errorHandling.keyrefCheck import keyrefCheck
             keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicContents)
 
+        if details['debug'] is True:
+            endTime = time.time()
+            totalTime = endTime - startTime
+            keyrefCheckTime = str(round(totalTime, 2))
+
+        if details['debug'] is True:
+            startTime = time.time()
+
         from mdenricher.tags.tagRemoval import tagRemoval
         topicContents = tagRemoval(self, details, folderAndFile, topicContents)
 
+        if details['debug'] is True:
+            endTime = time.time()
+            totalTime = endTime - startTime
+            tagRemovalTime = str(round(totalTime, 2))
+
+        if details['debug'] is True:
+            startTime = time.time()
         if '```\n    ```' in topicContents:
             # Tested 1/6/21
-            addToErrors('Empty codeblock. This issue will fail the markdown processor and prevent this file and any ' +
-                        'file after it from being handled by the markdown processor. Verify that the removal of tags in ' +
-                        'the codeblock aren\'t leaving behind the empty codeblock.', folderAndFile, folderPath + file_name, details, self.log,
-                        self.location_name, '```\n    ```', topicContents)
+            addToWarnings('Empty codeblock. This issue will fail the markdown processor and prevent this file and any ' +
+                          'file after it from being handled by the markdown processor. Verify that the removal of tags in ' +
+                          'the codeblock aren\'t leaving behind the empty codeblock.', folderAndFile, folderPath + file_name, details, self.log,
+                          self.location_name, '```\n    ```', topicContents)
 
-        from mdenricher.images.imagesCheckRelativePaths import imagesCheckRelativePaths
-        topicContents = imagesCheckRelativePaths(self, details, file_name, folderAndFile, folderPath, topicContents)
+        if details['debug'] is True:
+            endTime = time.time()
+            totalTime = endTime - startTime
+            codeblockTime = str(round(totalTime, 2))
 
+        if details['debug'] is True:
+            startTime = time.time()
+        if os.path.isdir(details["source_dir"] + '/' + details["reuse_snippets_folder"]):
+            from mdenricher.images.imagesCheckRelativePaths import imagesCheckRelativePaths
+            topicContents = imagesCheckRelativePaths(self, details, file_name, folderAndFile, folderPath, topicContents)
+        if details['debug'] is True:
+            endTime = time.time()
+            totalTime = endTime - startTime
+            imagesCheckRelativePathsTime = str(round(totalTime, 2))
+
+        if details['debug'] is True:
+            startTime = time.time()
         from mdenricher.cleanupEachFile.metadata import metadata
         topicContents = metadata(self, details, file_name, firstAnchor, folderAndFile, folderPath, topicContents)
+
+        if details['debug'] is True:
+            endTime = time.time()
+            totalTime = endTime - startTime
+            metadataTime = str(round(totalTime, 2))
 
         if file_name == 'toc.yaml':
             topicContentsList = topicContents.split('\n')
@@ -74,8 +117,15 @@ def cleanupEachFile(self, details, imageProcessing):
                     topicContentsList.remove(line)
             topicContents = "\n".join(topicContentsList)
 
+        if details['debug'] is True:
+            startTime = time.time()
         from mdenricher.cleanupEachFile.writeResult import writeResult
         writeResult(self, details, file_name, folderAndFile, folderPath, topicContents, False)
+
+        if details['debug'] is True:
+            endTime = time.time()
+            totalTime = endTime - startTime
+            writeTime = str(round(totalTime, 2))
 
         if folderAndFile.endswith('.json'):
             from mdenricher.errorHandling.jsonCheck import jsonCheck
@@ -85,13 +135,26 @@ def cleanupEachFile(self, details, imageProcessing):
             from mdenricher.errorHandling.ymlCheck import ymlCheck
             ymlCheck(details, self.log, 'True', [folderPath + file_name], [folderAndFile], self.location_dir, self.location_name)
 
+        if details['debug'] is True:
+            startTime = time.time()
         if '.json' not in folderAndFile:
             # Tag validation happens no matter what the value is for the --validation flag because tag errors impact output
             from mdenricher.tags.htmlValidator import htmlValidator
             htmlValidator(self, details, file_name, folderAndFile, folderPath, topicContents)
+        if details['debug'] is True:
+            endTime = time.time()
+            totalTime = endTime - startTime
+            htmlValidatorTime = str(round(totalTime, 2))
 
-        from mdenricher.images.imagesUsed import imagesUsed
-        imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContents)
+        if details['debug'] is True:
+            self.log.debug('reuseTime: ' + reuseTime)
+            self.log.debug('keyrefCheckTime: ' + keyrefCheckTime)
+            self.log.debug('tagRemovalTime: ' + tagRemovalTime)
+            self.log.debug('codeblockTime: ' + codeblockTime)
+            self.log.debug('imagesCheckRelativePathsTime: ' + imagesCheckRelativePathsTime)
+            self.log.debug('metadataTime: ' + metadataTime)
+            self.log.debug('writeTime: ' + writeTime)
+            self.log.debug('htmlValidatorTime: ' + htmlValidatorTime)
 
     if self.source_files == {}:
         self.log.debug('No files to process for ' + self.location_name + '.')
@@ -113,17 +176,44 @@ def cleanupEachFile(self, details, imageProcessing):
 
         for source_file, source_file_info in source_files.items():
 
+            if details['debug'] is True:
+                startTimeFile = time.time()
+
             folderAndFile = source_files[source_file]['folderAndFile']
             file_name = source_files[source_file]['file_name']
             folderPath = source_files[source_file]['folderPath']
             fileStatus = source_files[source_file]['fileStatus']
             fileNamePrevious = source_files[source_file]['fileNamePrevious']
             try:
-                modifiedDate = source_files[source_file]['modified_date']
+                topicContents = self.all_files_dict[source_file]['fileContents']
             except Exception:
-                modifiedDate = 'unknown'
+                try:
+                    topicContents = source_files[source_file]['fileContents']
+                except Exception:
+                    topicContents = ''
+                    self.log.debug('No topic contents.')
 
-            if file_name.endswith(tuple(details["img_output_filetypes"])) and imageProcessing is True:
+            if (details['unprocessed'] is True) and (not file_name.endswith(tuple(details["img_filetypes"]))) and (not folderAndFile == '/feature-flags.json'):
+
+                if not os.path.isdir(self.location_dir + folderPath):
+                    os.makedirs(self.location_dir + folderPath)
+
+                self.log.debug('\n\n')
+                self.log.debug('----------------------------------')
+                self.log.debug(folderAndFile)
+                self.log.debug('(' + self.location_name + ')')
+                self.log.debug('----------------------------------')
+                self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
+                               ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious + ')')
+                if os.path.isfile(self.location_dir + folderPath + file_name):
+                    os.remove(self.location_dir + folderPath + file_name)
+                if os.path.isfile(details['source_dir'] + folderAndFile):
+                    shutil.copyfile(details['source_dir'] + folderAndFile, self.location_dir + folderPath + file_name)
+                    self.log.debug('Copied.')
+                else:
+                    self.log.debug('Upstream version was deleted, so downstream version was deleted.')
+
+            elif file_name.endswith(tuple(details["img_output_filetypes"])) and imageProcessing is True:
                 self.log.debug('\n\n')
                 self.log.debug('----------------------------------')
                 self.log.debug(folderAndFile)
@@ -141,7 +231,7 @@ def cleanupEachFile(self, details, imageProcessing):
                             if file_name in topicContentsCheckImages:
                                 self.log.debug('Confirmed ' + file_name + ' used in ' + entry + '.')
                                 from mdenricher.images.imagesUsed import copyImage
-                                copyImage(self, details, file_name, folderAndFile, folderPath, details["source_dir"])
+                                copyImage(self, details, file_name, folderAndFile, folderPath)
                                 imageFound = True
                                 break
                 if imageFound is False:
@@ -154,7 +244,7 @@ def cleanupEachFile(self, details, imageProcessing):
                 self.log.debug('(' + self.location_name + ')')
                 self.log.debug('----------------------------------')
                 self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
-                               ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious + ',modified_date=' + modifiedDate + ')')
+                               ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious + ')')
 
                 if not details["reuse_snippets_folder"] in folderAndFile:
 
@@ -215,7 +305,7 @@ def cleanupEachFile(self, details, imageProcessing):
                         # For Travis, only copy over the file that's being worked with
                         if ((os.path.isfile(details["source_dir"] + folderAndFile)) and
                                 (folderAndFile in self.all_files_dict)):
-                            fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath)
+                            fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath, topicContents)
                         elif folderAndFile in self.all_files_dict:
                             # --rebuild_files list might have a typo or something
                             addToWarnings('Does not exist in the source directory for ' + self.location_name + ': ' + folderAndFile,
@@ -224,3 +314,8 @@ def cleanupEachFile(self, details, imageProcessing):
                             self.log.debug('file_name = ' + file_name)
                             self.log.debug('folderPath = ' + folderPath)
                             self.log.debug('fileNamePrevious = ' + fileNamePrevious)
+            if details['debug'] is True:
+                endTime = time.time()
+                totalTime = endTime - startTimeFile
+                wholeFileTime = str(round(totalTime, 2))
+                self.log.info(source_file + ': ' + wholeFileTime)

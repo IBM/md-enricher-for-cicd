@@ -8,7 +8,7 @@ def pushUpdatedFiles(self, details, pushQueue):
     # Update all of the files in the downstream repos with the changes this build has created
 
     import base64  # For encoding & decoding API commits
-    from datetime import datetime
+    # from datetime import datetime
     import json  # for sending data with and parsing data from requests
     import os  # for running OS commands like changing directories or listing files in directory
     import re
@@ -24,16 +24,14 @@ def pushUpdatedFiles(self, details, pushQueue):
     from mdenricher.errorHandling.pushErrors import pushErrors
     from mdenricher.setup.exitBuild import exitBuild
 
-    if self.location_ibm_cloud_docs is True:
-        while (self.location_github_org + '/' + self.location_github_repo) in pushQueue:
-            time.sleep(1)
+    startTime = time.time()
+    if self.location_ibm_cloud_docs is True and 'draft' in self.location_name:
+        time.sleep(10)
 
-        if (self.location_github_org + '/' + self.location_github_repo) not in pushQueue:
-            pushQueue.append(self.location_github_org + '/' + self.location_github_repo)
-            now = datetime.now()
-            current_time = now.strftime("%H:%M:%S")
-            self.log.debug('Adding ' + self.location_name + ' location to push queue: ' + current_time)
-            time.sleep(6)
+    endTime = time.time()
+    totalTime = endTime - startTime
+    sectionTime = str(round(totalTime, 2))
+    self.log.debug(self.location_name + ' queue delay: ' + sectionTime)
 
     self.pushSuccessful = False
 
@@ -71,6 +69,8 @@ def pushUpdatedFiles(self, details, pushQueue):
             # If already there, don't do anything else
             if ('origin/' + str(self.location_github_branch_push)) in branches:
                 self.log.debug('Nothing to commit to ' + self.location_name + '.')
+            elif os.path.isfile(details["error_file"]):
+                self.log.error('Changes are not being pushed for ' + self.location_name + ' because content errors exist.')
             else:
                 # Otherwise, push the new branch
                 self.log.debug('Pushing new branch ' + self.location_github_branch_push + ' to repo.')
@@ -86,11 +86,13 @@ def pushUpdatedFiles(self, details, pushQueue):
                     self.log.debug(pushBranchOutput)
 
     else:
+
         try:
             self.log.debug('Adding all files to be committed.')
             subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' add --all', shell=True, stdout=PIPE, stderr=STDOUT)
             self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
         except Exception as gitException:
+            startTime = time.time()
             self.log.debug('WARNING: Failed to add, commit, and push all files at the same time. Resulted in:')
             self.log.debug(gitException)
             self.log.debug('Trying to add individual files via the API instead.')
@@ -161,9 +163,14 @@ def pushUpdatedFiles(self, details, pushQueue):
                 else:
                     addToWarnings('Could not add ' + folderAndFile + ' to ' + self.location_name + ' via the API.',
                                   folderAndFile, folderPath + file_name, details, self.log, self.location_name, '', '')
+            endTime = time.time()
+            totalTime = endTime - startTime
+            sectionTime = str(round(totalTime, 2))
+            self.log.info(self.location_name + ' add all exception: ' + sectionTime)
 
         # CLI commands - status check, merge, push.
         else:
+            startTime = time.time()
             LOCATION_COMMIT_SUMMARY = locationCommitSummary(self, details)
             status_bytes = subprocess.check_output('git -C ' + self.location_dir + ' status --short', shell=True)
             status = status_bytes.decode("utf-8")
@@ -183,72 +190,85 @@ def pushUpdatedFiles(self, details, pushQueue):
                 except Exception:
                     self.log.debug('Nothing to commit.')
                 else:
-                    try:
-                        self.log.debug('Merging the commit.')
-                        subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' merge --quiet', shell=True)
-                        self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
-                    except Exception:
-                        subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' merge ' + str(self.location_github_branch_push) +
-                                                            ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
-                        self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
-                        self.log.debug('Merging the commit with branch: ' + str(self.location_github_branch_push) + '.')
-
-                    try:
-                        self.log.debug('Pushing changed files.')
-                        subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' push --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
-                        self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
-                    except Exception:
-                        try:
-                            subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' push --set-upstream origin ' +
-                                                                str(self.location_github_branch_push) +
-                                                                ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
-                            self.log.debug('Setting upstream origin ' + str(self.location_github_branch_push) + '.')
-                            self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
-                        except Exception as e:
-                            pushErrors(details, e, self.log)
-                        else:
-                            self.pushSuccessful = True
+                    if self.exitCode > 0:
+                        self.log.debug('Commit failed. Changes could not be pushed.')
+                    elif os.path.isfile(details["error_file"]):
+                        self.log.error('Changes are not being pushed for ' + self.location_name + ' because content errors exist.')
                     else:
                         try:
-                            if self.exitCode > 0:
-                                subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' push origin ' + str(self.location_github_branch_push) +
-                                                                    '  --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
-                                self.log.debug('Pushing with upstream origin ' + str(self.location_github_branch_push) + '.')
-                                self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
-                        except Exception as e:
-                            self.log.error(e)
+                            self.log.debug('Merging the commit.')
+                            subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' merge --quiet', shell=True)
+                            self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
+                        except Exception:
+                            subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' merge ' + str(self.location_github_branch_push) +
+                                                                ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+                            self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
+                            self.log.debug('Merging the commit with branch: ' + str(self.location_github_branch_push) + '.')
 
+                        try:
+                            self.log.debug('Pushing changed files.')
+                            subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' push --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+                            self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
+                        except Exception:
                             try:
-                                subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' push origin ' + str(self.location_github_branch_push) +
-                                                                    '  --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
-                                self.log.debug('Try 2: Pushing with upstream origin ' + str(self.location_github_branch_push) + '.')
+                                subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' push --set-upstream origin ' +
+                                                                    str(self.location_github_branch_push) +
+                                                                    ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+                                self.log.debug('Setting upstream origin ' + str(self.location_github_branch_push) + '.')
                                 self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
-                            except Exception:
-                                self.log.debug('Push failed. Waiting 5 seconds and trying again.')
-                                time.sleep(5)
+                            except Exception as e:
+                                pushErrors(details, e, self.log)
+                            else:
+                                self.pushSuccessful = True
+                        else:
+                            try:
+                                if self.exitCode > 0:
+                                    subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' push origin ' +
+                                                                        str(self.location_github_branch_push) +
+                                                                        '  --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+                                    self.log.debug('Pushing with upstream origin ' + str(self.location_github_branch_push) + '.')
+                                    self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
+                            except Exception as e:
+                                self.log.error(e)
+
                                 try:
                                     subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' push origin ' +
                                                                         str(self.location_github_branch_push) +
-                                                                        ' --quiet', shell=True, stdout=PIPE,
-                                                                        stderr=STDOUT)
-                                    self.log.debug('Try 3: Pushing with upstream origin ' + str(self.location_github_branch_push) + '.')
+                                                                        '  --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+                                    self.log.debug('Try 2: Pushing with upstream origin ' + str(self.location_github_branch_push) + '.')
                                     self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
                                 except Exception:
-                                    self.log.debug('Push failed.')
+                                    self.log.debug('Push failed. Waiting 5 seconds and trying again.')
+                                    time.sleep(5)
+                                    try:
+                                        subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' push origin ' +
+                                                                            str(self.location_github_branch_push) +
+                                                                            ' --quiet', shell=True, stdout=PIPE,
+                                                                            stderr=STDOUT)
+                                        self.log.debug('Try 3: Pushing with upstream origin ' + str(self.location_github_branch_push) + '.')
+                                        self.exitCode = parseSubprocessOutput(subprocessOutput, self.log)
+                                    except Exception:
+                                        self.log.debug('Push failed.')
+                                    else:
+                                        if self.exitCode == 0:
+                                            self.pushSuccessful = True
                                 else:
                                     if self.exitCode == 0:
                                         self.pushSuccessful = True
                             else:
                                 if self.exitCode == 0:
                                     self.pushSuccessful = True
-                        else:
-                            if self.exitCode == 0:
-                                self.pushSuccessful = True
+
+            endTime = time.time()
+            totalTime = endTime - startTime
+            sectionTime = str(round(totalTime, 2))
+            self.log.debug(self.location_name + ' push: ' + sectionTime)
 
         # Was something commited to Next Prod Push? If a PR doesn't already exist that's created by the user, create the PR for prod
 
         if self.pushSuccessful is True:
             self.log.debug('Push successful.')
+            startTime = time.time()
 
             if (self.location_output_action == 'create-pr') and (not self.location_github_branch_push == self.location_github_branch):
                 # List PRs
@@ -275,7 +295,7 @@ def pushUpdatedFiles(self, details, pushQueue):
                         try:
                             changedFile = changedFile.rsplit(' ', 1)[1]
                             self.log.debug('Changed file: ' + changedFile)
-                            self.log.debug(self.source_files_location_list)
+                            # self.log.debug(self.source_files_location_list)
                             for file_included in self.source_files:
                                 if self.source_files[file_included]['file_name'] == changedFile:
                                     with open(self.location_dir + self.source_files[file_included]['folderPath'] +
@@ -367,12 +387,10 @@ def pushUpdatedFiles(self, details, pushQueue):
                                                        auth=(details["username"], details["token"]), data=json.dumps(g))
                             self.log.debug('Updating pull request #' + str(PRNumber) + ': ' + PRTitle + ', head: ' + PRHead + ', base: ' + PRBase + '.')
             self.log.debug('File update complete.')
+            endTime = time.time()
+            totalTime = endTime - startTime
+            sectionTime = str(round(totalTime, 2))
+            self.log.debug(self.location_name + ' pr: ' + sectionTime)
         else:
             addToErrors('The changes could not be pushed to the ' + str(self.location_github_branch_push) + ' branch of the repo.',
                         'push', '', details, self.log, 'post-build', '', '')
-
-    if self.location_ibm_cloud_docs is True:
-        pushQueue.remove(self.location_github_org + '/' + self.location_github_repo)
-        now = datetime.now()
-        current_time = now.strftime("%H:%M:%S")
-        self.log.debug('Removing ' + self.location_name + ' from push queue: ' + current_time)

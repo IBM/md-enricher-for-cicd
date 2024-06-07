@@ -33,6 +33,7 @@ from mdenricher.setup.locations import locations
 from mdenricher.sitemap.sitemapOLD import sitemapOLD
 from mdenricher.sitemap.sitemapYML import sitemapYML
 from mdenricher.sitemap.sitemapSUMMARY import sitemapSUMMARY
+from mdenricher.setup.postToSlack import postToSlack
 from mdenricher.sourceFileList.allFilesGet import allFilesGet
 from mdenricher.sourceFileList.locationContentList import locationContentList
 from mdenricher.sourceFileList.sourceFilesForThisBranch import sourceFilesForThisBranch
@@ -42,6 +43,7 @@ from mdenricher.tags.tagListCompile import tagListCompile
 
 def main(
          builder,
+         debug,
          gh_username,
          gh_token,
          ibm_cloud_docs,
@@ -55,12 +57,14 @@ def main(
          rebuild_files,
          slack_bot_token,
          slack_channel,
+         slack_post_start,
          slack_post_success,
          slack_show_author,
          slack_user_mapping,
          slack_webhook,
          source_dir,
          test_only,
+         unprocessed,
          validation):
 
     """ Markdown enricher. """
@@ -113,10 +117,10 @@ def main(
             log = loggingConfig(details, details["tool_name"] + '_' + self.location_name)
             self.log = log
 
-            self.log.info('Started: ' + self.location_name)
+            import time
+            startTime = time.time()
 
-            subprocessOutput = subprocess.Popen('echo Test', shell=True, stdout=PIPE, stderr=STDOUT)
-            exitCode = parseSubprocessOutput(subprocessOutput, log)
+            self.log.info('Started: ' + self.location_name)
 
             self.log.debug('\n\n\n')
             self.log.debug('---------------------------------------------------------')
@@ -153,16 +157,25 @@ def main(
             filesForOtherLocations = []  # type: ignore
 
             if self.location_build == 'off':
-                self.log.info('Skipping: ' + self.location_name + '.')
+                self.log.info('Skipping: ' + self.location_name)
                 self.log.debug('location_build is set to off in the locations file.')
                 self.conref_files_list = conref_files_list
                 self.filesForOtherLocations = filesForOtherLocations
             else:
 
+                if details['debug'] is True:
+                    startSectionTime = time.time()
                 (location_contents_files_keep, location_contents_files_remove,
                  location_contents_folders, location_contents_folders_keep, location_contents_folders_remove,
                  location_contents_folders_remove_and_files) = locationContentList(self)
+                if details['debug'] is True:
+                    endTime = time.time()
+                    totalTime = endTime - startSectionTime
+                    sectionTime = str(round(totalTime, 2))
+                    self.log.info(self.location_name + ' locationContentList: ' + sectionTime)
 
+                if details['debug'] is True:
+                    startSectionTime = time.time()
                 self.location_contents_files_keep = location_contents_files_keep
                 self.location_contents_files_remove = location_contents_files_remove
                 self.location_contents_folders_keep = location_contents_folders_keep
@@ -182,6 +195,12 @@ def main(
                 sitemap_file = all_files_get_result[3]
                 filesForOtherLocations = all_files_get_result[4]
                 allSourceFiles.update(all_files_dict)
+
+                if details['debug'] is True:
+                    endTime = time.time()
+                    totalTime = endTime - startSectionTime
+                    sectionTime = str(round(totalTime, 2))
+                    self.log.info(self.location_name + ' allFilesGet: ' + sectionTime)
 
                 self.all_files_dict = all_files_dict
                 self.conref_files_list = conref_files_list
@@ -217,6 +236,8 @@ def main(
                 self.location_github_org = location_github_org
                 self.location_github_repo = location_github_repo
 
+                if details['debug'] is True:
+                    startSectionTime = time.time()
                 if self.source_files_original_list == {}:
                     source_files_location_list = self.all_files_dict
                 else:
@@ -246,6 +267,10 @@ def main(
                             fileStatus = self.source_files_original_list[source_files_original]["fileStatus"]
                             filePatch = self.source_files_original_list[source_files_original]["filePatch"]
                             fileNamePrevious = self.source_files_original_list[source_files_original]["fileNamePrevious"]
+                            try:
+                                fileContents = self.all_files_dict[source_files_original]['fileContents']
+                            except Exception:
+                                fileContents = ''
                         except Exception as e:
                             # We don't want things like .travis.yml added to the location list
                             self.log.debug('Not handling: ' + source_files_original)
@@ -271,11 +296,18 @@ def main(
                                 source_files_location_list[source_files_original]['fileStatus'] = fileStatus
                                 source_files_location_list[source_files_original]['filePatch'] = filePatch
                                 source_files_location_list[source_files_original]['fileNamePrevious'] = fileNamePrevious
+                                source_files_location_list[source_files_original]['fileContents'] = fileContents
                             except Exception as e:
                                 self.log.debug('Could not add details to location list: ' + source_files_original)
                                 self.log.debug(e)
 
                 self.source_files_location_list = source_files_location_list
+
+                if details['debug'] is True:
+                    endTime = time.time()
+                    totalTime = endTime - startSectionTime
+                    sectionTime = str(round(totalTime, 2))
+                    self.log.info(self.location_name + ' source_files_location_list: ' + sectionTime)
 
                 self.log.debug('Location details:')
                 self.log.debug('location_dir: %s', str(self.location_dir))
@@ -305,131 +337,205 @@ def main(
                     self.log.info('Not running on %s.', self.location_name)
                 else:
 
+                    if details['debug'] is True:
+                        startTimeSection = time.time()
+
                     try:
                         self.location_github_branch_push = clone(self, details)
                     except Exception as e:
                         self.log.debug(e)
 
+                    if details['debug'] is True:
+                        endTime = time.time()
+                        totalTime = endTime - startTimeSection
+                        sectionTime = str(round(totalTime, 2))
+                        self.log.info(self.location_name + ' clone: ' + sectionTime)
+
                     # For local builds, copy over everything to the working directory
                     if not os.path.isdir(self.location_dir):
                         os.mkdir(self.location_dir)
 
-                    # If there is a cloned repo, do stuff with it.
-                    # There might not be for the CLI and SUB_REPO.
-                    if os.path.isdir(self.location_dir):
+                    if details['unprocessed'] is False:
 
-                        os.chdir(self.location_dir)
+                        # If there is a cloned repo, do stuff with it.
+                        # There might not be for the CLI and SUB_REPO.
+                        if os.path.isdir(self.location_dir):
 
-                        # Create a list of tags with show/hide values for this branch
-                        tags_hide, tags_show = tagListCompile(self, details)
+                            os.chdir(self.location_dir)
 
-                        self.tags_hide = tags_hide
-                        self.tags_show = tags_show
+                            if details['debug'] is True:
+                                startTimeSection = time.time()
+                            # Create a list of tags with show/hide values for this branch
+                            tags_hide, tags_show = tagListCompile(self, details)
 
-                        # Revise the source list based on the branch.
-                        # For example, the original commit might only contain a conref file.
-                        # We need to get a list of all of the files that use that conref to work with.
+                            if details['debug'] is True:
+                                endTime = time.time()
+                                totalTime = endTime - startTimeSection
+                                sectionTime = str(round(totalTime, 2))
+                                self.log.info(self.location_name + ' tagListCompile: ' + sectionTime)
+
+                            self.tags_hide = tags_hide
+                            self.tags_show = tags_show
+
+                            if details['debug'] is True:
+                                startTimeSection = time.time()
+
+                            # Revise the source list based on the branch.
+                            # For example, the original commit might only contain a conref file.
+                            # We need to get a list of all of the files that use that conref to work with.
+                            self.source_files = sourceFilesForThisBranch(self, details)
+
+                            if details['debug'] is True:
+                                endTime = time.time()
+                                totalTime = endTime - startTimeSection
+                                sectionTime = str(round(totalTime, 2))
+                                self.log.info(self.location_name + ' sourceFilesForThisBranch: ' + sectionTime)
+
+                            if self.source_files == {}:
+                                self.log.debug('No changes to process for this location.')
+                            else:
+                                self.log.debug('\n')
+                                self.log.debug('Handling files for ' + self.location_name + '.')
+
+                                # For the sitemap, grab the version before it was replaced with the empty stub
+                                if ((self.sitemap_file in self.source_files) and
+                                        (not details["ibm_cloud_docs_sitemap_depth"] == 'off') and
+                                        (os.path.isfile(self.location_dir + '/sitemap.md'))):
+                                    with open(self.location_dir + '/sitemap.md', 'r', encoding="utf8", errors="ignore") as fileName_read:
+                                        topicContentsDownstream = fileName_read.read()
+                                    self.source_files[self.sitemap_file]['downstream_sitemap_contents'] = topicContentsDownstream
+                    else:
                         self.source_files = sourceFilesForThisBranch(self, details)
 
-                        if self.source_files == {}:
-                            self.log.debug('No changes to process for this location.')
-                        else:
-                            self.log.debug('\n')
-                            self.log.debug('Handling files for ' + self.location_name + '.')
+                    if details['debug'] is True:
+                        startTimeSection = time.time()
 
-                            if ((self.sitemap_file in self.source_files) and
-                                    (not details["ibm_cloud_docs_sitemap_depth"] == 'off') and
-                                    (os.path.isfile(self.location_dir + '/sitemap.md'))):
-                                with open(self.location_dir + '/sitemap.md', 'r', encoding="utf8", errors="ignore") as fileName_read:
-                                    topicContentsDownstream = fileName_read.read()
-                                self.source_files[self.sitemap_file]['downstream_sitemap_contents'] = topicContentsDownstream
+                    # Actually do the conref and tag replacements in the new source file list
+                    cleanupEachFile(self, details, False)
+                    if details['debug'] is True:
+                        endTime = time.time()
+                        totalTime = endTime - startTimeSection
+                        sectionTime = str(round(totalTime, 2))
+                        self.log.info(self.location_name + ' source cleanup: ' + sectionTime)
 
-                            # Actually do the conref and tag replacements in the new source file list
-                            cleanupEachFile(self, details, False)
+                    if details['debug'] is True:
+                        startTimeSection = time.time()
 
-                            # After all of the content files are updated, update the images
-                            cleanupEachFile(self, details, True)
+                    # After all of the content files are updated, update the images
+                    cleanupEachFile(self, details, True)
 
-                            # If images are not all stored in the /images directory, issue a warning
-                            if ((not os.path.isdir(self.location_dir + '/images')) and
-                                    (not self.image_files_list == []) and self.location_ibm_cloud_docs is True):
-                                addToWarnings('Images were found in the repo, but they were not stored in a single ' +
-                                              '/images/ directory in the root of the repo.', '/images/', '', details, self.log,
-                                              self.location_name, '', '')
+                    if details['debug'] is True:
+                        endTime = time.time()
+                        totalTime = endTime - startTimeSection
+                        sectionTime = str(round(totalTime, 2))
+                        self.log.info(self.location_name + ' images cleanup: ' + sectionTime)
 
-                            # Check for these directories and delete them to avoid accidental pushes
-                            directories_to_delete = ['/' + details["reuse_snippets_folder"], '/source']
-                            for folder in self.location_contents_folders_remove:
-                                directories_to_delete.append(folder)
+                    if details['debug'] is True:
+                        startTimeSection = time.time()
 
-                            # Should these be within the location_dir or the output_dir
-                            for directory_to_delete in directories_to_delete:
-                                if not directory_to_delete.startswith('/') and not directory_to_delete.startswith('includes'):
-                                    directory_to_delete = '/' + directory_to_delete
-                                if os.path.isdir(self.location_dir + directory_to_delete):
-                                    self.log.debug('Deleted: ' + self.location_dir + directory_to_delete)
-                                    shutil.rmtree(self.location_dir + directory_to_delete)
+                    # If images are not all stored in the /images directory, issue a warning
+                    if ((not os.path.isdir(self.location_dir + '/images')) and
+                            (not self.image_files_list == []) and self.location_ibm_cloud_docs is True):
+                        addToWarnings('Images were found in the repo, but they were not stored in a single ' +
+                                      '/images/ directory in the root of the repo.', '/images/', '', details, self.log,
+                                      self.location_name, '', '')
 
-                            # Don't remove the .travis.yml in case there's another one not created by us in the repo
-                            if os.path.isfile(self.location_dir + details["featureFlagFile"]):
-                                os.remove(self.location_dir + details["featureFlagFile"])
-                                self.log.debug('Removing: ' + self.location_dir + details["featureFlagFile"])
+                    # Check for these directories and delete them to avoid accidental pushes
+                    directories_to_delete = ['/source']
+                    for folder in self.location_contents_folders_remove:
+                        directories_to_delete.append(folder)
 
-                            locations_file_name = details["locations_file"].rsplit('/', 1)[1]
-                            if os.path.isfile(self.location_dir + '/' + locations_file_name):
-                                os.remove(self.location_dir + '/' + locations_file_name)
-                                self.log.debug('Removing: ' + self.location_dir + '/' + locations_file_name)
+                        # Should these be within the location_dir or the output_dir
+                        for directory_to_delete in directories_to_delete:
+                            if not directory_to_delete.startswith('/') and not directory_to_delete.startswith('includes'):
+                                directory_to_delete = '/' + directory_to_delete
+                            if os.path.isdir(self.location_dir + directory_to_delete):
+                                self.log.debug('Deleted: ' + self.location_dir + directory_to_delete)
+                                shutil.rmtree(self.location_dir + directory_to_delete)
 
-                            if os.path.isdir(self.location_dir + '/doctopus-common'):
-                                shutil.rmtree(self.location_dir + '/doctopus-common')
-                                self.log.debug('Removing: ' + self.location_dir + '/doctopus-common')
+                    # Don't remove the .travis.yml in case there's another one not created by us in the repo
+                    if os.path.isfile(self.location_dir + details["featureFlagFile"]) and details['unprocessed'] is False:
+                        os.remove(self.location_dir + details["featureFlagFile"])
+                        self.log.debug('Removing: ' + self.location_dir + details["featureFlagFile"])
 
-                            # If there is a sitemap.md, populate it with links
-                            # This needs to happen after comments are handled
-                            if ((self.sitemap_file in self.source_files) and
-                                    (not details["ibm_cloud_docs_sitemap_depth"] == 'off')):
-                                if 'toc.yaml' in str(self.all_files_dict) and self.location_ibm_cloud_docs is True:
-                                    sitemapYML(self, details)
+                    locations_file_name = details["locations_file"].rsplit('/', 1)[1]
+                    if os.path.isfile(self.location_dir + '/' + locations_file_name):
+                        os.remove(self.location_dir + '/' + locations_file_name)
+                        self.log.debug('Removing: ' + self.location_dir + '/' + locations_file_name)
 
-                                elif 'SUMMARY.md' in str(self.all_files_dict) and details["ibm_docs"] is True:
-                                    sitemapSUMMARY(self, details)
+                    if os.path.isdir(self.location_dir + '/doctopus-common'):
+                        shutil.rmtree(self.location_dir + '/doctopus-common')
+                        self.log.debug('Removing: ' + self.location_dir + '/doctopus-common')
 
-                                elif (('toc' in str(self.all_files_dict)) and ('toc.yaml' not in str(self.all_files_dict))):
-                                    sitemapOLD(self, details)
+                    if details['debug'] is True:
+                        endTime = time.time()
+                        totalTime = endTime - startTimeSection
+                        sectionTime = str(round(totalTime, 2))
+                        self.log.info(self.location_name + ' cleanup: ' + sectionTime)
 
-                                else:
-                                    addToWarnings('A toc.yaml file does not exist, so the sitemap could not be built.',
-                                                  'toc.yaml', '', details, log, 'pre-build', '', '')
+                    if details['debug'] is True:
+                        startTimeSection = time.time()
 
-                            # Don't actually push the updated files if any of these ifs are met
-                            # self.log.info(json.dumps(self.source_files, indent=2))
-                            if (((details['builder'] == 'local') and (self.location_output_action == 'none')) or
-                                    (self.location_output_action == 'none') or
-                                    (details["test_only"] is True)):
-                                if os.path.isdir(self.location_dir + '/.git'):
-                                    try:
-                                        subprocessOutput = subprocess.Popen('git add -n --all', shell=True, stdout=PIPE, stderr=STDOUT)
-                                        exitCode = parseSubprocessOutput(subprocessOutput, self.log)
-                                    except Exception:
-                                        self.log.debug('Not printing changed files list.')
-                                    else:
-                                        if exitCode > 0:
-                                            self.log.debug('Not printing changed files list.')
-                                        else:
-                                            status_bytes = subprocess.check_output('git status --short', shell=True)
-                                            status = status_bytes.decode("utf-8")
-                                            self.log.debug('\n')
-                                            if ('nothing to commit' in status.lower()) or (status == '\n') or (status == ''):
-                                                self.log.debug('No changes to commit.')
-                                            else:
-                                                self.log.debug('These files are changed, but are not being committed at this time:')
-                                                self.log.debug(status)
+                    if details['unprocessed'] is False:
+
+                        # If there is a sitemap.md, populate it with links
+                        # This needs to happen after comments are handled
+                        if ((self.sitemap_file in self.source_files) and
+                                (not details["ibm_cloud_docs_sitemap_depth"] == 'off')):
+                            if 'toc.yaml' in str(self.all_files_dict) and self.location_ibm_cloud_docs is True:
+                                sitemapYML(self, details)
+
+                            elif 'SUMMARY.md' in str(self.all_files_dict) and details["ibm_docs"] is True:
+                                sitemapSUMMARY(self, details)
+
+                            elif (('toc' in str(self.all_files_dict)) and ('toc.yaml' not in str(self.all_files_dict))):
+                                sitemapOLD(self, details)
 
                             else:
-                                # Push the updated files to the downstream branches
-                                pushUpdatedFiles(self, details, pushQueue)
+                                addToWarnings('A toc.yaml file does not exist, so the sitemap could not be built.',
+                                              'toc.yaml', '', details, log, 'pre-build', '', '')
+
+                        if details['debug'] is True:
+                            endTime = time.time()
+                            totalTime = endTime - startTimeSection
+                            sectionTime = str(round(totalTime, 2))
+                            self.log.info(self.location_name + ' sitemap: ' + sectionTime)
+
+                    # Don't actually push the updated files if any of these ifs are met
+                    # self.log.info(json.dumps(self.source_files, indent=2))
+                    if (((details['builder'] == 'local') and (self.location_output_action == 'none')) or
+                            (self.location_output_action == 'none') or
+                            (details["test_only"] is True)):
+                        if os.path.isdir(self.location_dir + '/.git'):
+                            os.chdir(self.location_dir)
+                            try:
+                                subprocessOutput = subprocess.Popen('git add -n --all', shell=True, stdout=PIPE, stderr=STDOUT)
+                                exitCode = parseSubprocessOutput(subprocessOutput, self.log)
+                            except Exception:
+                                self.log.debug('Not printing changed files list.')
+                            else:
+                                if exitCode > 0:
+                                    self.log.debug('Not printing changed files list.')
+                                else:
+                                    status_bytes = subprocess.check_output('git status --short', shell=True)
+                                    status = status_bytes.decode("utf-8")
+                                    self.log.debug('\n')
+                                    if ('nothing to commit' in status.lower()) or (status == '\n') or (status == ''):
+                                        self.log.debug('No changes to commit.')
+                                    else:
+                                        self.log.debug('These files are changed, but are not being committed at this time:')
+                                        self.log.debug(status)
+
+                    else:
+                        # Push the updated files to the
+                        #  downstream branches
+                        pushUpdatedFiles(self, details, pushQueue)
 
             self.log.info('Finished: ' + self.location_name)
+            endTime = time.time()
+            totalTime = endTime - startTime
+            totalTimeRounded = str(round(totalTime, 2))
+            self.log.debug('Took ' + totalTimeRounded + ' seconds to run: ' + self.location_name)
             return
 
     # Start
@@ -440,6 +546,7 @@ def main(
         pushQueue = []
 
         details = {}
+        details.update({"debug": debug})
         details.update({"ibm_cloud_docs": ibm_cloud_docs})
         details.update({"ibm_cloud_docs_sitemap_depth": ibm_cloud_docs_sitemap_depth})
         details.update({"ibm_cloud_docs_sitemap_rebuild_always": ibm_cloud_docs_sitemap_rebuild_always})
@@ -447,11 +554,13 @@ def main(
         details.update({"rebuild_all_files": rebuild_all_files})
         details.update({"slack_bot_token": slack_bot_token})
         details.update({"slack_channel": slack_channel})
+        details.update({"slack_post_start": slack_post_start})
         details.update({"slack_post_success": slack_post_success})
         details.update({"slack_show_author": slack_show_author})
         details.update({"slack_user_mapping": slack_user_mapping})
         details.update({"slack_webhook": slack_webhook})
         details.update({"tool_name": 'md-enricher-for-cicd'})
+        details.update({"unprocessed": unprocessed})
         details.update({"validation": validation})
 
         if output_dir is None:
@@ -723,9 +832,21 @@ def main(
         elif details["builder"] == 'jenkins':
             build_url = str(os.environ.get('build_url'))
         else:
-            build_url = 'None'
+            build_url = ''
 
         details.update({"build_url": build_url})
+
+        if (details["slack_post_start"] is True):
+
+            if details["builder"] == 'local':
+                buildNumberPost = ' local build'
+            else:
+                buildNumberPost = ' build #' + str(details["build_number"])
+
+            payload = [{"color": "good", "title_link": details["build_url"],
+                       "title": current_github_branch +
+                        buildNumberPost + " started"}]
+            postToSlack(log, details, payload)
 
         # Set the GITHUB API variables
         if (('github.com' in details["source_github_url"]) and (not details["builder"] == 'local')):
@@ -830,10 +951,10 @@ def main(
         details.update({"location_tags": all_tags})
 
         if (source_github_url + ',' + current_github_branch) in all_locations:
-            addToWarnings('The ' + current_github_branch + ' branch in ' + source_github_url +
-                          ' cannot be both the upstream source and in the list of downstream output locations. ' +
-                          'Exiting the build.',
-                          'locations.json', '', details, log, 'pre-build', '', '')
+            addToErrors('The ' + current_github_branch + ' branch in ' + source_github_url +
+                        ' cannot be both the upstream source and in the list of downstream output locations. ' +
+                        'Exiting the build.',
+                        'locations.json', '', details, log, 'pre-build', '', '')
             exitBuild(details, log)
 
         # Get info from the commit that triggered this build, including a list of all files
