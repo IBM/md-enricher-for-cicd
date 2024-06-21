@@ -12,7 +12,7 @@ Notable changes to this project are documented in this file.
 <li>Redesigned how images are considered used in content.</li>
 <li>Images with source file types are removed from downstream locations.</li>
 <li><code>.svg</code> images are no longer considered a source file type by default.</li>
-<li>Changes to the feature flag<internal> and <code>toc.yaml</code></internal> file<internal>s</internal> result<external>s</external> in the re-processing of all files.</li>
+<li>Changes to the feature flag file results in the re-processing of all files.</li>
 </ul></dd>
 
 <dt>Bug fixes</dt>
