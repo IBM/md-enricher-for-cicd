@@ -26,8 +26,9 @@ def postToSlack(log, details, payload):
                                  ' does not exist in the user mapping file: ' +
                                  details["slack_user_mapping"])
             except Exception as e:
-                log.info(e)
-                log.info('Slack post is not ephemeral. There was an issue parsing the user mapping file: ' + details["slack_user_mapping"])
+                log.debug(e)
+                log.info('Slack post is not ephemeral.')
+                log.debug('There was an issue parsing the user mapping file: ' + details["slack_user_mapping"])
         else:
             log.error('slack_user_mapping does not exist: ' + details["slack_user_mapping"])
 
@@ -58,7 +59,7 @@ def postToSlack(log, details, payload):
                         attachments=payload
                     )
                 else:
-                    log.info('Posting message.')
+                    log.info('Posting message to ' + slack_channel + '.')
                     response = client.chat_postMessage(
                         channel=slack_channel,
                         text='Markdown enricher:',

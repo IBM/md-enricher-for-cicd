@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-06-07
+# Last updated: 2024-06-21
 -->
 
 # Checks
@@ -25,6 +25,12 @@ These intitial setup checks cause build errors:
     - The branch specified with `location_github_branch` does not exist.
     - Invalid values for any key.
 
+### YAML linting
+
+YAML content files, such as the `toc.yaml`, are checked for proper YAML formatting.
+
+> Note: Newlines are automatically stripped out.
+
 ### JSON linting
 
 JSON content and Markdown Enricher files, such as the `locations.json`, `phrases.json`, and `feature-flags.json` files, are checked for proper JSON formatting. 
@@ -34,7 +40,7 @@ JSON content and Markdown Enricher files, such as the `locations.json`, `phrases
 - No comma after last entry.
 - If a `phrases.json` value must include quotation marks, you must escape the quotation marks with a backslash. Example: `"{[logo]}":"<img src=\"images/logo.svg\" width=\"32\" alt=\"Logo\" style=\"width:32px;\" />",`
 
-> Note: Newlines are automatically stripped out to prevent JSON linter errors.
+> Note: Newlines are automatically stripped out.
 
 
 ### Tag check

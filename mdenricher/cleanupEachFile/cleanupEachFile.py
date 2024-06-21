@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def cleanupEachFile(self, details, imageProcessing):
+def cleanupEachFile(self, details):
 
     # Loop through every file in the files for this location and do the tag and reuse replacements
 
@@ -193,7 +193,9 @@ def cleanupEachFile(self, details, imageProcessing):
                     topicContents = ''
                     self.log.debug('No topic contents.')
 
-            if (details['unprocessed'] is True) and (not file_name.endswith(tuple(details["img_filetypes"]))) and (not folderAndFile == '/feature-flags.json'):
+            if ((details['unprocessed'] is True) and
+                    (not file_name.endswith(tuple(details["img_output_filetypes"]))) and
+                    (not folderAndFile == '/feature-flags.json')):
 
                 if not os.path.isdir(self.location_dir + folderPath):
                     os.makedirs(self.location_dir + folderPath)
@@ -213,7 +215,7 @@ def cleanupEachFile(self, details, imageProcessing):
                 else:
                     self.log.debug('Upstream version was deleted, so downstream version was deleted.')
 
-            elif file_name.endswith(tuple(details["img_output_filetypes"])) and imageProcessing is True:
+            elif file_name.endswith(tuple(details["img_output_filetypes"])):
                 self.log.debug('\n\n')
                 self.log.debug('----------------------------------')
                 self.log.debug(folderAndFile)
@@ -222,21 +224,8 @@ def cleanupEachFile(self, details, imageProcessing):
                 self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
                                ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious + ')')
 
-                imageFound = False
-                for (path, dirs, files) in os.walk(self.location_dir):
-                    for entry in files:
-                        if entry.endswith(tuple(details["filetypes"])) and os.path.isfile(path + '/' + entry) and ('.git' not in path):
-                            with open(path + '/' + entry, 'r', encoding="utf8", errors="ignore") as fileName_open:
-                                topicContentsCheckImages = fileName_open.read()
-                            if file_name in topicContentsCheckImages:
-                                self.log.debug('Confirmed ' + file_name + ' used in ' + entry + '.')
-                                from mdenricher.images.imagesUsed import copyImage
-                                copyImage(self, details, file_name, folderAndFile, folderPath)
-                                imageFound = True
-                                break
-                if imageFound is False:
-                    self.log.debug('Image not used in any content files. Not copying over.')
-            elif not file_name.endswith(tuple(details["img_filetypes"])) and imageProcessing is False:
+                self.log.debug('Images handled at the end of the build.')
+            elif file_name.endswith(tuple(details["filetypes"])):
 
                 self.log.debug('\n\n')
                 self.log.debug('----------------------------------')
@@ -290,30 +279,39 @@ def cleanupEachFile(self, details, imageProcessing):
                     elif 'removed' in fileStatus:
                         if os.path.isfile(self.location_dir + folderPath + file_name):
                             os.remove(self.location_dir + folderPath + file_name)
-                            self.log.debug(source_file + ' was deleted from the upstream repo. Deleting from ' +
-                                           self.location_name + ' as well.')
+                            self.log.debug('Removing ' + source_file + ' from the ' +
+                                           self.location_name + ' location.')
                         else:
-                            self.log.debug('Nothing to delete downstream.' + source_file + ' was deleted from the upstream repo, but was not found in this ' +
-                                           'downstream location: ' + self.location_dir + folderPath + file_name)
+                            self.log.debug(source_file + ' did not exist in the ' +
+                                           self.location_name + ' location to remove it.')
 
                     # If the file is a text file in the supported text file list, then run the filecleanup loop at the top of the file over it
                     elif file_name.endswith(tuple(details["filetypes"])):
                         # The filepaths are the differences between these two sections
                         if not os.path.isdir(self.location_dir + folderPath):
                             self.log.debug('Folder does not exist in working dir: ' + self.location_dir + folderPath)
+                        else:
+                            try:
+                                fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath, topicContents)
+                            except Exception as e:
+                                self.log.debug(str(e))
+                                self.log.debug('folderAndFile = ' + folderAndFile)
+                                self.log.debug('file_name = ' + file_name)
+                                self.log.debug('folderPath = ' + folderPath)
+                                self.log.debug('fileNamePrevious = ' + fileNamePrevious)
 
                         # For Travis, only copy over the file that's being worked with
-                        if ((os.path.isfile(details["source_dir"] + folderAndFile)) and
-                                (folderAndFile in self.all_files_dict)):
-                            fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath, topicContents)
-                        elif folderAndFile in self.all_files_dict:
+                        # if ((os.path.isfile(details["source_dir"] + folderAndFile)) and
+                        # (folderAndFile in self.all_files_dict)):
+                        # fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath, topicContents)
+                        # elif folderAndFile in self.all_files_dict:
                             # --rebuild_files list might have a typo or something
-                            addToWarnings('Does not exist in the source directory for ' + self.location_name + ': ' + folderAndFile,
-                                          folderAndFile, folderPath + file_name, details, self.log, self.location_name, '', '')
-                            self.log.debug('folderAndFile = ' + folderAndFile)
-                            self.log.debug('file_name = ' + file_name)
-                            self.log.debug('folderPath = ' + folderPath)
-                            self.log.debug('fileNamePrevious = ' + fileNamePrevious)
+                        # addToWarnings('Does not exist in the source directory for ' + self.location_name + ': ' + folderAndFile,
+                        # folderAndFile, folderPath + file_name, details, self.log, self.location_name, '', '')
+                        # self.log.debug('folderAndFile = ' + folderAndFile)
+                        # self.log.debug('file_name = ' + file_name)
+                        # self.log.debug('folderPath = ' + folderPath)
+                        # self.log.debug('fileNamePrevious = ' + fileNamePrevious)
             if details['debug'] is True:
                 endTime = time.time()
                 totalTime = endTime - startTimeFile

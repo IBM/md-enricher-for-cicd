@@ -29,7 +29,7 @@ def wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicC
                     for conrefUsed in conrefsUsedList:
                         conrefUsedDoNotTransform = conrefUsed.replace('{[', '{[<!--ME_ignore-->')
                         commentDoNotTransform = comment.replace(conrefUsed, conrefUsedDoNotTransform)
-                        topicContents = topicContents.replace(comment, commentDoNotTransform)
+                        topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + commentDoNotTransform + '-->')
 
         while '.md]}' in topicContents:
             snippetsUsedList = re.findall(r"\{\[.*?.md\]\}", topicContents)

@@ -24,6 +24,7 @@ from mdenricher.errorHandling.phraseCheck import phraseCheck
 from mdenricher.errorHandling.snippetCheck import snippetCheck
 from mdenricher.errorHandling.validateArguments import validateArguments
 from mdenricher.errorHandling.parseSubprocessOutput import parseSubprocessOutput
+from mdenricher.images.checkUsedImages import checkUsedImages
 from mdenricher.repos.clone import clone
 from mdenricher.repos.previousCommitInfo import previousCommitInfo
 from mdenricher.repos.pushUpdatedFiles import pushUpdatedFiles
@@ -79,7 +80,6 @@ def main(
             addToErrors('The directory specified for the source_dir could not be found. ' +
                         'Verify the path specified: --source_dir=' + source_dir, 'start.py-command', '', details,
                         log, 'pre-build', '', '')
-            exitBuild(details, log)
 
     def process_data(q):
         while not exitFlag:
@@ -189,24 +189,19 @@ def main(
                                                    self.location_contents_folders_remove_and_files,
                                                    self.location_ibm_cloud_docs, self.log,
                                                    self.remove_all_other_files_folders, self.source_files_original_list)
-                all_files_dict = all_files_get_result[0]
-                conref_files_list = all_files_get_result[1]
-                image_files_list = all_files_get_result[2]
-                sitemap_file = all_files_get_result[3]
-                filesForOtherLocations = all_files_get_result[4]
-                allSourceFiles.update(all_files_dict)
+                self.all_files_dict = all_files_get_result[0]
+                self.conref_files_list = all_files_get_result[1]
+                self.image_files_list = all_files_get_result[2]
+                self.image_src_files_list = all_files_get_result[3]
+                self.sitemap_file = all_files_get_result[4]
+                self.filesForOtherLocations = all_files_get_result[5]
+                allSourceFiles.update(self.all_files_dict)
 
                 if details['debug'] is True:
                     endTime = time.time()
                     totalTime = endTime - startSectionTime
                     sectionTime = str(round(totalTime, 2))
                     self.log.info(self.location_name + ' allFilesGet: ' + sectionTime)
-
-                self.all_files_dict = all_files_dict
-                self.conref_files_list = conref_files_list
-                self.filesForOtherLocations = filesForOtherLocations
-                self.image_files_list = image_files_list
-                self.sitemap_file = sitemap_file
 
                 # Use the name of the properties file to identify this location in the build
 
@@ -239,6 +234,8 @@ def main(
                 if details['debug'] is True:
                     startSectionTime = time.time()
                 if self.source_files_original_list == {}:
+                    source_files_location_list = self.all_files_dict
+                elif details['featureFlagFile'] in self.source_files_original_list or '/toc.yaml' in self.source_files_original_list:
                     source_files_location_list = self.all_files_dict
                 else:
                     # Rebuild the list with the status, patch, and previous name from git, but use the downstream folder and file name from the all files list
@@ -325,10 +322,6 @@ def main(
                 self.log.debug('sitemap_file: %s', str(self.sitemap_file))
                 self.log.debug('remove_all_other_files_folders: ' + str(self.remove_all_other_files_folders))
 
-                self.log.debug('File list for this location:')
-                for source_file in self.source_files_location_list:
-                    self.log.debug(self.source_files_location_list[source_file]['folderAndFile'])
-
                 # See if this is a location that should be iterated over
                 # or skipped based on which files kicked off the build
                 runThisLocation = runThisBuild(self, details)
@@ -411,7 +404,7 @@ def main(
                         startTimeSection = time.time()
 
                     # Actually do the conref and tag replacements in the new source file list
-                    cleanupEachFile(self, details, False)
+                    cleanupEachFile(self, details)
                     if details['debug'] is True:
                         endTime = time.time()
                         totalTime = endTime - startTimeSection
@@ -422,7 +415,8 @@ def main(
                         startTimeSection = time.time()
 
                     # After all of the content files are updated, update the images
-                    cleanupEachFile(self, details, True)
+                    if details['unprocessed'] is False:
+                        checkUsedImages(self, details)
 
                     if details['debug'] is True:
                         endTime = time.time()
@@ -432,13 +426,6 @@ def main(
 
                     if details['debug'] is True:
                         startTimeSection = time.time()
-
-                    # If images are not all stored in the /images directory, issue a warning
-                    if ((not os.path.isdir(self.location_dir + '/images')) and
-                            (not self.image_files_list == []) and self.location_ibm_cloud_docs is True):
-                        addToWarnings('Images were found in the repo, but they were not stored in a single ' +
-                                      '/images/ directory in the root of the repo.', '/images/', '', details, self.log,
-                                      self.location_name, '', '')
 
                     # Check for these directories and delete them to avoid accidental pushes
                     directories_to_delete = ['/source']
@@ -452,6 +439,12 @@ def main(
                             if os.path.isdir(self.location_dir + directory_to_delete):
                                 self.log.debug('Deleted: ' + self.location_dir + directory_to_delete)
                                 shutil.rmtree(self.location_dir + directory_to_delete)
+
+                    if details['unprocessed'] is False:
+                        for img_src_file in self.image_src_files_list:
+                            if os.path.isfile(self.location_dir + img_src_file):
+                                self.log.debug('Removing image source file: ' + img_src_file)
+                                os.remove(self.location_dir + img_src_file)
 
                     # Don't remove the .travis.yml in case there's another one not created by us in the repo
                     if os.path.isfile(self.location_dir + details["featureFlagFile"]) and details['unprocessed'] is False:
@@ -705,7 +698,6 @@ def main(
                 addToErrors('The directory specified for the source_dir is not a clone of a Git repository. ' +
                             'This directory must be a Git clone.', 'start.py-command', '', details, log, 'pre-build', '', '')
                 # Too many variables haven't been established yet to use the errorHandling exit build.
-                exitBuild(details, log)
         else:
             source_github_url = None
             log.debug('Source directory is not a Git clone.')
@@ -734,21 +726,6 @@ def main(
             log.info(str(e))
         validateArguments(details, log)
 
-        # Get the contents of the feature flags file
-        if os.path.isfile((details["source_dir"]) + '/feature-flags.json'):
-            details.update({"featureFlagFile": '/feature-flags.json'})
-            with open(details["source_dir"] + details["featureFlagFile"], 'r', encoding="utf8", errors="ignore") as featureFlagJson:
-                try:
-                    featureFlags = json.load(featureFlagJson)
-                except Exception as e:
-                    addToErrors('Information might not be formatted properly in feature flags file.' + str(e),
-                                details["featureFlagFile"], '', details, log, 'pre-build', '', '')
-                else:
-                    details.update({"featureFlags": featureFlags})
-        else:
-            details.update({"featureFlagFile": 'None'})
-            details.update({"featureFlags": 'None'})
-
         filesToScanFirst = ['.build.yaml', 'keyref.yaml']
         details.update({"filesToScanFirst": filesToScanFirst})
 
@@ -762,38 +739,20 @@ def main(
             except Exception as e:
                 addToErrors('The locations file could not be parsed. ' + str(e), 'start.py-command', '', details, log, 'pre-build', '', '')
                 # Too many variables haven't been established yet to use the errorHandling exit build.
-                exitBuild(details, log)
 
             try:
                 locations_json_list = locations_json["locations"]
             except Exception as e:
                 addToErrors('The locations file could not be parsed. ' + str(e), 'start.py-command', '', details, log, 'pre-build', '', '')
                 # Too many variables haven't been established yet to use the errorHandling exit build.
-                exitBuild(details, log)
 
             try:
                 locations_config = locations_json["config"]
-            except Exception:
-                locations_config = {}
-                log.debug('No config section was included in the locations file. The default values will be used.')
-                # Need to know the branch at the very least
+            except Exception as e:
+                addToErrors('The locations file does not include the source branch in the config section. ' +
+                            str(e), 'start.py-command', '', details, log, 'pre-build', '', '')
             finally:
                 (details) = config(log, details, locations_config)
-
-        # If the branch is not the source branch, don't push anything anywhere
-        if ((not details["source_github_branch"] == details["current_github_branch"]) and
-                (not details["log_branch"] == details["current_github_branch"]) and
-                (not details["builder"] == 'local')):
-            log.info('Running as a test without pushing the final results downstream because the %s ' +
-                     'branch is not the %s branch.', details["current_github_branch"], details["source_github_branch"])
-            test_only = True
-
-        details.update({"test_only": test_only})
-
-        # If the branch is the log branch, just exit
-        if details["log_branch"] == details["current_github_branch"]:
-            log.info('Exiting. Not running on the %s.', details["current_github_branch"])
-            sys.exit(0)
 
         # EX: https://DOMAIN/ORG/REPO.git
         if str(source_github_url).startswith('https'):
@@ -826,6 +785,65 @@ def main(
         details.update({"source_github_org": source_github_org})
         details.update({"source_github_repo": source_github_repo})
         details.update({"source_github_url": source_github_url})
+
+        # Get the contents of the feature flags file
+        jsonStaging = {
+            "name": "staging",
+            "location": "draft,review"
+            }
+        jsonStagingAllowlist = {
+            "name": "staging",
+            "location": "draft"
+            }
+        jsonProd = {
+            "name": "prod",
+            "location": "publish"
+            }
+        featureFlags = []
+        if os.path.isfile((details["source_dir"]) + '/feature-flags.json'):
+            details.update({"featureFlagFile": '/feature-flags.json'})
+            with open(details["source_dir"] + details["featureFlagFile"], 'r', encoding="utf8", errors="ignore") as featureFlagJson:
+                try:
+                    featureFlags = json.load(featureFlagJson)
+                except Exception as e:
+                    addToErrors('JSON not formatted properly. ' + str(e),
+                                details["featureFlagFile"], '', details, log, 'pre-build', '', '')
+                else:
+                    if details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in details['source_github_org']:
+                        if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in details['source_github_org']:
+                            featureFlags.append(jsonStagingAllowlist)
+                        elif '\'staging\'' not in str(featureFlags):
+                            featureFlags.append(jsonStaging)
+                        if '\'prod\'' not in str(featureFlags):
+                            featureFlags.append(jsonProd)
+                    details.update({"featureFlags": featureFlags})
+        elif details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in details['source_github_org']:
+            if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in details['source_github_org']:
+                featureFlags.append(jsonStagingAllowlist)
+            elif '\'staging\'' not in str(featureFlags):
+                featureFlags.append(jsonStaging)
+            if '\'prod\'' not in str(featureFlags):
+                featureFlags.append(jsonProd)
+            details.update({"featureFlags": featureFlags})
+            details.update({"featureFlagFile": 'None'})
+        else:
+            details.update({"featureFlagFile": 'None'})
+            details.update({"featureFlags": 'None'})
+
+        # If the branch is not the source branch, don't push anything anywhere
+        if ((not details["source_github_branch"] == details["current_github_branch"]) and
+                (not details["log_branch"] == details["current_github_branch"]) and
+                (not details["builder"] == 'local')):
+            log.info('Running as a test without pushing the final results downstream because the %s ' +
+                     'branch is not the %s branch.', details["current_github_branch"], details["source_github_branch"])
+            test_only = True
+
+        details.update({"test_only": test_only})
+
+        # If the branch is the log branch, just exit
+        if details["log_branch"] == details["current_github_branch"]:
+            log.info('Exiting. Not running on the %s.', details["current_github_branch"])
+            sys.exit(0)
 
         if details["builder"] == 'travis':
             build_url = str(os.environ.get('TRAVIS_BUILD_WEB_URL'))
@@ -861,10 +879,6 @@ def main(
 
         details.update({"source_github_api_repos": source_github_api_repos})
         details.update({"source_github_api_prefix": source_github_api_prefix})
-
-        # Combine image lists
-        img_filetypes = details["img_output_filetypes"] + details["img_src_filetypes"]
-        details.update({"img_filetypes": img_filetypes})
 
         # Get the IBM Cloud product name file to verify the product name conrefs that are used in each file
         ibm_cloud_docs_product_names = []
@@ -1005,6 +1019,10 @@ def main(
                         detailsString = str(details[detail])
                     log.info('%s: %s', detail, detailsString)
         # log.info(details["username"])
+
+        # Check if there are any pre-build errors. If so, exit without continuing.
+        if os.path.exists(details["error_file"]):
+            exitBuild(details, log)
 
         queueLock = threading.Lock()
         workQueue = queue.Queue(maxsize=2)  # type: ignore[var-annotated]

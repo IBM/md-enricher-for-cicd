@@ -113,7 +113,7 @@ def previousCommitInfo(details, log):
 
             # Check if this build is restarted by looking for the build number in the last commit file
             rebuild = False
-            if '\n' + details["build_number"] + ':' in lastCommitIDsDecoded:
+            if '\n' + details["build_number"] + ':' in lastCommitIDsDecoded and details['builder'] == 'travis':
                 for lastCommitID in lastCommitIDsList:
                     if lastCommitID.startswith(details["build_number"] + ':'):
                         lastCommitIDsString = lastCommitID

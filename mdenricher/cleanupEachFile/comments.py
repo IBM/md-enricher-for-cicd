@@ -25,6 +25,7 @@ def comments(self, details, folderAndFile, topicContents):
                 ('SPDX-License-Identifier' in topicContents) or
                 ('<!-Snippet' in topicContents)):
 
+            topicContents = topicContents.replace('<!--ME_ignore-->', '')
             commentList = re.findall('<!--(.*?)-->', topicContents, flags=re.DOTALL)
             for comment in commentList:
 
@@ -33,7 +34,7 @@ def comments(self, details, folderAndFile, topicContents):
 
                 # For transforming on the md-enricher-for-cicd docs
                 # Do not remove so that the example code phrases to show the metadata variables won't be replaced
-                elif 'ME_ignore' in comment and not 'ME_ignore' == comment:
+                elif 'ME_ignore' in comment:
                     self.log.debug('Not removing ME_ignore signifiers.')
                     comment_noIgnore = comment.replace('ME_ignore', '')
                     topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + comment_noIgnore + '-->')
