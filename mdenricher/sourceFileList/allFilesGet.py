@@ -12,7 +12,8 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # Like if a conref file changes, this list will be used to look inside each file to see if that conref is used in it
 
     def allFileCheck(details, path, file, folder_name, all_files_dict, conref_files_list,
-                     filesForOtherLocations, image_files_list, sitemap_file):
+                     filesForOtherLocations, image_files_list, image_src_files_list, sitemap_file):
+
         # Always ignore the locations file
         if ((path + '/' + file) == (details["locations_file"])):
             # log.debug('Not adding locations file to all files list: ' + file)
@@ -72,15 +73,18 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                                        folder_name + file, all_files_dict, location_contents_files,
                                        location_contents_folders)
 
-        elif file.endswith(tuple(details["img_filetypes"])) and (
+        elif file.endswith(tuple(details["img_output_filetypes"])) and (
                            (remove_all_other_files_folders is False) or
                            ((remove_all_other_files_folders is True) and
                             ((folder_name in location_contents_folders_keep) or folder_name.startswith(tuple(location_contents_folders_keep))))):
-            image_files_list.append(folder_name + file)
+            image_files_list.append(path + '/' + file)
             all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
                                        folder_name + file, all_files_dict, location_contents_files,
                                        location_contents_folders)
             # log.debug('Handling image filetypes: ' + folder_name + file)
+
+        elif file.endswith(tuple(details["img_src_filetypes"])):
+            image_src_files_list.append(folder_name + file)
 
         if (details["reuse_snippets_folder"] in path):
             if (not file == str(details["reuse_phrases_file"])) and details['unprocessed'] is False:
@@ -96,7 +100,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
             sitemap_file = folder_name + file
             log.debug('Setting sitemap_file as ' + sitemap_file)
 
-        return (all_files_dict, conref_files_list, filesForOtherLocations, image_files_list, sitemap_file)
+        return (all_files_dict, conref_files_list, filesForOtherLocations, image_files_list, image_src_files_list, sitemap_file)
 
     # All of these list entries always start with a slash
 
@@ -111,6 +115,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     all_files_dict: dict[dict[str, str], dict[str, str]] = {}  # type: ignore[misc]
     conref_files_list: list[str] = []  # type: ignore[misc]
     image_files_list: list[str] = []  # type: ignore[misc]
+    image_src_files_list: list[str] = []  # type: ignore[misc]
     sitemap_file = 'None'
     # filesForOtherLocations to collect all file names from all locations
     # for complete validation even when not all locations are built
@@ -147,11 +152,17 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                     allFiles.remove(filesToScanFirst)
                     allFiles.insert(0, filesToScanFirst)
             for file in sorted(allFiles):
-                all_files_dict, conref_files_list, filesForOtherLocations, image_files_list, sitemap_file = allFileCheck(details, path, file, folder_name,
-                                                                                                                         all_files_dict,
-                                                                                                                         conref_files_list,
-                                                                                                                         filesForOtherLocations,
-                                                                                                                         image_files_list, sitemap_file)
+                (all_files_dict,
+                 conref_files_list,
+                 filesForOtherLocations,
+                 image_files_list,
+                 image_src_files_list,
+                 sitemap_file) = allFileCheck(details, path, file, folder_name,
+                                              all_files_dict,
+                                              conref_files_list,
+                                              filesForOtherLocations,
+                                              image_files_list,
+                                              image_src_files_list, sitemap_file)
 
     # Add things that might have been deleted
     for source_file in source_files_original_list:
@@ -163,15 +174,21 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                 if not folder_name.startswith('/'):
                     folder_name = '/' + folder_name
             else:
-                folder_name = ''
+                folder_name = '/'
                 file = source_file[1:]
-            (all_files_dict, conref_files_list, filesForOtherLocations, image_files_list, sitemap_file) = (allFileCheck
-                                                                                                           (details, details["source_dir"],
-                                                                                                            file, folder_name, all_files_dict,
-                                                                                                            conref_files_list, filesForOtherLocations,
-                                                                                                            image_files_list, sitemap_file))
+            (all_files_dict,
+             conref_files_list,
+             filesForOtherLocations,
+             image_files_list,
+             image_src_files_list,
+             sitemap_file) = (allFileCheck(details, details["source_dir"],
+                                           file, folder_name, all_files_dict,
+                                           conref_files_list, filesForOtherLocations,
+                                           image_files_list,
+                                           image_src_files_list,
+                                           sitemap_file))
 
-    # Check TOC files for tagging to apply to the contnet files
+    # Check TOC files for tagging to apply to the content files
     if ('/toc.yaml' in all_files_dict) and (details['ibm_cloud_docs'] is True) and ('<' in all_files_dict['/toc.yaml']['fileContents']):  # type: ignore
         log.debug('Found tags in toc.yaml')
 
@@ -201,12 +218,11 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                                         log.debug(' /' + taggedLineNoSpaces + ' is already surrounded with ' + tag + ' tags.')
                                     elif originalFileContents.startswith('<') and originalFileContents.endswith('>'):
                                         log.debug(' /' + taggedLineNoSpaces +
-                                                  ' is already surrounded with different tags. Adding section tagged with ' +
+                                                  ' was surrounded with different tags. Replaced those tags with ' +
                                                   tag + '.')
                                         removedFirstTag = originalFileContents.split('>', 1)[1]
                                         removedLastTag = removedFirstTag.rsplit('<', 1)[0]
-                                        all_files_dict['/' + taggedLineNoSpaces]['fileContents'] = (originalFileContents +
-                                                                                                    '<' + tag + '>' + removedLastTag + '</' + tag + '>')
+                                        all_files_dict['/' + taggedLineNoSpaces]['fileContents'] = ('<' + tag + '>' + removedLastTag + '</' + tag + '>')
                                     else:
                                         all_files_dict['/' + taggedLineNoSpaces]['fileContents'] = '<' + tag + '>' + originalFileContents + '</' + tag + '>'
                                         log.debug('Adding ' + tag + ' tag around /' + taggedLineNoSpaces + ' file contents.')
@@ -223,6 +239,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
 
     conref_files_list.sort()
     image_files_list.sort()
+    image_src_files_list.sort()
     # if not all_files_dict == {}:
     # log.debug('All files gathered.')
     # if not conref_files_list == []:
@@ -234,4 +251,4 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # log.info('\nIMAGE_FILES_LIST:')
     # log.info(image_files_list)
 
-    return (all_files_dict, conref_files_list, image_files_list, sitemap_file, filesForOtherLocations)
+    return (all_files_dict, conref_files_list, image_files_list, image_src_files_list, sitemap_file, filesForOtherLocations)

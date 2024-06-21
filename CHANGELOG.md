@@ -3,6 +3,34 @@
 Notable changes to this project are documented in this file.
 
 
+## Version 1.2.4, released 21 June 2024
+
+<dl>
+<dt>File handling</dt>
+<dd><ul>
+<dd>Added <code>.bmp</code> as a default image type.</dd>
+<li>Redesigned how images are considered used in content.</li>
+<li>Images with source file types are removed from downstream locations.</li>
+<li><code>.svg</code> images are no longer considered a source file type by default.</li>
+<li>Changes to the feature flag file results in the re-processing of all files.</li>
+</ul></dd>
+
+<dt>Bug fixes</dt>
+<dd><ul>
+<li>A Slack post was not issued for JSON formatting errors in the feature flag file.</li>
+<li>Rebuild conflicts between repos built with Travis, then Jenkins.</li>
+<li>Too many images deleted from downstream.</li>
+<li>Content that is surrounded by a tag and also surrounded by a different tag in the <code>toc.yaml</code> results in duplicate content in the same file.</li>
+<li>Images with <code>?raw=true</code> not handled properly.</li>
+<li>Comments with reuse snippets in them not handled properly.</li>
+</ul></dd>
+</dl>
+
+
+## No updates for version 1.2.3
+
+Changes published internally within IBM.
+
 ## Version 1.2.2, released 07 June 2024
 <dl>
 <dt>New and updated <code>mdenricher</code> command options</dt>

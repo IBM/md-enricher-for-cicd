@@ -185,10 +185,13 @@ def pushUpdatedLogFile(details, log):
             gitCommitCommand = gitCommitCommand + '[ci skip]'
         if not details["build_number"] is None:
             gitCommitCommand = gitCommitCommand + ' Build ' + details["build_number"]
-        subprocessOutput = subprocess.Popen(gitCommitCommand + contains +
-                                            ' - ' + details["current_commit_summary"] + '" --quiet', shell=True,
-                                            stdout=PIPE, stderr=STDOUT)
-        exitCode = parseSubprocessOutput(subprocessOutput, log)
+        try:
+            subprocessOutput = subprocess.Popen(gitCommitCommand + contains +
+                                                ' - ' + details["current_commit_summary"] + '" --quiet', shell=True,
+                                                stdout=PIPE, stderr=STDOUT)
+            exitCode = parseSubprocessOutput(subprocessOutput, log)
+        except Exception:
+            pass
         try:
             log.info('Pushing changed log files.')
             subprocessOutput = subprocess.Popen('git push  --quiet', shell=True, stdout=PIPE, stderr=STDOUT)

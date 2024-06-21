@@ -16,8 +16,8 @@ def runThisBuild(self, details):
         self.log.debug('Running this location because file is in the list for this location.')
         runThisLocation = True
 
-    if (('/images/') in str(self.source_files_location_list)) and (runThisLocation is False):
-        self.log.debug('Running this location because /images/ is in the original source files list.')
+    if any(x in details["img_output_filetypes"] for x in self.source_files_location_list) and (runThisLocation is False):
+        self.log.debug('Running this location because an image filetype is in the original source files list.')
         runThisLocation = True
 
     if (('/' + details["reuse_snippets_folder"] + '/') in str(self.source_files_location_list)) and (runThisLocation is False):

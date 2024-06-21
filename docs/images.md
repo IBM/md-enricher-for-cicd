@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-06-07
+# Last updated: 2024-06-21
 -->
 
 # Images
@@ -12,7 +12,8 @@ As with all markdown content, adding images to your content is a two-step proces
   * `<img src="images/logo.svg" alt="Image" width="50%" height="50%">`
 
 The Markdown Enricher handles image delivery based on the following circumstances:
-* If the image is referenced in a markdown file in a downstream location, then that image is pushed to the downstream location. If the image is not referenced, then 
-* Whatever happens to the image, whether it is pushed downstream or not, the same thing happens to its source file (AI, PSD, SVG, etc.) as long as the filenames match other than the extension.
+* If the image is referenced in a markdown file in a downstream location, then that image is pushed to the downstream location.
+* By default, these image output files are handled: `.gif, .jpg, .jpeg, .mp4, .png, .svg`.
+* By default, image source files with the extensions `.ai`, `.drawio`, `.psd`, or `.sketch` are not pushed downstream. If they do exist already downstream, they are removed automatically.
 
-> **Note**: With the default values for `img_output_filetypes` and `img_src_filetypes`, SVG files are considered both image source files and output files. Keep this in mind when customizing your own image lists.
+> **Note**: With the default values for `img_output_filetypes` and `img_src_filetypes`, SVG files are considered image output files, even though they can be edited and exported as other file types.

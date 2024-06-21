@@ -11,10 +11,10 @@ def sourceFilesForThisBranch(self, details):
     from mdenricher.sourceFileList.addToList import addToList
     # import json
     import os  # for running OS commands like changing directories or listing files in directory
-    import re
+    # import re
 
-    from mdenricher.errorHandling.errorHandling import addToWarnings
-    from mdenricher.errorHandling.errorHandling import addToErrors
+    # from mdenricher.errorHandling.errorHandling import addToWarnings
+    # from mdenricher.errorHandling.errorHandling import addToErrors
     # from mdenricher.setup.exitBuild import exitBuild
 
     # Tweak the source file list depending on where stuff is running and where
@@ -98,7 +98,7 @@ def sourceFilesForThisBranch(self, details):
                 self.log.debug(source_file + ": Skipping content reuse files")
 
         # Adding all images to verify that they are used somewhere
-        elif ((file_name.endswith(tuple(details["img_filetypes"])))):
+        elif ((file_name.endswith(tuple(details["img_output_filetypes"])))):
             source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
                                      folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
 
@@ -112,136 +112,140 @@ def sourceFilesForThisBranch(self, details):
             except Exception:
                 pass
 
-        # If the toc.yaml file was updated, see if any other markdown files use those IDs also need to be updated
-        elif ('toc.yaml' in folderAndFile) and (details['ibm_cloud_docs'] is True):
+        elif (details["featureFlagFile"] in folderAndFile):
+            self.log.debug('No additional processing needed for the feature flag file.')
 
-            source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
-                                     folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
+            # If the toc.yaml file was updated, see if any other markdown files use those IDs also need to be updated
+            """
+            elif ('toc.yaml' in folderAndFile) and (details['ibm_cloud_docs'] is True):
 
-            if details['unprocessed'] is False:
-                toc_diff = source_files[folderAndFile]['filePatch']
-                tocLines = toc_diff.split('\n')
-                for toc_line in tocLines:
-                    while toc_line.endswith(' '):
-                        toc_line = toc_line[:-1]
-                    if '<' in toc_line:
-                        tagsInLine = re.findall('<.*?>', toc_line)
-                        for tagInLine in tagsInLine:
-                            toc_line = toc_line.replace(tagInLine, '')
-                    if toc_line.endswith(tuple(details["filetypes"])) and (toc_line.startswith('-') or toc_line.startswith('+')):
-                        while toc_line.startswith(' ') or toc_line.startswith('-') or toc_line.startswith('+'):
-                            toc_line = toc_line[1:]
-                        if os.path.isfile(details["source_dir"] + '/' + toc_line):
-                            modifiedFile = '/' + toc_line
-                            fileStatus = 'Modified tag in toc file affects this file.'
-                            source_files = addToList(self, details, self.log, 'None', 'None',
-                                                     fileStatus, modifiedFile, source_files,
-                                                     self.location_contents_files,
-                                                     self.location_contents_folders)
-
-        # If the feature-flags.json file was updated, see if any other markdown files use those IDs also need to be updated
-        elif (details["featureFlagFile"] in folderAndFile) and (os.path.isfile(details["source_dir"] + details["featureFlagFile"])):
-
-            if ((details['unprocessed'] is True) and (details["featureFlagFile"] in folderAndFile)):
-                if source_file in source_files:
-                    del source_files[source_file]
-                    self.log.debug(source_file + ': Skipping feature flags file')
-            elif (details["builder"] == 'local'):
-                if source_file in source_files:
-                    del source_files[source_file]
-                    self.log.debug(source_file + ': Skipping feature flags file')
-            else:
                 source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
-                                         folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
-                featureFlagList = []
-                featureFlagsChangedList = []
-                featureFlag_diff = source_files[folderAndFile]['filePatch']
-                self.log.debug('Feature flag diff:')
-                self.log.debug(featureFlag_diff)
+                                        folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
 
-                # Verify that every feature flag has a location and gather then into a list.
-                # Also use this list to see later if a feature flag was removed.
-                if not details["featureFlags"] == 'None':
-                    for featureFlag in details["featureFlags"]:
-                        featureFlagName = featureFlag["name"]
+                if details['unprocessed'] is False:
+                    toc_diff = source_files[folderAndFile]['filePatch']
+                    tocLines = toc_diff.split('\n')
+                    for toc_line in tocLines:
+                        while toc_line.endswith(' '):
+                            toc_line = toc_line[:-1]
+                        if '<' in toc_line:
+                            tagsInLine = re.findall('<.*?>', toc_line)
+                            for tagInLine in tagsInLine:
+                                toc_line = toc_line.replace(tagInLine, '')
+                        if toc_line.endswith(tuple(details["filetypes"])) and (toc_line.startswith('-') or toc_line.startswith('+')):
+                            while toc_line.startswith(' ') or toc_line.startswith('-') or toc_line.startswith('+'):
+                                toc_line = toc_line[1:]
+                            if os.path.isfile(details["source_dir"] + '/' + toc_line):
+                                modifiedFile = '/' + toc_line
+                                fileStatus = 'Modified tag in toc file affects this file.'
+                                source_files = addToList(self, details, self.log, 'None', 'None',
+                                                        fileStatus, modifiedFile, source_files,
+                                                        self.location_contents_files,
+                                                        self.location_contents_folders)
 
-                        def displayFound(featureFlagName, featureFlagDisplay):
-                            self.log.debug('Display value for ' + featureFlagName + ': ' + featureFlagDisplay)
+            # If the feature-flags.json file was updated, see if any other markdown files use those IDs also need to be updated
+            elif (details["featureFlagFile"] in folderAndFile) and (os.path.isfile(details["source_dir"] + details["featureFlagFile"])):
 
-                        try:
-                            featureFlagDisplay = featureFlag["location"]
-                        except Exception:
-                            addToWarnings('No location value for the ' + featureFlagName + ' feature flag to parse.',
-                                          details["featureFlagFile"], '', details, self.log, self.location_name,
-                                          featureFlagName, str(details["featureFlags"]))
+                if ((details['unprocessed'] is True) and (details["featureFlagFile"] in folderAndFile)):
+                    if source_file in source_files:
+                        del source_files[source_file]
+                        self.log.debug(source_file + ': Skipping feature flags file')
+                elif (details["builder"] == 'local'):
+                    if source_file in source_files:
+                        del source_files[source_file]
+                        self.log.debug(source_file + ': Skipping feature flags file')
+                else:
+                    source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
+                                            folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
+                    featureFlagList = []
+                    featureFlagsChangedList = []
+                    featureFlag_diff = source_files[folderAndFile]['filePatch']
+                    self.log.debug('Feature flag diff:')
+                    self.log.debug(featureFlag_diff)
+
+                    # Verify that every feature flag has a location and gather then into a list.
+                    # Also use this list to see later if a feature flag was removed.
+                    if not details["featureFlags"] == 'None':
+                        for featureFlag in details["featureFlags"]:
+                            featureFlagName = featureFlag["name"]
+
+                            def displayFound(featureFlagName, featureFlagDisplay):
+                                self.log.debug('Display value for ' + featureFlagName + ': ' + featureFlagDisplay)
+
+                            try:
+                                featureFlagDisplay = featureFlag["location"]
+                            except Exception:
+                                addToWarnings('No location value for the ' + featureFlagName + ' feature flag to parse.',
+                                            details["featureFlagFile"], '', details, self.log, self.location_name,
+                                            featureFlagName, str(details["featureFlags"]))
+                            else:
+                                displayFound(featureFlagName, featureFlagDisplay)
+                                featureFlagList.append(featureFlagName + ':' + featureFlagDisplay)
+
+                        # Split the diff into sections so it can figure out which ones were changed, to know which ones to search other files for
+                        if '},' in featureFlag_diff:
+                            featureFlagDiffSections = featureFlag_diff.split('},')
                         else:
-                            displayFound(featureFlagName, featureFlagDisplay)
-                            featureFlagList.append(featureFlagName + ':' + featureFlagDisplay)
+                            featureFlagDiffSections = [featureFlag_diff]
 
-                    # Split the diff into sections so it can figure out which ones were changed, to know which ones to search other files for
-                    if '},' in featureFlag_diff:
-                        featureFlagDiffSections = featureFlag_diff.split('},')
-                    else:
-                        featureFlagDiffSections = [featureFlag_diff]
+                        # Gather a list of changed feature flags
+                        featureInFileText = ''
+                        for section in featureFlagDiffSections:
+                            if (('"name":' in section) and ('"location":' in section)):
+                                featureFlagDiffList = section.split('\n')
+                                for line in featureFlagDiffList:
+                                    if (('location' in line) and ('+' in line)):
+                                        featureFlagLocation = line.split('"')[3]
+                                        featureFlagsChangedList.append(featureFlagName + ':' + featureFlagLocation)
+                                    elif 'name' in line:
+                                        featureFlagName = line.split('"')[3]
+                                        # If there are some feature flags in the content that should have been removed
+                                        # because they are no longer in the JSON file, post to Slack.
+                                        if featureFlagName not in str(featureFlagList):
+                                            # Lines that start with - indicate that the feature flag has been removed from the JSON file
+                                            if line.startswith('-'):
+                                                for ALL_FILES_LISTEntry in self.all_files_dict:
+                                                    if os.path.isfile(details["source_dir"] + '/' + ALL_FILES_LISTEntry):
+                                                        fileName_open = open(details["source_dir"] + '/' +
+                                                                            ALL_FILES_LISTEntry, 'r', encoding="utf8",
+                                                                            errors="ignore")
+                                                        featureFlagTextCheck = fileName_open.read()
+                                                        fileName_open.close
+                                                        if ((('<' + featureFlagName + '>' in featureFlagTextCheck) or
+                                                                ('</' + featureFlagName + '>' in featureFlagTextCheck)) and
+                                                                (featureFlagName not in self.tags_hide) and
+                                                                (featureFlagName not in self.tags_show)):
+                                                            addToErrors('The ' + featureFlagName + ' tag was removed from ' +
+                                                                        'the feature flag file but is still used in ' +
+                                                                        ALL_FILES_LISTEntry + '.', details["featureFlagFile"], '',
+                                                                        details, self.log, self.location_name, featureFlagName + '>', featureFlagTextCheck)
+                                                            featureInFileText = (featureInFileText + featureFlagName +
+                                                                                ": <https://" +
+                                                                                details["source_github_domain"] + '/' +
+                                                                                details["source_github_org"] + '/' +
+                                                                                details["source_github_repo"] + '/' +
+                                                                                "/edit/master/" + ALL_FILES_LISTEntry + "|"
+                                                                                + ALL_FILES_LISTEntry + ">\n")
 
-                    # Gather a list of changed feature flags
-                    featureInFileText = ''
-                    for section in featureFlagDiffSections:
-                        if (('"name":' in section) and ('"location":' in section)):
-                            featureFlagDiffList = section.split('\n')
-                            for line in featureFlagDiffList:
-                                if (('location' in line) and ('+' in line)):
-                                    featureFlagLocation = line.split('"')[3]
-                                    featureFlagsChangedList.append(featureFlagName + ':' + featureFlagLocation)
-                                elif 'name' in line:
-                                    featureFlagName = line.split('"')[3]
-                                    # If there are some feature flags in the content that should have been removed
-                                    # because they are no longer in the JSON file, post to Slack.
-                                    if featureFlagName not in str(featureFlagList):
-                                        # Lines that start with - indicate that the feature flag has been removed from the JSON file
-                                        if line.startswith('-'):
-                                            for ALL_FILES_LISTEntry in self.all_files_dict:
-                                                if os.path.isfile(details["source_dir"] + '/' + ALL_FILES_LISTEntry):
-                                                    fileName_open = open(details["source_dir"] + '/' +
-                                                                         ALL_FILES_LISTEntry, 'r', encoding="utf8",
-                                                                         errors="ignore")
-                                                    featureFlagTextCheck = fileName_open.read()
-                                                    fileName_open.close
-                                                    if ((('<' + featureFlagName + '>' in featureFlagTextCheck) or
-                                                            ('</' + featureFlagName + '>' in featureFlagTextCheck)) and
-                                                            (featureFlagName not in self.tags_hide) and
-                                                            (featureFlagName not in self.tags_show)):
-                                                        addToErrors('The ' + featureFlagName + ' tag was removed from ' +
-                                                                    'the feature flag file but is still used in ' +
-                                                                    ALL_FILES_LISTEntry + '.', details["featureFlagFile"], '',
-                                                                    details, self.log, self.location_name, featureFlagName + '>', featureFlagTextCheck)
-                                                        featureInFileText = (featureInFileText + featureFlagName +
-                                                                             ": <https://" +
-                                                                             details["source_github_domain"] + '/' +
-                                                                             details["source_github_org"] + '/' +
-                                                                             details["source_github_repo"] + '/' +
-                                                                             "/edit/master/" + ALL_FILES_LISTEntry + "|"
-                                                                             + ALL_FILES_LISTEntry + ">\n")
-
-                # Go through all of the source files and see if any removed feature flags are still used in there.
-                self.log.debug('featureFlagsChangedList: ' + str(featureFlagsChangedList))
-                for ALL_FILES_LISTEntry in self.all_files_dict:
-                    if os.path.isfile(details["source_dir"] + ALL_FILES_LISTEntry):
-                        fileName_open = open(details["source_dir"] + ALL_FILES_LISTEntry, 'r', encoding="utf8", errors="ignore")
-                        featureFlagTextCheck = fileName_open.read()
-                        fileName_open.close
-                        for featureFlag in featureFlagsChangedList:
-                            featureFlagID, featureFlagDisplay = featureFlag.split(':')
-                            if ('<' + str(featureFlagID) + '>') in featureFlagTextCheck:
-                                self.log.debug('This file contains the feature flag ' + featureFlagID + ': ' + ALL_FILES_LISTEntry)
-                                if ALL_FILES_LISTEntry not in str(source_files):
-                                    modifiedFile = ALL_FILES_LISTEntry
-                                    fileStatus = 'Modified feature flag used in this file'
-                                    source_files = addToList(self, details, self.log, 'None', 'None',
-                                                             fileStatus, modifiedFile, source_files,
-                                                             self.location_contents_files,
-                                                             self.location_contents_folders)
-
+                    # Go through all of the source files and see if any removed feature flags are still used in there.
+                    self.log.debug('featureFlagsChangedList: ' + str(featureFlagsChangedList))
+                    for ALL_FILES_LISTEntry in self.all_files_dict:
+                        if os.path.isfile(details["source_dir"] + ALL_FILES_LISTEntry):
+                            fileName_open = open(details["source_dir"] + ALL_FILES_LISTEntry, 'r', encoding="utf8", errors="ignore")
+                            featureFlagTextCheck = fileName_open.read()
+                            fileName_open.close
+                            for featureFlag in featureFlagsChangedList:
+                                featureFlagID, featureFlagDisplay = featureFlag.split(':')
+                                if ('<' + str(featureFlagID) + '>') in featureFlagTextCheck:
+                                    self.log.debug('This file contains the feature flag ' + featureFlagID + ': ' + ALL_FILES_LISTEntry)
+                                    if ALL_FILES_LISTEntry not in str(source_files):
+                                        modifiedFile = ALL_FILES_LISTEntry
+                                        fileStatus = 'Modified feature flag used in this file'
+                                        source_files = addToList(self, details, self.log, 'None', 'None',
+                                                                fileStatus, modifiedFile, source_files,
+                                                                self.location_contents_files,
+                                                                self.location_contents_folders)
+            """
         # Remove travis.yml and gitignore files
         elif (('.travis.yml' in source_file) or ('.gitignore' in source_file) or ('.DS_Store' in source_file) or ('/.git' in source_file)):
             if source_file in source_files:

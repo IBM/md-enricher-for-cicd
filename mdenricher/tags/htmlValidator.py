@@ -187,7 +187,3 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
                         # except Exception:
                         # self.log.debug('Exception')
                         check(topicContents, folderPath, file_name, htmlCodeList, potentialTag)
-
-            if not file_name == 'landing.json':
-                from mdenricher.images.imagesUsed import imagesUsed
-                imagesUsed(self, details, file_name, folderAndFile, folderPath, topicContentsCodeCheck)

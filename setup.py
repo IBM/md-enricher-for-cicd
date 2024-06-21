@@ -8,7 +8,7 @@ from setuptools import setup
 if __name__ == "__main__":
     setup(
     name='doctopus-markdown-enricher',
-    version='1.2.2.20240607',
+    version='1.2.4.20240621',
     description='Single source your markdown documentation.',
     author='Kristin Brown',
     author_email='kakronst@us.ibm.com',

@@ -49,7 +49,7 @@ def config(log, details, locations_config):
     try:
         img_src_filetypes = locations_config["img_src_filetypes"]
     except KeyError:
-        img_src_filetypes = '.ai, .AI, .drawio, .psd, .PSD, .sketch, .svg, .SVG'
+        img_src_filetypes = '.ai, .AI, .drawio, .psd, .PSD, .sketch'
     finally:
         img_src_filetypes_list = img_src_filetypes.split(', ')
         details.update({"img_src_filetypes": img_src_filetypes_list})
@@ -57,7 +57,7 @@ def config(log, details, locations_config):
     try:
         img_output_filetypes = locations_config["img_output_filetypes"]
     except KeyError:
-        img_output_filetypes = '.gif, .GIF, .jpg, .JPG, .jpeg, .JPEG, .mp4, .MP4, .png, .PNG, .svg, .SVG'
+        img_output_filetypes = '.bmp, .BMP, .gif, .GIF, .jpg, .JPG, .jpeg, .JPEG, .mp4, .MP4, .png, .PNG, .svg, .SVG'
     finally:
         img_output_filetypes_list = img_output_filetypes.split(', ')
         details.update({"img_output_filetypes": img_output_filetypes_list})

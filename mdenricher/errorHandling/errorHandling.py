@@ -66,6 +66,7 @@ def writeIssue(issueType, issueTypeFile, message, folderAndFile, folderPlusFile,
     sourceLineNumber = ''
     outputLineNumber = ''
     lineFound = ''
+
     if not topicContents == '' and not errantPhrase == '':
         # Get the line number of the problem in the output file
         errantPhraseFound = False
@@ -140,6 +141,7 @@ def writeIssue(issueType, issueTypeFile, message, folderAndFile, folderPlusFile,
 
     # Add the issue to the file
     if issueAlreadyAdded is False:
+
         with open(issueTypeFile, 'a+', encoding="utf8") as file_open:
             if folderAndFile.endswith('.md'):
                 if ',' in stages:
