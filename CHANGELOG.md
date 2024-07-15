@@ -2,6 +2,43 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.5.1, released 12 July 2024
+<dl>
+<dt>Bug fixes</dt>
+<dd><ul>
+<li>CVE-2024-5569.</li>
+<li>In a CI/CD build, like Travis, where the source is cloned to the root of the workspace and the Markdown Enricher repository is cloned in a subfolder of the workspace, the documentation from the Markdown Enricher was scanned as part of the source.</li>
+</ul></dd>
+
+
+## Version 1.2.5, released 11 July 2024
+<dl>
+<dt><code>--rebuild_all_files</code> behavior change</dt>
+<dd><ul>
+<li>When the <code>--rebuild_all_files</code> option is used, all downstream files are removed before all of the upstream source files are processed.</li>
+</ul></dd>
+<dt>Added changed files to console</dt>
+<dd><ul>
+<li>For troubleshooting purposes, the list of files that were pushed to the downstream repository was added to the console.</li>
+</ul></dd>
+<dt>Updated default image source file list</dt>
+<dd><ul><li>Added <code>.eps</code> to default image source file list. This image type is not pushed to downstream locations unless defined in the locations file.</li></ul></dd>
+<dt>Improvements to <code>location_contents</code> set in the locations file</dt>
+<dd><ul>
+<li>Enabled <code>keep</code> as a valid value for any folder or file.</li>
+</ul></dd>
+<dt>Bug fixes</dt>
+<dd><ul>
+<li>When the upstream branch is not the default branch, the downstream branches contain diffed content from the upstream and the default branches.</li>
+<li>Code phrase errors not reported when code block errors are reported.</li>
+<li>Image paths with alt text in markdown aren't handled properly in the final image check.</li>
+<li>Traceback errors from failed image checks.</li>
+<li>Local source directory that is not a Git clone does not get processed.</li>
+<li>Added <code>try</code> on heavily failed areas of the script to avoid silent failures where logs are not pushed.</li>
+<li>Display issues with <code>location_contents</code> in logs.</li>
+<li>Continued issues with including snippets in comments.</li>
+</ul></dd>
+</dl>
 
 ## Version 1.2.4, released 21 June 2024
 
@@ -81,7 +118,7 @@ Changes published internally within IBM.
 <dd>
     <dd>If the log branch did not already exist, the branch could not be created and logs were not stored.</dd>
     <dd>Last updated and copyright date warnings issued when they don't apply.</dd>
-    <dd>Image warning for images that exist.</ldd>
+    <dd>Image warning for images that exist.</dd>
     <dd>Github usernames with <code>@</code> in them fail to authenticate during cloning.</dd>
     </dd></dl>
 

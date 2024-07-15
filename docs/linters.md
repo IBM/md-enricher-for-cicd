@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-06-21
+# Last updated: 2024-07-13
 -->
 
 # Checks
@@ -117,8 +117,8 @@ This sentence has a <new-tag-name>tag</new-tag-name> that needs to be added to t
 
 ### Images
 
-
 - An image is referenced in a content file but does not exist.
+- An image exists in the upstream source but is not referenced in any downstream content file.
 
 
 

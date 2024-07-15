@@ -20,22 +20,21 @@ def wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicC
 
     if '.md]}' in topicContents:
 
+        ignoreText = '***IgnoreSnippetIndicator***'
+        ignoreTextStandard = '<!--ME_ignore-->'
+
         # Don't transform snippets in comments
         if '<!--' in topicContents:
             commentList = re.findall('<!--(.*?)-->', topicContents, flags=re.DOTALL)
             for comment in commentList:
-                conrefsUsedList = re.findall(r"\{\[.*?.md\]\}", topicContents)
-                if not conrefsUsedList == []:
-                    for conrefUsed in conrefsUsedList:
-                        conrefUsedDoNotTransform = conrefUsed.replace('{[', '{[<!--ME_ignore-->')
-                        commentDoNotTransform = comment.replace(conrefUsed, conrefUsedDoNotTransform)
-                        topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + commentDoNotTransform + '-->')
+                commentRevised = comment.replace('{[', '{[' + ignoreText)
+                topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + commentRevised + '-->')
 
         while '.md]}' in topicContents:
             snippetsUsedList = re.findall(r"\{\[.*?.md\]\}", topicContents)
             snippetsUsedList = list(dict.fromkeys(snippetsUsedList))
             for snippet in snippetsUsedList:
-                if 'ME_ignore' in snippet:
+                if ignoreTextStandard in snippet:
                     continue
                 # This is getting picked up sometimes: {[SatStorage]} | {[def-storage.md]}
                 if ' ' in snippet:
@@ -100,5 +99,7 @@ def wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicC
                                            details["source_github_repo"] + "/edit/" + details["current_github_branch"] + "/"
                                            + folderAndFile + "#L" + lineNumber + "|" + folderAndFile + ' L' + lineNumber +
                                            '>\n')
+
+    topicContents = topicContents.replace(ignoreText, ignoreTextStandard)
 
     return (topicContents)

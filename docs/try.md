@@ -1,14 +1,14 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-06-21
+# Last updated: 2024-07-13
 -->
 
 # Try it out!
 
 Try out the Markdown Enricher with example markdown files.
 
-1. Install [Python 3](https://www.python.org/downloads/).
+1. Install [Python 3.8 or later](https://www.python.org/downloads/).
 
 1. Install the Markdown Enricher. This example uses the version from the `main` branch, but you can use the name of any branch or a specific release version. Including `--upgrade` ensures that any out of date packages that are required by the Markdown Enricher are updated.
     ```

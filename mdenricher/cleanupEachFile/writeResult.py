@@ -64,7 +64,11 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                     with open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore") as fileName_read:
                         topicContentsDownstream = fileName_read.read()
 
-                if '[{LAST_UPDATED_DATE}]' in topicContents or '[{CURRENT_YEAR}]' in topicContents:
+                if '[{LAST_UPDATED_DATE}]' not in topicContents and '[{CURRENT_YEAR}]' in topicContents:
+                    self.log.debug('Always updating topics with copyright variable.')
+                    write = True
+
+                elif '[{LAST_UPDATED_DATE}]' in topicContents or '[{CURRENT_YEAR}]' in topicContents:
                     topicContentsMeat = topicContents
                     topicContentsDownstreamMeat = topicContentsDownstream
                     if 'lastupdated:' in topicContentsMeat or 'years:' in topicContentsMeat:
@@ -133,12 +137,9 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                     self.log.debug(r'Replaced [{CURRENT_YEAR}] with current year: ' + lastUpdatedDate.split('-', 1)[0])
 
                 # For running markdown enricher on markdown enricher docs, don't replace the examples
-                # First curly brace then square bracket
-                if '{[<!--ME_ignore-->' in topicContents:
-                    topicContents = topicContents.replace('{[<!--ME_ignore-->', '{[')
-                # Second square bracket then curly brace
-                if '[{<!--ME_ignore-->' in topicContents:
-                    topicContents = topicContents.replace('[{<!--ME_ignore-->', '[{')
+                if '<!--ME_ignore-->' in topicContents:
+                    topicContents = topicContents.replace('<!--ME_ignore-->', '')
+
                 with open(self.location_dir + folderPath + file_name, 'w+', encoding="utf8", errors="ignore") as fileName_write:
                     fileName_write.write(topicContents)
                     self.log.debug('Wrote: ' + self.location_dir + folderPath + file_name)
