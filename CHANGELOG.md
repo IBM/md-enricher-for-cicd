@@ -2,17 +2,75 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.5.1, released 12 July 2024
+<dl>
+<dt>Bug fixes</dt>
+<dd><ul>
+<li>CVE-2024-5569.</li>
+<li>In a CI/CD build, like Travis, where the source is cloned to the root of the workspace and the Markdown Enricher repository is cloned in a subfolder of the workspace, the documentation from the Markdown Enricher was scanned as part of the source.</li>
+</ul></dd>
+
+
+## Version 1.2.5, released 11 July 2024
+<dl>
+<dt>Python version 3.8 or later required</dt>
+<dt>Cloning downstream branches</dt>
+<dd>When you run the Markdown Enricher for the first time, the downstream branches might not exist yet. If not, and the upstream repo and downstream repos are not the same, then the default branch for the downstream repo is cloned and the downstream branch location is checked out. If the upstream repo and the downstream repo are the same, then the <code>source_github_branch</code> branch defined in the locations file is cloned and the downstream branch location is checked out. In either case, all files from the source location are processed on this first run, not only the ones that were edited.</dd>
+<dt><code>--rebuild_all_files</code> behavior change</dt>
+<dd><ul>
+<li>When the <code>--rebuild_all_files</code> option is used, all downstream files are removed before all of the upstream source files are processed.</li>
+</ul></dd>
+<dt>Added changed files to console</dt>
+<dd><ul>
+<li>For troubleshooting purposes, the list of files that were pushed to the downstream repository was added to the console.</li>
+</ul></dd>
+<dt>File handling</dt>
+<dd><ul>
+<li>Added <code>.bmp</code> as a default image type.</li>
+<li>Redesigned how images are considered used in content.</li>
+<li>Images with source file types are removed from downstream locations.</li>
+<li><code>.svg</code> images are no longer considered a source file type by default.</li>
+<li>Changes to the feature flag file results in the re-processing of all files.</li></ul></dd>
+<dt>Updated default image source file list</dt>
+<dd><ul><li>Added <code>.eps</code> to default image source file list. This image type is not pushed to downstream locations unless defined in the locations file.</li></ul></dd>
+<dt>Improvements to <code>location_contents</code> set in the locations file</dt>
+<dd><ul>
+<li>Enabled <code>keep</code> as a valid value for any folder or file.</li>
+</ul></dd>
+<dt>Added version to console details</dt>
+<dt>Added branch name to clone and check out errors</dt>
+<dt>Image warnings</dt>
+<dd>
+<ul><li>Added warning for images referenced downstream that were not found upstream.</li>
+<li>Added warning for upstream images that are not used in any downstream locations.</li></ul></dd>
+<dt>Bug fixes</dt>
+<dd><ul>
+<li>CVE-2024-35195: Python <code>requests</code> module minimum version 2.32.2 required.</li>
+<li>CVE-2024-37891: With the update to the <code>requests</code> module, Python <code>urllib3</code> module minimum version 2.2.2 is also required.</li>
+<li>When the upstream branch is not the default branch, the downstream branches contain diffed content from the upstream and the default branches.</li>
+<li>Code phrase errors not reported when code block errors are reported.</li>
+<li>Image paths with alt text in markdown aren't handled properly in the final image check.</li>
+<li>Traceback errors from failed image checks.</li>
+<li>Local source directory that is not a Git clone does not get processed.</li>
+<li>Added <code>try</code> on heavily failed areas of the script to avoid silent failures where logs are not pushed.</li>
+<li>Display issues with <code>location_contents</code> in logs.</li>
+<li>Continued issues with including snippets in comments.</li>
+<li>Snippets with <code>ME_ignore</code> indicator not handled properly.</li>
+<li><code>fatal: No remote for the current branch</code> displays in console when pushing results to a new branch. </li>
+<li>Intermittant <code>The repo could not be cloned</code> errors for branches that already existed.</li>
+<li>Jenkins <code>BUILD_URL</code> environment variable displays as <code>None</code>.</li>
+<li>Warning to remove <code>.drawio.svg</code> images from upstream.</li>
+<li><code>failed to push some refs</code> error on push downstream on repo with more than 100 branches.</li>
+<li>Token not stripped from log file.</li>
+<li>Copyright date variable not replaced when the only change in the contents are the last updated date.</li>
+</ul></dd>
+</dl>
+
 
 ## Version 1.2.4, released 21 June 2024
 
 <dl>
-<dt>File handling</dt>
-<dd><ul>
-<dd>Added <code>.bmp</code> as a default image type.</dd>
-<li>Redesigned how images are considered used in content.</li>
-<li>Images with source file types are removed from downstream locations.</li>
-<li><code>.svg</code> images are no longer considered a source file type by default.</li>
-<li>Changes to the feature flag file results in the re-processing of all files.</li>
+
 </ul></dd>
 
 <dt>Bug fixes</dt>
@@ -81,7 +139,7 @@ Changes published internally within IBM.
 <dd>
     <dd>If the log branch did not already exist, the branch could not be created and logs were not stored.</dd>
     <dd>Last updated and copyright date warnings issued when they don't apply.</dd>
-    <dd>Image warning for images that exist.</ldd>
+    <dd>Image warning for images that exist.</dd>
     <dd>Github usernames with <code>@</code> in them fail to authenticate during cloning.</dd>
     </dd></dl>
 

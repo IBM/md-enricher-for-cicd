@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-06-21
+# Last updated: 2024-07-15
 -->
 
 
@@ -62,9 +62,9 @@ The `location` name is the only required key. For the other keys, if unspecified
 |`location_build`|<ul><li>`on` (default)</li><li>`off`</li></ul>|Optional. You can choose to generate output (`on`) or not generate output (`off`) for a location to speed up the overall build. Even when not generating output, the location name must still be included in the locations file so that the tags can be handled appropriately.|
 |`location_output_action`|<ul><li>`none` (default)</li><li>`merge-automatically`</li><li>`create-pr`</li></ul>| Optional. Allowed values: <ul><li>`none`: Output is generated and not merged into any Github branch. Use `none` when you want to generate output locally or you want to push the output to a location outside of Github.</li><li>`merge-automatically`: Output is generated and merged into the downstream location, if specified specified. Helpful for staging content.</li><li>`create-pr`: Output is generated and a pull request is created for you to review and merge into the downstream location specified. Helpful for production content.</li></ul>|
 |`location_github_url`|String|Required when `location_output_action` is set to something other than `none`. The URL for the downstream location. Example: `https://github.com/org/repo`|
-|`location_github_branch`|String|Required when `location_output_action` is set to something other than `none`. The name of the branch to push output to in the downstream location. Example: `main`|
+|`location_github_branch`|String|Required when `location_output_action` is set to something other than `none`. The name of the branch to push output to in the downstream location. Example: `main`<p>If the branch does not exist yet on first run, and the upstream and downstream repos are the same, then the `source_github_branch` is cloned and then the `location_github_branch` branch is checked out. If the upstream and downstream repos are not the same, then the default branch in the downstream repo is cloned and then the `location_github_branch` branch is checked out.  In either case, all files are processed on this first run, not only the files that were edited.<p> |
 |`location_comments`|<ul><li>`on` (default)</li><li>`off`</li></ul>|Optional. HTML comments can be included (`on`) or excluded (`off`) in the output.|
-|`location_commit_summary_style`|<ul><li>`Author`</li><li>`AuthorAndSummary` (default)</li><li>`BuildNumber`</li><li>`BuildNumberAndSummary`</li><li>`CommitID`</li><li>`CommitIDAndSummary`</li><li>`CommitIDAndAuthor`</li><li>`Summary`</li><li>Enter your own text.</li></ul>|Optional. The display of the Git commit summary when pushing output downstream. |
+|`location_commit_summary_style`|<ul><li>`Author`</li><li>`AuthorAndSummary` (default)</li><li>`AuthorAndUpdate`</li><li>`BuildNumber`</li><li>`BuildNumberAndSummary`</li><li>`CommitID`</li><li>`CommitIDAndSummary`</li><li>`CommitIDAndAuthor`</li><li>`Summary`</li><li>Enter your own text.</li></ul>|Optional. The display of the Git commit summary when pushing output downstream. |
 |`location_contents`|JSON|Optional. Special handling of individual files and folders for a downstream location.|
 
 

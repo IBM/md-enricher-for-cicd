@@ -9,6 +9,7 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
 
     import re
 
+    from mdenricher.cleanupEachFile.createTestTopicContents import createTestTopicContents
     from mdenricher.errorHandling.errorHandling import addToWarnings
     from mdenricher.errorHandling.errorHandling import addToErrors
     # from mdenricher.setup.exitBuild import exitBuild
@@ -35,7 +36,7 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
                 addToWarnings(errorTag + ' not removed or handled properly. ', folderAndFile, folderPath + file_name,
                               details, self.log, self.location_name, errorTag, topicContentsCheck)
 
-    def check(topicContents, folderPath, file_name, htmlCodeList, tag):
+    def check(topicContents, folderPath, file_name, tag):
 
         validInstances = []
 
@@ -86,104 +87,75 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
 
     if not ('/' + details["reuse_snippets_folder"] + '/') in folderPath:
 
-        # 1. Make sure there are an even number of code blocks. This will help determine if the problem is with the code blocks or code phrases.
-        instances = topicContents.count('```')
-        if not (instances % 2) == 0:
-            addToWarnings('There are ' + str(instances) +
-                          ' code block tags. ' +
-                          'Check if there is a code block missing a closing tag.', folderAndFile,
-                          folderPath + file_name, details, self.log, self.location_name, '', '')
-        else:
-            # 2. Check for correct code ticks, because otherwise the results are inccurate.
-            topicContentsCodeCheck = topicContents
+        (topicContentsCodeCheck, htmlCodeErrors, codeblockErrors, codephraseErrors,
+            htmlCodeList, mdCodeblockList, mdInlineCodeList) = createTestTopicContents(topicContents)
 
-            def checkCodeblocks(codeblockTag, topicContentsCodeCheck):
-                # Get a list of the codeblocks
-                mdCodeblockListDef = re.findall(codeblockTag + '(.*?)' + codeblockTag, topicContents, flags=re.DOTALL)
+        mdCodeList = mdCodeblockList + mdInlineCodeList
 
-                # Get a list of code phrases from a version of the topicContents that DO NOT have the code blocks in them.
-                # There are instances in satellite where there are backticks in code blocks.
-                # This makes sure that that doesn't mess up our list of code phrases.
-
-                for codeListItem in mdCodeblockListDef:
-                    topicContentsCodeCheck = topicContentsCodeCheck.replace(codeblockTag + codeListItem + codeblockTag, '')
-                return (mdCodeblockListDef, topicContentsCodeCheck)
-            mdCodeblock4, topicContentsCodeCheck = checkCodeblocks('````', topicContentsCodeCheck)
-            mdCodeblock3, topicContentsCodeCheck = checkCodeblocks('```', topicContentsCodeCheck)
-            mdCodeblockList = mdCodeblock4 + mdCodeblock3
-
-            # Check for uneven number of single ticks
-            instancesSingle = topicContentsCodeCheck.count('`')
-            if not (instancesSingle % 2) == 0:
-                # Try to figure out where the errant code tick is
-                inlineCodePhrases = re.findall('`(.*?)`', topicContentsCodeCheck)
-                for phrase in inlineCodePhrases:
-                    topicContentsCodeCheck = topicContentsCodeCheck.replace('`' + phrase + '`', '')
-                topicContentsCodeCheckLines = topicContentsCodeCheck.split('\n')
-                for line in topicContentsCodeCheckLines:
-                    if '`' in line:
-                        head, sep, tail = line.partition('`')
-                        break
-                try:
-                    if (head[-10:] + "`" + tail[10]) in topicContents:
-                        errantPhrase = head[-10:] + "`" + tail[10]
-                    elif (not head[-10:] == '') and ((head[-10:] + "`") in topicContents):
-                        errantPhrase = head[-10:] + "`"
-                    elif (tail[10] == '') and (("`" + tail[10]) in topicContents):
-                        errantPhrase = "`" + tail[10]
+        if htmlCodeErrors > 0:
+            topicContentsCodeCheckLines = topicContentsCodeCheck.split('\n')
+            for line in topicContentsCodeCheckLines:
+                if '<code' in line or '</code)' in line:
+                    if '<code>' in line:
+                        tag = '<code>'
+                    elif '</code>' in line:
+                        tag = '</code>'
                     else:
-                        errantPhrase = ''
-                except Exception:
-                    errantPhrase = ''
-                addToWarnings('Missing code tick. Check for an incomplete code phrase in: ' + line, folderAndFile,
-                              folderPath + file_name, details, self.log, self.location_name, errantPhrase, topicContents)
+                        tag = '<code'
+                    head, sep, tail = line.partition(tag)
+                    try:
+                        if (head[-10:] + tag + tail[10]) in topicContents:
+                            errantPhrase = head[-10:] + tag + tail[10]
+                        elif (not head[-10:] == '') and ((head[-10:] + tag) in topicContents):
+                            errantPhrase = head[-10:] + tag
+                        elif (tail[10] == '') and ((tag + tail[10]) in topicContents):
+                            errantPhrase = tag + tail[10]
+                        else:
+                            errantPhrase = line[0:50]
+                    except Exception:
+                        errantPhrase = line
+                    addToWarnings('HTML code block issue. Check for an incomplete code blocks in ' + ': ' + errantPhrase, folderAndFile,
+                                  folderPath + file_name, details, self.log, self.location_name, '', topicContents)
 
-            mdInlineCodeList = re.findall('`(.*?)`', topicContentsCodeCheck, flags=re.DOTALL)
-            # Combine the code blocks and code phrases into one list
-            mdCodeList = mdCodeblockList + mdInlineCodeList
+        if codeblockErrors > 0:
+            addToWarnings('Markdown code block issue. Check for an incomplete code blocks.', folderAndFile,
+                          folderPath + file_name, details, self.log, self.location_name, '', topicContents)
 
-            htmlCodeList = []
-            # pre and codeblocks aren't necessary because they both have code tags within them
-            codeList = re.findall('<code(.*?)</code>', topicContents, flags=re.DOTALL)
-            for codeListItem in codeList:
-                htmlCodeList.append(codeListItem)
+        if codephraseErrors > 0:
+            topicContentsCodeCheckLines = topicContentsCodeCheck.split('\n')
+            for line in topicContentsCodeCheckLines:
+                if '`' in line:
+                    head, sep, tail = line.partition('`')
+                    try:
+                        if (head[-10:] + "`" + tail[10]) in topicContents:
+                            errantPhrase = head[-10:] + "`" + tail[10]
+                        elif (not head[-10:] == '') and ((head[-10:] + "`") in topicContents):
+                            errantPhrase = head[-10:] + "`"
+                        elif (tail[10] == '') and (("`" + tail[10]) in topicContents):
+                            errantPhrase = "`" + tail[10]
+                        else:
+                            errantPhrase = line[0:50]
+                    except Exception:
+                        errantPhrase = line
+                    addToWarnings('Missing code tick. Check for an incomplete code phrase in ' + ': ' + errantPhrase, folderAndFile,
+                                  folderPath + file_name, details, self.log, self.location_name, errantPhrase, topicContents)
 
-            # Get a version of the topicContents that now does not have code blocks or code ticks in it
-            mdInlineCodeList2 = re.findall('`(.*?)`', topicContentsCodeCheck, flags=re.DOTALL)
-            for codeListItem in mdInlineCodeList2:
-                topicContentsCodeCheck = topicContentsCodeCheck.replace('`' + codeListItem + '`', '')
-
-            # Get a version of the topicContents that now does not have HTML code blocks and phrases in it either
-            codeList2 = re.findall('<code(.*?)</code>', topicContentsCodeCheck, flags=re.DOTALL)
-            for codeListItem in codeList2:
-                topicContentsCodeCheck = topicContentsCodeCheck.replace('<code' + codeListItem + '</code>', '')
-
-            codeErrorFound = False
-            if 'code>' in topicContentsCodeCheck:
-                codeErrorFound = True
-                errorCodeTag = 'code>'
-                errorFound(folderAndFile, errorCodeTag, topicContentsCodeCheck)
-            if '`' in topicContentsCodeCheck:
-                codeErrorFound = True
-                errorCodeTag = '`'
-                errorFound(folderAndFile, errorCodeTag, topicContentsCodeCheck)
-
+        if htmlCodeErrors == 0 and codeblockErrors == 0:
             # If the number of backticks is correct, then check for the rest of the issues
-            if codeErrorFound is False:
-                potentialTagList = re.findall('<(.*?)>', topicContents, flags=re.DOTALL)
-                potentialTagList = list(dict.fromkeys(potentialTagList))
+            potentialTagList = re.findall('<(.*?)>', topicContentsCodeCheck, flags=re.DOTALL)
+            potentialTagList = list(dict.fromkeys(potentialTagList))
 
-                for potentialTag in sorted(potentialTagList):
-                    if ((not potentialTag == '') and (' ' not in potentialTag) and ('</code' not in potentialTag)):
-                        # pattern = '(!<code>)<[/]?' + potentialTag + '>(!</code>)'  # or anything else
-                        # for m in re.finditer(pattern, topicContents):
-                        # self.log.debug(m.group(0))
-                        # start = m.start()
-                        # lineno = topicContents.count('\n', 0, start) + 1
-                        # offset = start - topicContents.rfind('\n', 0, start)
-                        # try:
-                        # word = m.group(1)
-                        # self.log.debug("(%s,%s): %s" % (lineno, offset, word))
-                        # except Exception:
-                        # self.log.debug('Exception')
-                        check(topicContents, folderPath, file_name, htmlCodeList, potentialTag)
+            for potentialTag in sorted(potentialTagList):
+                if ((not potentialTag == '') and (' ' not in potentialTag) and ('</code' not in potentialTag)):
+                    # pattern = '(!<code>)<[/]?' + potentialTag + '>(!</code>)'  # or anything else
+                    # for m in re.finditer(pattern, topicContents):
+                    # self.log.debug(m.group(0))
+                    # start = m.start()
+                    # lineno = topicContents.count('\n', 0, start) + 1
+                    # offset = start - topicContents.rfind('\n', 0, start)
+                    # try:
+                    # word = m.group(1)
+                    # self.log.debug("(%s,%s): %s" % (lineno, offset, word))
+                    # except Exception:
+                    # self.log.debug('Exception')
+                    check(topicContents, folderPath, file_name, potentialTag)

@@ -6,7 +6,8 @@
 from sre_compile import isstring
 
 
-def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folderAndFile, source_files, location_contents_files, location_contents_folders):
+def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folderAndFile, source_files,
+              location_contents_files, location_contents_folders, remove_all_other_files_folders):
 
     # Append the details about each file to the source_files dictionary
 
@@ -17,7 +18,7 @@ def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folde
     # folderPath = downstream folder location - starts and ends with slash
     # file_name = downstream file name - does not start with a slash
 
-    def addToDictionary(dictionary):
+    def addToDictionary(dictionary, locationHandling, returnedFileName, returnedFolderName):
         # Add each of these values to the dictionary for this file
 
         if folderAndFile in dictionary:
@@ -29,8 +30,9 @@ def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folde
         dictionary[folderAndFile]['fileStatus'] = fileStatus
         dictionary[folderAndFile]['filePatch'] = filePatch
         dictionary[folderAndFile]['fileNamePrevious'] = fileNamePrevious
+        dictionary[folderAndFile]['locationHandling'] = locationHandling
 
-        log.debug('Adding: ' + folderAndFile + ' (upstream path), ' + returnedFolderName + returnedFileName + ' (downstream path)')
+        # log.debug('Adding: ' + folderAndFile + ' (upstream path), ' + returnedFolderName + returnedFileName + ' (downstream path)')
 
         if (os.path.isfile(details["source_dir"] + folderAndFile)) and (folderAndFile.endswith(tuple(details["filetypes"]))):
             with open(details["source_dir"] + folderAndFile, 'r', encoding="utf8", errors="ignore") as fileName_write:
@@ -46,9 +48,12 @@ def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folde
         location_contents_files = self.location_contents_files
         location_contents_folders = self.location_contents_folders
 
-    add, returnedFileName, returnedFolderName = checkLocationsPaths(folderAndFile, location_contents_files, location_contents_folders, log)
+    (locationHandling,
+     returnedFileName,
+     returnedFolderName) = checkLocationsPaths(details, folderAndFile, location_contents_files,
+                                               location_contents_folders,
+                                               remove_all_other_files_folders, log)
 
-    if add is True:
-        source_files = addToDictionary(source_files)
+    source_files = addToDictionary(source_files, locationHandling, returnedFileName, returnedFolderName)
 
     return (source_files)

@@ -5,7 +5,7 @@
 
 def start():
 
-    versionNumber = '1.2.4.20240621'
+    versionNumber = '1.2.5.1.20240712'
 
     # Process the command-line options
 
@@ -210,4 +210,5 @@ def start():
              source_dir,
              test_only,
              unprocessed,
-             validation)
+             validation,
+             versionNumber)

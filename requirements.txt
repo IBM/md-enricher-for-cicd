@@ -1,6 +1,6 @@
 pytz>=2022.2.1
 PyYAML>=6.0
-requests>=2.31.0
+requests>=2.32.2
 python-dotenv>=0.20.0
 jsonschema
 slack_sdk

@@ -1,11 +1,20 @@
 {
     "markdown-enricher": {
+        "config": {
+
+            "source_github_branch": "source",
+            "last_commit_id_file": ".source_commit.txt",
+            "log_branch": "source-logs"
+
+        }, 
         "locations": [
             {
-                "location": "staging"
+                "location": "staging",
+                "location_comments": "on"
             },
             {
-                "location": "prod"
+                "location": "prod",
+                "location_comments": "on"
             }
         ]
     }

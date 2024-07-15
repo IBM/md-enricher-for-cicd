@@ -12,21 +12,18 @@ def runThisBuild(self, details):
     # log.debug('source_files_location_list:')
     # log.debug(source_files_location_list)
 
-    if any(x in list(self.all_files_dict) for x in self.source_files_location_list):
-        self.log.debug('Running this location because file is in the list for this location.')
-        runThisLocation = True
-
-    if any(x in details["img_output_filetypes"] for x in self.source_files_location_list) and (runThisLocation is False):
-        self.log.debug('Running this location because an image filetype is in the original source files list.')
-        runThisLocation = True
-
-    if (('/' + details["reuse_snippets_folder"] + '/') in str(self.source_files_location_list)) and (runThisLocation is False):
-        self.log.debug('Running this location because ' + details["reuse_snippets_folder"] + '/ is in the original source files list.')
-        runThisLocation = True
-
-    if (details["featureFlagFile"] in self.source_files_location_list) and (runThisLocation is False):
-        self.log.debug('Running this location because feature_flags.json is in the original source files list.')
-        runThisLocation = True
+    for x in self.source_files_location_list:
+        try:
+            if self.all_files_dict[x]['locationHandling'] == 'keep':
+                # if any(self.source_files_location_list[x]['locationHandling'] == 'keep'
+                # for x in self.source_files_location_list) and (runThisLocation is False):
+                self.log.debug('Running this location because a supported filetype is in the original source files list.')
+                runThisLocation = True
+                break
+        except Exception as e:
+            self.log.error(x)
+            self.log.error('Key error')
+            self.log.error(e)
 
     if runThisLocation is False:
         for x in self.source_files_location_list:

@@ -5,6 +5,7 @@
 
 """ Markdown enricher. """
 
+import datetime
 import os
 import queue
 import shutil
@@ -38,7 +39,7 @@ from mdenricher.setup.postToSlack import postToSlack
 from mdenricher.sourceFileList.allFilesGet import allFilesGet
 from mdenricher.sourceFileList.locationContentList import locationContentList
 from mdenricher.sourceFileList.sourceFilesForThisBranch import sourceFilesForThisBranch
-from mdenricher.sourceFileList.runThisBuild import runThisBuild
+# from mdenricher.sourceFileList.runThisBuild import runThisBuild
 from mdenricher.tags.tagListCompile import tagListCompile
 
 
@@ -66,7 +67,8 @@ def main(
          source_dir,
          test_only,
          unprocessed,
-         validation):
+         validation,
+         version):
 
     """ Markdown enricher. """
 
@@ -155,6 +157,8 @@ def main(
 
             conref_files_list = []  # type: ignore
             filesForOtherLocations = []  # type: ignore
+            unusedInThisLocation = []  # type: ignore
+            self.unusedInThisLocation = unusedInThisLocation
 
             if self.location_build == 'off':
                 self.log.info('Skipping: ' + self.location_name)
@@ -306,6 +310,7 @@ def main(
                     sectionTime = str(round(totalTime, 2))
                     self.log.info(self.location_name + ' source_files_location_list: ' + sectionTime)
 
+                self.log.debug('\n\n')
                 self.log.debug('Location details:')
                 self.log.debug('location_dir: %s', str(self.location_dir))
                 self.log.debug('location_contents: ' + str(self.location_contents))
@@ -317,14 +322,17 @@ def main(
                 self.log.debug('location_github_org: %s', str(self.location_github_org))
                 self.log.debug('location_github_repo: %s', str(self.location_github_repo))
                 self.log.debug('location_github_url: %s', str(self.location_github_url))
+                self.log.debug('location_ibm_cloud_docs: %s', str(self.location_ibm_cloud_docs))
                 self.log.debug('location_name: %s', str(self.location_name))
                 self.log.debug('location_output_action: %s', str(self.location_output_action))
                 self.log.debug('sitemap_file: %s', str(self.sitemap_file))
                 self.log.debug('remove_all_other_files_folders: ' + str(self.remove_all_other_files_folders))
+                self.log.debug('\n\n')
 
                 # See if this is a location that should be iterated over
                 # or skipped based on which files kicked off the build
-                runThisLocation = runThisBuild(self, details)
+                # runThisLocation = runThisBuild(self, details)
+                runThisLocation = True
 
                 if runThisLocation is False:
                     self.log.info('Not running on %s.', self.location_name)
@@ -334,7 +342,10 @@ def main(
                         startTimeSection = time.time()
 
                     try:
-                        self.location_github_branch_push = clone(self, details)
+                        self.location_github_branch_push, self.changeToRebuildAll = clone(self, details)
+                        if self.changeToRebuildAll is True:
+                            self.log.debug('Running on all files because the location branch did not exist yet.')
+                            self.source_files_location_list = self.all_files_dict
                     except Exception as e:
                         self.log.debug(e)
 
@@ -404,7 +415,7 @@ def main(
                         startTimeSection = time.time()
 
                     # Actually do the conref and tag replacements in the new source file list
-                    cleanupEachFile(self, details)
+                    handledList = cleanupEachFile(self, details)
                     if details['debug'] is True:
                         endTime = time.time()
                         totalTime = endTime - startTimeSection
@@ -416,7 +427,7 @@ def main(
 
                     # After all of the content files are updated, update the images
                     if details['unprocessed'] is False:
-                        checkUsedImages(self, details)
+                        self.unusedInThisLocation = checkUsedImages(self, details, handledList)
 
                     if details['debug'] is True:
                         endTime = time.time()
@@ -516,13 +527,13 @@ def main(
                                     if ('nothing to commit' in status.lower()) or (status == '\n') or (status == ''):
                                         self.log.debug('No changes to commit.')
                                     else:
-                                        self.log.debug('These files are changed, but are not being committed at this time:')
+                                        self.log.debug('These files are changed for ' + self.location_name + ', but are not being committed at this time:')
                                         self.log.debug(status)
 
                     else:
                         # Push the updated files to the
                         #  downstream branches
-                        pushUpdatedFiles(self, details, pushQueue)
+                        pushUpdatedFiles(self, details)
 
             self.log.info('Finished: ' + self.location_name)
             endTime = time.time()
@@ -536,7 +547,6 @@ def main(
     try:
 
         exitFlag = 0
-        pushQueue = []
 
         details = {}
         details.update({"debug": debug})
@@ -555,6 +565,7 @@ def main(
         details.update({"tool_name": 'md-enricher-for-cicd'})
         details.update({"unprocessed": unprocessed})
         details.update({"validation": validation})
+        details.update({"version": version})
 
         if output_dir is None:
             output_dir = source_dir + '/output'
@@ -567,12 +578,8 @@ def main(
 
         # Need to remove the old output directory and create a new one before the log file starts
         if os.path.isdir(details["output_dir"]):
-            for file in os.listdir(details["output_dir"]):
-                if '.log' in file or '.txt' in file:
-                    os.remove(details["output_dir"] + '/' + file)
-        else:
-            # shutil.rmtree(details["output_dir"])
-            os.makedirs(details["output_dir"])
+            shutil.rmtree(details["output_dir"])
+        os.makedirs(details["output_dir"])
 
         # Store check file names
         phraseUsageFile = details["output_dir"] + '/phraseUsageFile.txt'
@@ -595,7 +602,6 @@ def main(
                  "\n\n\n-------------------------------------------------------------------------\n\n\n")
 
         # These imports need to be after the pip install
-        from datetime import datetime
         import json
         from pytz import timezone
         import time
@@ -613,7 +619,7 @@ def main(
 
         time_zone = timezone('US/Eastern')
         details.update({"time_zone": time_zone})
-        log.debug('Build began: %s', str(datetime.now(details["time_zone"])))
+        log.debug('Build began: %s', str(datetime.datetime.now(details["time_zone"])))
 
         # Github credentials
         if gh_username is None:
@@ -708,10 +714,12 @@ def main(
                 current_github_branch = urllib.parse.quote(current_github_branch, encoding="utf-8")
             elif details["builder"] == 'local':
                 current_github_branch = 'local'
-            else:
+            elif os.path.isdir(source_dir + '/.git'):
                 current_github_branch_bytes = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
                 current_github_branch = current_github_branch_bytes.decode("utf-8")
                 current_github_branch = current_github_branch.replace('\n', '')
+            else:
+                current_github_branch = 'local'
             # Jenkins pipeline
             if 'HEAD' == current_github_branch:
                 current_github_branch_bytes = subprocess.check_output(["git", "branch", "--show-current"])
@@ -742,35 +750,39 @@ def main(
 
             try:
                 locations_json_list = locations_json["locations"]
+                log.debug('Retrieved locations section.')
             except Exception as e:
                 addToErrors('The locations file could not be parsed. ' + str(e), 'start.py-command', '', details, log, 'pre-build', '', '')
                 # Too many variables haven't been established yet to use the errorHandling exit build.
 
             try:
                 locations_config = locations_json["config"]
+                log.debug('Retrieved config section.')
             except Exception as e:
                 addToErrors('The locations file does not include the source branch in the config section. ' +
                             str(e), 'start.py-command', '', details, log, 'pre-build', '', '')
             finally:
                 (details) = config(log, details, locations_config)
 
+        log.debug('Gathering source info from git.')
         # EX: https://DOMAIN/ORG/REPO.git
-        if str(source_github_url).startswith('https'):
-            source_github_url = str(source_github_url).split('.git', maxsplit=1)[0]
-            source_github_list = source_github_url.split('/')
-            source_github_domain = source_github_list[2]
-            source_github_org = source_github_list[3]
-            source_github_repo = source_github_list[4]
-            if '@' in source_github_domain:
+        if os.path.isdir(source_dir + '/.git'):
+            if str(source_github_url).startswith('https'):
+                source_github_url = str(source_github_url).split('.git', maxsplit=1)[0]
+                source_github_list = source_github_url.split('/')
+                source_github_domain = source_github_list[2]
+                source_github_org = source_github_list[3]
+                source_github_repo = source_github_list[4]
+                if '@' in source_github_domain:
+                    source_github_domain = source_github_domain.split('@')[1]
+                    source_github_url = 'https://' + source_github_domain + '/' + source_github_org + '/' + source_github_repo
+            # EX: git@DOMAIN:ORG/REPO.git
+            elif str(source_github_url).startswith('git@'):
+                source_github_domain, source_github_url = str(source_github_url).split(':')
                 source_github_domain = source_github_domain.split('@')[1]
-                source_github_url = 'https://' + source_github_domain + '/' + source_github_org + '/' + source_github_repo
-        # EX: git@DOMAIN:ORG/REPO.git
-        elif str(source_github_url).startswith('git@'):
-            source_github_domain, source_github_url = str(source_github_url).split(':')
-            source_github_domain = source_github_domain.split('@')[1]
-            source_github_url = source_github_url.split('.git')[0]
-            source_github_org, source_github_repo = source_github_url.split('/')
-            source_github_url = 'https://' + source_github_domain + '/' + source_github_url
+                source_github_url = source_github_url.split('.git')[0]
+                source_github_org, source_github_repo = source_github_url.split('/')
+                source_github_url = 'https://' + source_github_domain + '/' + source_github_url
         # For local builds, set these remote values to None
         else:
             source_github_url = 'None'
@@ -785,6 +797,8 @@ def main(
         details.update({"source_github_org": source_github_org})
         details.update({"source_github_repo": source_github_repo})
         details.update({"source_github_url": source_github_url})
+
+        log.debug('Gathering feature flags.')
 
         # Get the contents of the feature flags file
         jsonStaging = {
@@ -809,7 +823,7 @@ def main(
                     addToErrors('JSON not formatted properly. ' + str(e),
                                 details["featureFlagFile"], '', details, log, 'pre-build', '', '')
                 else:
-                    if details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in details['source_github_org']:
+                    if details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in str(details['source_github_org']):
                         if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in details['source_github_org']:
                             featureFlags.append(jsonStagingAllowlist)
                         elif '\'staging\'' not in str(featureFlags):
@@ -817,7 +831,7 @@ def main(
                         if '\'prod\'' not in str(featureFlags):
                             featureFlags.append(jsonProd)
                     details.update({"featureFlags": featureFlags})
-        elif details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in details['source_github_org']:
+        elif details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in str(details['source_github_org']):
             if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in details['source_github_org']:
                 featureFlags.append(jsonStagingAllowlist)
             elif '\'staging\'' not in str(featureFlags):
@@ -829,6 +843,8 @@ def main(
         else:
             details.update({"featureFlagFile": 'None'})
             details.update({"featureFlags": 'None'})
+
+        log.debug('Checking branches.')
 
         # If the branch is not the source branch, don't push anything anywhere
         if ((not details["source_github_branch"] == details["current_github_branch"]) and
@@ -848,7 +864,7 @@ def main(
         if details["builder"] == 'travis':
             build_url = str(os.environ.get('TRAVIS_BUILD_WEB_URL'))
         elif details["builder"] == 'jenkins':
-            build_url = str(os.environ.get('build_url'))
+            build_url = str(os.environ.get('BUILD_URL'))
         else:
             build_url = ''
 
@@ -964,8 +980,8 @@ def main(
         log.info('Locations can be used as tags: %s', join_comma.join(all_tags))
         details.update({"location_tags": all_tags})
 
-        if (source_github_url + ',' + current_github_branch) in all_locations:
-            addToErrors('The ' + current_github_branch + ' branch in ' + source_github_url +
+        if (str(source_github_url) + ',' + str(current_github_branch)) in all_locations:
+            addToErrors('The ' + str(current_github_branch) + ' branch in ' + str(source_github_url) +
                         ' cannot be both the upstream source and in the list of downstream output locations. ' +
                         'Exiting the build.',
                         'locations.json', '', details, log, 'pre-build', '', '')
@@ -1063,10 +1079,32 @@ def main(
         exitFlag = 1
 
         # Wait for all threads to complete
+        allUnusedInThisLocation = []  # type: ignore
         for thread in threads:
             thread.join()
             filesForOtherLocations = thread.filesForOtherLocations
             conref_files_list = thread.conref_files_list
+            unusedInThisLocationList = list(dict.fromkeys(thread.unusedInThisLocation))
+            allUnusedInThisLocation = allUnusedInThisLocation + unusedInThisLocationList
+
+        # Check if unused images were created recently and if not, suggest removing them
+        if not allUnusedInThisLocation == []:
+            os.chdir(details['source_dir'])
+            for image in list(dict.fromkeys(allUnusedInThisLocation)):
+                if (allUnusedInThisLocation.count(image) == len(locations_json_list)) and (not image.endswith(tuple(details['img_src_filetypes']))):
+                    dateCheck = False
+                    if os.path.isdir(source_dir + '/.git'):
+                        # Get the creation date from Git
+                        commitDate = subprocess.check_output(["git", "log", "--pretty=%cs", "-n 1", details['source_dir'] + image])
+                        commitDateString = commitDate.decode("utf-8").replace('\n', '')
+                        # Convert it to year, month, and day
+                        imageYear, imageMonth, imageDay, = commitDateString.split('-')
+                        today = datetime.date.today()
+                        dateRange = datetime.timedelta(days=60)
+                        dateCheck = today - dateRange <= datetime.date(int(imageYear), int(imageMonth), int(imageDay)) <= today + dateRange
+                    if dateCheck is False:
+                        addToWarnings('Upstream image was not used in any downstream location and can be removed: ' +
+                                      image, image, image, details, log, 'postbuild', '', '')
 
         if details["validation"] == 'on':
             log.debug('Validating output.')
