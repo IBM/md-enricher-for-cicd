@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-06-21
+# Last updated: 2024-07-15
 -->
 
 # Feature flags
@@ -13,8 +13,6 @@ For example, to manage content related to a specific feature that is in developm
 |Convention|Description|
 |----------|-----------|
 |<code>&#60;anyTagName&#62;Feature flag content only&#60;/anyTagName&#62;</code>|Add a tag that you want to use to <code>feature-flags.json</code> and indicate which locations the content should be displayed in. Do not include spaces in the name. When something is changed in `feature-flags.json`, every file is checked to see if the change needs to be made in that file too. </p>|
-
-
 
 <br />
 
@@ -71,7 +69,7 @@ When a feature flag is no longer needed, you can run the Markdown Enricher local
 
 To decide whether the content within the tags must be removed in addition to the tags, look at what locations the tag is set to in the feature flags file. If the flag is set to hidden, the content is probably safe to remove as well. If the flag is set to `all` or the content exists in each location is meant to be in, the tags are probably safe to remove, but the content within them must be left behind.
 
-1. Install [Python 3](https://www.python.org/downloads/).
+1. Install [Python 3.8 or later](https://www.python.org/downloads/).
 
 1. Install the Markdown Enricher. This example uses the version from the `main` branch, but you can use the name of any branch or a specific release version. Including `--upgrade` ensures that any out of date packages that are required by the Markdown Enricher are updated.
     ```

@@ -65,7 +65,6 @@ def previousCommitInfo(details, log):
             log.debug('Getting the current and previous commit ID from the last commits made to the repo.')
             current_commit_id = commitsList[0]
         except Exception as e:
-            print('Exception')
             addToErrors('Commits could not be retrieved.\n' + str(e), 'commits', '', details, log, 'pre-build', '', '')
             exitBuild(details, log)
 
@@ -85,10 +84,8 @@ def previousCommitInfo(details, log):
 
     # Make sure the local files are from the most recent commit
     try:
-        subprocessOutput = subprocess.Popen('git pull -q https://' +
-                                            details["token"] + '@' +
-                                            details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
-                                            details["source_github_repo"], shell=True, stdout=PIPE, stderr=STDOUT)
+
+        subprocessOutput = subprocess.Popen('git pull origin ' + details["source_github_branch"], shell=True, stdout=PIPE, stderr=STDOUT)
         exitCode = parseSubprocessOutput(subprocessOutput, log)
         log.debug(exitCode)
 
@@ -299,7 +296,7 @@ def previousCommitInfo(details, log):
                     except Exception:
                         fileNamePrevious = 'None'
                     source_files_original_list = addToList('None', details, log, fileNamePrevious,
-                                                           filePatch, fileStatus, '/' + folderAndFile, source_files_original_list, [], [])
+                                                           filePatch, fileStatus, '/' + folderAndFile, source_files_original_list, [], [], [])
 
             except Exception:
                 # If the multiple file check resulted in an exception, try checking for a single file in the commit JSON
@@ -316,7 +313,7 @@ def previousCommitInfo(details, log):
                     fileNamePrevious = 'None'
                 source_files_original_list = addToList('None', details,
                                                        log, fileNamePrevious,
-                                                       filePatch, fileStatus, '/' + folderAndFile, source_files_original_list, [], [])
+                                                       filePatch, fileStatus, '/' + folderAndFile, source_files_original_list, [], [], [])
 
             # Ignore the mypy comparison-overlap errors here:
             # https://mypy.readthedocs.io/en/stable/error_code_list2.html#check-that-comparisons-are-overlapping-comparison-overlap
@@ -366,7 +363,7 @@ def previousCommitInfo(details, log):
                                 filePatch = ''
 
                             source_files_original_list = addToList('None', details, log, fileNamePrevious,
-                                                                   filePatch, fileStatus, '/' + folderAndFile, source_files_original_list, [], [])
+                                                                   filePatch, fileStatus, '/' + folderAndFile, source_files_original_list, [], [], [])
 
                 addToWarnings('The commit included 300 or more files. ' +
                               'The Git API could not include the details for more than 300 files in a commit. ' +

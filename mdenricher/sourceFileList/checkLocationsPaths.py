@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def checkLocationsPaths(folderAndFile, location_contents_files, location_contents_folders, log):
+def checkLocationsPaths(details, folderAndFile, location_contents_files, location_contents_folders, remove_all_other_files_folders, log):
 
     # Based on what is in the locations_contents, parse the downstream paths of files and folders
 
@@ -18,14 +18,16 @@ def checkLocationsPaths(folderAndFile, location_contents_files, location_content
         returnedFileName = folderAndFile
 
     locationFileMatch = False
-    add = True
+    locationHandling = 'keep'
 
     if not location_contents_files == []:
         for location_contents_file in location_contents_files:
             if (location_contents_file['file'].replace('/', '')) == ((folderAndFile).replace('/', '')):
                 file_handling = location_contents_file['file_handling']
                 if file_handling == 'remove':
-                    add = False
+                    locationHandling = 'remove'
+                elif file_handling == 'keep':
+                    locationHandling = 'keep'
                 elif (file_handling is None):
                     returnedFolderName = folderAndFile.rsplit('/', 1)[0]
                 elif (file_handling == ''):
@@ -41,9 +43,12 @@ def checkLocationsPaths(folderAndFile, location_contents_files, location_content
             # /tagging-a-subrepo
             # /tagging-a-subrepo/anotherfolder
             if folderAndFile.startswith('/' + location_contents_folder['folder'] + '/'):
+                locationFileMatch = True
                 file_handling = location_contents_folder['file_handling']
                 if file_handling == 'remove':
-                    add = False
+                    locationHandling = 'remove'
+                elif file_handling == 'keep':
+                    locationHandling = 'keep'
                 elif (file_handling == '') or (file_handling is None):
                     # /tagging-a-subrepo/
                     if (returnedFolderName + '/') == '/' + location_contents_folder['folder'] + '/':
@@ -62,4 +67,16 @@ def checkLocationsPaths(folderAndFile, location_contents_files, location_content
     if '/' in returnedFileName:
         returnedFileName = returnedFileName.replace('/', '')
 
-    return (add, returnedFileName, returnedFolderName)
+    if (locationFileMatch is False) and (locationHandling == 'keep') and (folderAndFile.endswith(tuple(details['img_output_filetypes']))):
+        locationHandling = 'keep-if-used'
+
+    if locationFileMatch is False and remove_all_other_files_folders is True:
+        locationHandling = 'remove'
+
+    # See if any of these files should be automatically set to remove
+    ignoreFileNames = ['.travis.yml', 'cloudoekeyrefs.yml', 'toc_schema.json', 'user-mapping.json']
+    ignoreWholePaths = [details["locations_file"], details["slack_user_mapping"]]
+    if locationFileMatch is False and ((folderAndFile in ignoreFileNames) or (details["source_dir"] + folderAndFile in ignoreWholePaths)):
+        locationHandling = 'remove'
+
+    return (locationHandling, returnedFileName, returnedFolderName)

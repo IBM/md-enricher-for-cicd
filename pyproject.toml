@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 pythonpath = [
   "mdenricher"
 ]
-addopts = "-ra --cov=mdenricher --cov-report html:pytest-coverage"
 testpaths = [
     "tests",
 ]

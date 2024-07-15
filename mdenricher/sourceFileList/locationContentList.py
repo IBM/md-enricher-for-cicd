@@ -15,7 +15,7 @@ def locationContentList(self):
     try:
         location_contents_folders = self.location_contents["folders"]
     except Exception:
-        self.log.debug('No folders.')
+        self.log.debug('No folders in location_contents.')
         location_contents_folders = {}
     else:
         for location_contents_folder in location_contents_folders:
@@ -40,14 +40,20 @@ def locationContentList(self):
                 location_contents_folders_keep[location_contents_folder_name] = {}
                 location_contents_folders_keep[location_contents_folder_name]['file_handling'] = location_contents_folder['file_handling']
 
-    self.log.debug('location_contents_folders_keep:' + str(location_contents_folders_keep))
+    if not location_contents_folders_keep == {}:
+        self.log.debug('Folders to keep:')
+        for folder in location_contents_folders_keep:
+            self.log.debug(folder)
 
-    self.log.debug('location_contents_folders_remove:' + str(location_contents_folders_remove))
+    if not location_contents_folders_remove == []:
+        self.log.debug('Folders to remove:')
+        for folder in location_contents_folders_remove:
+            self.log.debug(folder)
 
     try:
         location_contents_files = self.location_contents["files"]
     except Exception:
-        self.log.debug('No files.')
+        self.log.debug('No files in location_contents.')
         location_contents_files = {}
     else:
         for location_contents_file in location_contents_files:
@@ -66,14 +72,20 @@ def locationContentList(self):
                 location_contents_files_keep[location_contents_file_name] = {}
                 location_contents_files_keep[location_contents_file_name]['file_handling'] = str(location_contents_file['file_handling'])
 
-    self.log.debug('location_contents_files_keep:')
-    self.log.debug(location_contents_files_keep)
+    if not location_contents_files_keep == {}:
+        self.log.debug('Files to keep:')
+        for file in location_contents_files_keep:
+            self.log.debug(file)
 
-    self.log.debug('location_contents_files_remove:')
-    self.log.debug(location_contents_files_remove)
+    if not location_contents_files_remove == []:
+        self.log.debug('Files to remove:')
+        for file in location_contents_files_remove:
+            self.log.debug(file)
 
-    self.log.debug('location_contents_folders_remove_and_files:')
-    self.log.debug(location_contents_folders_remove_and_files)
+    if not location_contents_folders_remove_and_files == []:
+        self.log.debug('Folders remove and files:')
+        for file in location_contents_folders_remove_and_files:
+            self.log.debug(file)
 
     return (location_contents_files_keep, location_contents_files_remove,
             location_contents_folders, location_contents_folders_keep, location_contents_folders_remove, location_contents_folders_remove_and_files)

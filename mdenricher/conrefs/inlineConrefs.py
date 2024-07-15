@@ -18,79 +18,59 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
     # Need to run through some topics multiple times because some inline conrefs contain other inline conrefs
     conrefErrors = []
 
+    ignoreText = '***IgnoreSnippetIndicator***'
+    ignoreTextStandard = '<!--ME_ignore-->'
+
+    topicContents = topicContents.replace(ignoreTextStandard, ignoreText)
+
     # Don't transform snippets in comments
     if '<!--' in topicContents:
         commentList = re.findall('<!--(.*?)-->', topicContents, flags=re.DOTALL)
         for comment in commentList:
-            conrefsUsedList = re.findall(r"\{\[.*?(?!\.md)\]\}", comment)
-            if not conrefsUsedList == []:
-                for conrefUsed in conrefsUsedList:
-                    conrefUsedDoNotTransform = conrefUsed.replace('{[', '{[<!--ME_ignore-->')
-                    commentDoNotTransform = comment.replace(conrefUsed, conrefUsedDoNotTransform)
-                    topicContents = topicContents.replace(comment, commentDoNotTransform)
+            commentRevised = comment.replace('{[', '{[' + ignoreText)
+            topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + commentRevised + '-->')
 
-    while attempts < 15:
+    while attempts < 20:
 
         if ']}' not in topicContents:
             break
 
         # Find all reuse that does not have .md in it
         # This seems to still be pulling in the .md instances
+
         conrefsUsedList = re.findall(r"\{\[.*?(?!\.md)\]\}", topicContents)
+        minimizedConrefsUsedList = []
 
-        '''
         for conrefUsed in conrefsUsedList:
-            formattingCount = conrefUsed.count('{[')
-            if formattingCount > 1:
-                self.log.debug(conrefUsed + ' has too many')
-                conrefsUsedList.remove(conrefUsed)
-                while '{[' in conrefUsed:
-                    first, conrefUsed = conrefUsed.split('{[', 1)
-                    if first.endswith(']}'):
-                        conrefsUsedList.append('{[' + first)
-                        self.log.debug('Appending ' + '{[' + first)
-                    self.log.debug('conrefUsed: ' + conrefUsed)
-                if conrefUsed.startswith('{[') and conrefUsed.endswith(']}'):
-                        conrefsUsedList.append(conrefUsed)
+            if (('.md]}' not in conrefUsed) and (ignoreText not in conrefUsed) and
+                    (ignoreTextStandard not in conrefUsed) and ('site.data' not in conrefUsed) and
+                    ('{[FIRST_ANCHOR]}' not in conrefUsed) and (conrefUsed not in minimizedConrefsUsedList)):
+                minimizedConrefsUsedList.append(conrefUsed)
 
-        '''
-
-        if conrefsUsedList == [] or conrefsUsedList == ['{[FIRST_ANCHOR]}']:
+        if minimizedConrefsUsedList == []:
             break
 
-        # Remove duplicates from the list
-        conrefsUsedList = list(dict.fromkeys(conrefsUsedList))
-
         # Go through all of the conrefs found. Ignore the .md or core team ones.
-        for conrefUsed in conrefsUsedList:
-            if ('.md' not in conrefUsed) and ('<!--ME_ignore-->' not in conrefUsed):
-                conrefFileName = conrefUsed.replace('{[', '').replace(']}', '')
-                if (('site.data' not in conrefUsed) and ('FIRST_ANCHOR' not in conrefUsed)):
-                    if (conrefUsed.count('{[') > 1) or (conrefUsed.count(']}') > 1) or ((conrefUsed.count('{[') + conrefUsed.count(']}')) != 2):
-                        addToWarnings('Snippet is not formatted properly and could not be replaced: "' + str(conrefUsed[0:50] +
-                                      '"'), folderAndFile, folderPath + file_name, details, self.log, self.location_name, conrefUsed, topicContents)
-                    else:
-                        try:
-                            # Try to get the conref and its value from the JSON
-                            conrefValue = conrefJSON[str(conrefUsed)]
-                            topicContents = topicContents.replace(conrefUsed, '<!--Snippet ' + str(conrefFileName) +
-                                                                  ' start-->' + conrefValue + '<!--Snippet ' +
-                                                                  str(conrefFileName) + ' end-->')
+        for conrefUsed in minimizedConrefsUsedList:
 
-                            if (('{[' + conrefFileName + ']}') in topicContents):
-                                if (conrefUsed not in conrefErrors):
-                                    conrefErrors.append(conrefUsed)
+            conrefFileName = conrefUsed.replace('{[', '').replace(']}', '')
+            if (conrefUsed.count('{[') > 1) or (conrefUsed.count(']}') > 1) or ((conrefUsed.count('{[') + conrefUsed.count(']}')) != 2):
+                addToWarnings('Snippet is not formatted properly and could not be replaced: "' + str(conrefUsed[0:50] +
+                              '"'), folderAndFile, folderPath + file_name, details, self.log, self.location_name, conrefUsed, topicContents)
+            else:
+                try:
+                    # Try to get the conref and its value from the JSON
+                    conrefValue = conrefJSON[str(conrefUsed)]
+                    topicContents = topicContents.replace(conrefUsed, '<!--Snippet ' + str(conrefFileName) +
+                                                          ' start-->' + conrefValue + '<!--Snippet ' +
+                                                          str(conrefFileName) + ' end-->')
 
-                        # If the conref fails, it probably was removed and this instance just wasn't removed from the content.
-                        # Add it to a list of possible errant conrefs.
-                        except Exception:
-                            self.log.debug('Conref not replaced: ' + conrefUsed)
-                            if conrefUsed not in conrefErrors:
-                                conrefErrors.append(conrefUsed)
-                elif '.' in conrefUsed:
-                    addToWarnings(str(conrefUsed) + ' is detected, but does not have a .md extension. '
-                                  'Convert the file to a markdown file or add the text to the ' + details["reuse_phrases_file"] +
-                                  ' file instead.', folderAndFile, folderPath + file_name, details, self.log, self.location_name, conrefUsed, topicContents)
+                # If the conref fails, it probably was removed and this instance just wasn't removed from the content.
+                # Add it to a list of possible errant conrefs.
+                except Exception:
+                    self.log.debug('Conref not replaced: ' + conrefUsed)
+                    if conrefUsed not in conrefErrors:
+                        conrefErrors.append(conrefUsed)
         attempts = attempts + 1
 
     conrefErrors = list(dict.fromkeys(conrefErrors))
@@ -104,5 +84,30 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
         addToWarnings(str(conrefError) + ' is detected, but was not found in ' + details["reuse_phrases_file"] +
                       '. Check for typos, remove the reference, or add to ' + details["reuse_phrases_file"] +
                       '.', folderAndFile, folderPath + file_name, details, self.log, self.location_name, conrefError, topicContents)
+
+    topicContents = topicContents.replace(ignoreText, ignoreTextStandard)
+    for conref in conrefJSON:
+        if '_COMMENT' not in conref:
+
+            conrefName = conref.replace('{', '').replace('[', '').replace(']', '').replace('}', '')
+
+            if topicContents.count('{[' + conrefName + ']}') > 0:
+                addToWarnings(str('{[' + conrefName + ']}') + ' was not replaced.', folderAndFile,
+                              folderPath + file_name, details, self.log, self.location_name, '{[' + conrefName + ']}', topicContents)
+
+            elif topicContents.count('{[' + conrefName + ']') > 0:
+                addToWarnings(str('{[' + conrefName + ']') + ' was not replaced because of a missing curly brace.',
+                              folderAndFile, folderPath + file_name, details, self.log, self.location_name,
+                              '{[' + conrefName + ']', topicContents)
+
+            elif topicContents.count('[' + conrefName + ']}') > 0:
+                addToWarnings(str('[' + conrefName + ']}') + ' was not replaced because of a missing curly brace.',
+                              folderAndFile, folderPath + file_name, details, self.log, self.location_name,
+                              '[' + conrefName + ']}', topicContents)
+
+            if topicContents.count('{{' + conrefName + '}}') > 0:
+                addToWarnings(str('{{' + conrefName + '}}') + ' was not replaced because the wrong formatting was used.',
+                              folderAndFile, folderPath + file_name, details, self.log, self.location_name,
+                              '{{' + conrefName + '}}', topicContents)
 
     return (topicContents)

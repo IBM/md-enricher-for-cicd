@@ -35,7 +35,8 @@ def sourceFilesForThisBranch(self, details):
         for rebuild_file in details["rebuild_files_list"]:
             self.log.debug('Adding ' + rebuild_file)
             source_files = addToList(self, details, self.log, '', '', 'rebuild',
-                                     rebuild_file, source_files, self.location_contents_files, self.location_contents_folders)
+                                     rebuild_file, source_files, self.location_contents_files,
+                                     self.location_contents_folders, self.remove_all_other_files_folders)
 
     for source_file, source_file_info in list(source_files.items()):
 
@@ -60,7 +61,8 @@ def sourceFilesForThisBranch(self, details):
                     if self.sitemap_file not in source_files:
                         self.log.debug('Adding ' + self.sitemap_file)
                         source_files = addToList(self, details, self.log, self.sitemap_file, 'None',
-                                                 'rebuild', self.sitemap_file, source_files, self.location_contents_files, self.location_contents_folders)
+                                                 'rebuild', self.sitemap_file, source_files, self.location_contents_files, self.location_contents_folders,
+                                                 self.remove_all_other_files_folders)
                 else:
                     self.log.debug('File does not exist: ' + details["source_dir"] + self.sitemap_file)
 
@@ -100,7 +102,8 @@ def sourceFilesForThisBranch(self, details):
         # Adding all images to verify that they are used somewhere
         elif ((file_name.endswith(tuple(details["img_output_filetypes"])))):
             source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
-                                     folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
+                                     folderAndFile, source_files, self.location_contents_files,
+                                     self.location_contents_folders, self.remove_all_other_files_folders)
 
         # Adding landing.json to update date automatically
         elif (file_name == 'landing.json' and
@@ -108,7 +111,8 @@ def sourceFilesForThisBranch(self, details):
             try:
                 if '[{LAST_UPDATED_DATE}]' in self.all_files_dict[folderAndFile]['fileContents']:
                     source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
-                                             folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
+                                             folderAndFile, source_files, self.location_contents_files,
+                                             self.location_contents_folders, self.remove_all_other_files_folders)
             except Exception:
                 pass
 
@@ -120,7 +124,8 @@ def sourceFilesForThisBranch(self, details):
             elif ('toc.yaml' in folderAndFile) and (details['ibm_cloud_docs'] is True):
 
                 source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
-                                        folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
+                                        folderAndFile, source_files, self.location_contents_files,
+                                        self.location_contents_folders, self.remove_all_other_files_folders)
 
                 if details['unprocessed'] is False:
                     toc_diff = source_files[folderAndFile]['filePatch']
@@ -141,7 +146,8 @@ def sourceFilesForThisBranch(self, details):
                                 source_files = addToList(self, details, self.log, 'None', 'None',
                                                         fileStatus, modifiedFile, source_files,
                                                         self.location_contents_files,
-                                                        self.location_contents_folders)
+                                                        self.location_contents_folders,
+                                                        self.remove_all_other_files_folders)
 
             # If the feature-flags.json file was updated, see if any other markdown files use those IDs also need to be updated
             elif (details["featureFlagFile"] in folderAndFile) and (os.path.isfile(details["source_dir"] + details["featureFlagFile"])):
@@ -156,7 +162,8 @@ def sourceFilesForThisBranch(self, details):
                         self.log.debug(source_file + ': Skipping feature flags file')
                 else:
                     source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
-                                            folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
+                                            folderAndFile, source_files, self.location_contents_files,
+                                            self.location_contents_folders, self.remove_all_other_files_folders)
                     featureFlagList = []
                     featureFlagsChangedList = []
                     featureFlag_diff = source_files[folderAndFile]['filePatch']
@@ -244,7 +251,8 @@ def sourceFilesForThisBranch(self, details):
                                         source_files = addToList(self, details, self.log, 'None', 'None',
                                                                 fileStatus, modifiedFile, source_files,
                                                                 self.location_contents_files,
-                                                                self.location_contents_folders)
+                                                                self.location_contents_folders,
+                                                                self.remove_all_other_files_folders)
             """
         # Remove travis.yml and gitignore files
         elif (('.travis.yml' in source_file) or ('.gitignore' in source_file) or ('.DS_Store' in source_file) or ('/.git' in source_file)):
@@ -263,7 +271,8 @@ def sourceFilesForThisBranch(self, details):
             if source_file not in source_files:
                 self.log.debug(source_file + ' is not in source_files')
                 source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
-                                         folderAndFile, source_files, self.location_contents_files, self.location_contents_folders)
+                                         folderAndFile, source_files, self.location_contents_files,
+                                         self.location_contents_folders, self.remove_all_other_files_folders)
 
     # 2 If a conref file was updated, see if any other markdown files use that conref that also need to be updated
     # self.log.debug(str(source_files))
@@ -297,7 +306,8 @@ def sourceFilesForThisBranch(self, details):
                                     source_files = addToList(self, details, self.log, 'None', 'None', fileStatus,
                                                              ALL_FILES_LISTEntrySplit, source_files,
                                                              self.location_contents_files,
-                                                             self.location_contents_folders)
+                                                             self.location_contents_folders,
+                                                             self.remove_all_other_files_folders)
                                     self.log.debug('Added ' + ALL_FILES_LISTEntrySplit + ' because it uses {[' + str(conrefID) + ']}.')
                                     if details["reuse_snippets_folder"] in ALL_FILES_LISTEntrySplit:
                                         conrefFileNameToAdd = ALL_FILES_LISTEntrySplit.split(details["reuse_snippets_folder"] + '/')[1]

@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-06-21
+# Last updated: 2024-07-15
 -->
 
 # Running in Travis
@@ -25,7 +25,7 @@
     matrix:
     include:
     - language: python
-        python: 3.10.0
+        python: 3.12
         env:
         - name="Markdown Enricher for Continuous Integration and Continuous Deployment"
         script:

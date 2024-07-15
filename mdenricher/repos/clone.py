@@ -130,7 +130,9 @@ def clone(self, details):
             self.log.debug(self.location_github_repo + ', ' + BRANCH_TO_CLONE + ' branch cloned.')
 
         if exitCode > 0:
-            addToErrors('The repo could not be cloned.', 'clone', '', details, self.log, self.location_name, '', '')
+            addToErrors('The repo could not be cloned: https://' + self.location_github_domain + '/' +
+                        self.location_github_org + '/' + self.location_github_repo +
+                        ".git, " + BRANCH_TO_CLONE + ' branch.', 'clone', '', details, self.log, self.location_name, '', '')
 
     # self.log.debug('\n\n')
     # self.log.debug('----------------------------------')
@@ -138,76 +140,97 @@ def clone(self, details):
                    '/' + self.location_github_repo + ".git" + ' for ' + self.location_name)
     # self.log.debug('----------------------------------')
 
-    # Get a list of all the branches in the repo
-    getBranches = requests.get(self.location_github_api_repos + "/branches?per_page=100", auth=(details["username"], details["token"]))
+    self.changeToRebuildAll = False
 
-    try:
-        getBranchesJSON = getBranches.json()
-    except Exception:
-        addToErrors('A list of branches could not be retrieved. Review the request result:\n' + str(getBranches.text) +
-                    'A list of branches could not be retrieved.', 'cloning', '', details, self.log, self.location_name, '', '')
-        if not self.location_output_action == 'none':
-            exitBuild(details, self.log)
+    CONTINUE_BRANCH_CHECK_LOOP = True
+    page = 0
+    branches = []
+
+    while CONTINUE_BRANCH_CHECK_LOOP is True:
+
+        page = page + 1
+
+        # Get a list of all the branches in the repo
+        getBranches = requests.get(self.location_github_api_repos + "/branches?per_page=100&page=" + str(page), auth=(details["username"], details["token"]))
+
+        try:
+            getBranchesJSON = getBranches.json()
+        except Exception:
+            addToErrors('A list of branches could not be retrieved. Review the request result:\n' + str(getBranches.text) +
+                        'A list of branches could not be retrieved.', 'cloning', '', details, self.log, self.location_name, '', '')
+            if not self.location_output_action == 'none':
+                exitBuild(details, self.log)
+
+        if 'github' not in str(getBranchesJSON):
+            CONTINUE_BRANCH_CHECK_LOOP = False
+        if 'Not Found' in str(getBranchesJSON):
+            CONTINUE_BRANCH_CHECK_LOOP = False
+            addToErrors('The downstream location_github_url was not found for ' + self.location_name + '. ' +
+                        'Verify the username, token, domain, organization, and repo: https://' +
+                        self.location_github_domain + '/' + self.location_github_org + '/' + self.location_github_repo,
+                        'cloning', '', details, self.log, self.location_name, '', '')
+            if not self.location_output_action == 'none':
+                exitBuild(details, self.log)
+        else:
+            for branchSection in getBranchesJSON:
+                branch = branchSection['name']
+                branches.append(branch)
 
     location_github_branch_push = None
+    BRANCH_EXISTS = checkBranchExistence(branches, self.location_github_branch)
 
-    if 'Not Found' in str(getBranchesJSON):
-        addToErrors('The downstream location_github_url was not found for ' + self.location_name + '. ' +
-                    'Verify the username, token, domain, organization, and repo: https://' +
-                    self.location_github_domain + '/' + self.location_github_org + '/' + self.location_github_repo,
-                    'cloning', '', details, self.log, self.location_name, '', '')
-        if not self.location_output_action == 'none':
-            exitBuild(details, self.log)
-    else:
-        branches = []
-        for branchSection in getBranchesJSON:
-            branch = branchSection['name']
-            branches.append(branch)
-
-        BRANCH_EXISTS = checkBranchExistence(branches, self.location_github_branch)
-
-        if ((BRANCH_EXISTS is True) and (not self.location_output_action == 'create-pr')):
-            # Get the existing main branch
+    if ((BRANCH_EXISTS is True) and (not self.location_output_action == 'create-pr')):
+        # Get the existing main branch
+        cloneBranch(self.location_github_branch, details)
+        location_github_branch_push = self.location_github_branch
+    elif ((BRANCH_EXISTS is True) and (self.location_output_action == 'create-pr')):
+        BRANCH_EXISTS = checkBranchExistence(branches, self.location_github_branch_pr)
+        if BRANCH_EXISTS is True:
+            # Get the existing PR branch
+            cloneBranch(self.location_github_branch_pr, details)
+            location_github_branch_push = self.location_github_branch_pr
+        else:
+            # Get the branch to create the PR to
             cloneBranch(self.location_github_branch, details)
-            location_github_branch_push = self.location_github_branch
-        elif ((BRANCH_EXISTS is True) and (self.location_output_action == 'create-pr')):
-            BRANCH_EXISTS = checkBranchExistence(branches, self.location_github_branch_pr)
-            if BRANCH_EXISTS is True:
-                # Get the existing PR branch
-                cloneBranch(self.location_github_branch_pr, details)
-                location_github_branch_push = self.location_github_branch_pr
-            else:
-                # Get the main branch
-                cloneBranch(self.location_github_branch, details)
-                if not os.path.isdir(self.location_dir):
-                    addToErrors('The ' + self.location_github_branch + ' branch could not be cloned.',
-                                'cloning', '', details, self.log, self.location_name, '', '')
-                    if not self.location_output_action == 'none':
-                        exitBuild(details, self.log)
-                os.chdir(self.location_dir)
-                self.log.debug('Checking out branch: ' + self.location_github_branch_pr)
-                subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' checkout -b ' +
-                                                    self.location_github_branch_pr + ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
-                exitCode = parseSubprocessOutput(subprocessOutput, self.log)
-                if exitCode > 0:
-                    addToErrors('The branch could not be checked out.', 'clone', '', details, self.log, self.location_name, '', '')
-                location_github_branch_push = self.location_github_branch_pr
+            if not os.path.isdir(self.location_dir):
+                addToErrors('The ' + self.location_github_branch + ' branch could not be cloned.',
+                            'cloning', '', details, self.log, self.location_name, '', '')
+                if not self.location_output_action == 'none':
+                    exitBuild(details, self.log)
+            os.chdir(self.location_dir)
+            self.log.debug('Checking out branch: ' + self.location_github_branch_pr)
+            subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' checkout -b ' +
+                                                self.location_github_branch_pr + ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+            exitCode = parseSubprocessOutput(subprocessOutput, self.log)
+            if exitCode > 0:
+                addToErrors('The ' + self.location_github_branch_pr + ' branch could not be checked out.',
+                            'clone', '', details, self.log, self.location_name, '', '')
+            location_github_branch_push = self.location_github_branch_pr
+
+    elif BRANCH_EXISTS is False:
+        self.changeToRebuildAll = True
+        # If the repo URL is the same for source and location, use the source branch
+        if details['source_github_repo'] == self.location_github_repo:
+            # Get the source_github_branch branch
+            LOCATION_GITHUB_BRANCH_CLONE = details['source_github_branch']
+        # If the URLs are different, use the default branch in the location repo
         else:
             # Get the default branch
             getRepo = requests.get(self.location_github_api_repos, auth=(details["username"], details["token"]))
             getRepoJSON = getRepo.json()
-            LOCATION_GITHUB_BRANCH_DEFAULT = getRepoJSON['default_branch']
-            cloneBranch(LOCATION_GITHUB_BRANCH_DEFAULT, details)
-            os.chdir(self.location_dir)
-            self.log.debug('Checking out branch: ' + self.location_github_branch)
-            subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' checkout -b ' +
-                                                self.location_github_branch + ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
-            exitCode = parseSubprocessOutput(subprocessOutput, self.log)
-            if exitCode > 0:
-                addToErrors('The branch could not be checked out.', 'clone', '', details, self.log, self.location_name, '', '')
+            LOCATION_GITHUB_BRANCH_CLONE = getRepoJSON['default_branch']
 
-            location_github_branch_push = self.location_github_branch
+        cloneBranch(LOCATION_GITHUB_BRANCH_CLONE, details)
+        os.chdir(self.location_dir)
+        self.log.debug('Checking out branch: ' + self.location_github_branch)
+        subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' checkout -b ' +
+                                            self.location_github_branch + ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
+        exitCode = parseSubprocessOutput(subprocessOutput, self.log)
+        if exitCode > 0:
+            addToErrors('The branch could not be checked out.', 'clone', '', details, self.log, self.location_name, '', '')
 
-        self.log.debug('Branch to push to: ' + str(location_github_branch_push))
+        location_github_branch_push = self.location_github_branch
 
-    return (str(location_github_branch_push))
+    self.log.debug('Branch to push to: ' + str(location_github_branch_push))
+
+    return (str(location_github_branch_push), self.changeToRebuildAll)

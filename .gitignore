@@ -8,3 +8,6 @@ content
 example-output
 build/*
 example/output
+docs-output
+.mypy_cache
+.pytest_cache

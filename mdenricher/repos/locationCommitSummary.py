@@ -17,6 +17,8 @@ def locationCommitSummary(self, details):
         else:
             LOCATION_COMMIT_SUMMARY = details["current_commit_author"] + ': ' + details["current_commit_summary"]
 
+    elif self.location_commit_summary_style == 'AuthorAndUpdate':
+        LOCATION_COMMIT_SUMMARY = details["current_commit_author"] + ' update'
     elif self.location_commit_summary_style == 'BuildNumber':
         LOCATION_COMMIT_SUMMARY = 'Build ' + details["build_number"]
     elif self.location_commit_summary_style == 'BuildNumberAndSummary':

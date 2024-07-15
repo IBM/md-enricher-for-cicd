@@ -49,7 +49,7 @@ def config(log, details, locations_config):
     try:
         img_src_filetypes = locations_config["img_src_filetypes"]
     except KeyError:
-        img_src_filetypes = '.ai, .AI, .drawio, .psd, .PSD, .sketch'
+        img_src_filetypes = '.ai, .AI, .drawio, .drawio.svg, .eps, .psd, .PSD, .sketch'
     finally:
         img_src_filetypes_list = img_src_filetypes.split(', ')
         details.update({"img_src_filetypes": img_src_filetypes_list})
