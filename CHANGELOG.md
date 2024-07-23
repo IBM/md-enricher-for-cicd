@@ -2,6 +2,14 @@
 
 Notable changes to this project are documented in this file.
 
+
+## Version 1.2.5.4, released 23 July 2024
+<dl>
+<dt>Bug fixes:</dt>
+<dd><ul>
+<li>Output link in Slack messages broken.</li>
+</ul></dd>
+
 ## Version 1.2.5.3, released 17 July 2024
 <dl>
 <dt>Added file handling tracking as a JSON file</dt>
