@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-07-15
+# Last updated: 2024-07-18
 -->
 
 
@@ -141,6 +141,7 @@ The `mdenricher` command kicks things off. These are the available options to se
 |`--builder`| Optional. Include `--builder local` to force builds running in Travis or Jenkins to behave like a `local` build. Ensures that source Git repository information retrieval or output handling do not affect the outcome of the build. |
 |`--cleanup_flags_and_content <tag1,tag2,tag3>`| Optional. Include locally with `--source_dir` to remove an outdated feature flag and all of the content within it from all files in the directory. For example, you might have set outdated content within a specific flag to hidden, now that flag and the content within it can be removed. Separate more than one tag with a comma. Do not include spaces.|
 |`--cleanup_flags_not_content <tag1,tag2,tag3>`| Optional. Include locally with `--source_dir` to remove an outdated feature flag from all files in the directory, but not the content within it. For example, you might have set new content within a specific flag to `all` or all of the locations it needs to be in, so now that flag can be removed, but the content within the tags must remain. Separate more than one tag with a comma. Do not include spaces.|
+|`--feature_flag_migration`| Optional with the `--unprocessed` option. You can use this option when you have a multi-directory upstream repo to single-source content with feature flags that apply to that repo, but are migrated to a simpler feature flag file to be processed again by the downstream location's build.|
 |`--gh_token`| The Github token to access the upstream and downstream repositories.|
 |`--gh_username`| The Github username to access the upstream and downstream repositories.|
 |`--locations_file <path_to_locations_file>`|Required. The path to the JSON file of locations to create content for.|
@@ -156,6 +157,7 @@ The `mdenricher` command kicks things off. These are the available options to se
 |`--slack_webhook ${SLACK_WEBHOOK}`|Optional. One or more comma-separated webhooks for Slack channels to post error messages to. This value can be an environment variable.|
 |`--source_dir <path_to_source_directory>`|Required. The path to a content directory or a cloned Github repo.|
 |`--test_only`|Optional. Performs a check without pushing the results anywhere.|
+|`--unprocessed`|Optional. Pushes files to downstream locations without processing any tags or formatting. This option is helpful when you are single-sourcing content in a unique way, but want to use an already established system of builds with a standard locations file.|
 |`--version`|View the installed version of the Markdown Enricher.|
 
 

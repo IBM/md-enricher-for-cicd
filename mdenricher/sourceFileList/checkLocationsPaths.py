@@ -74,9 +74,13 @@ def checkLocationsPaths(details, folderAndFile, location_contents_files, locatio
         locationHandling = 'remove'
 
     # See if any of these files should be automatically set to remove
-    ignoreFileNames = ['.travis.yml', 'cloudoekeyrefs.yml', 'toc_schema.json', 'user-mapping.json']
+    ignoreFileNames = ['cloudoekeyrefs.yml', 'toc_schema.json', 'user-mapping.json']
     ignoreWholePaths = [details["locations_file"], details["slack_user_mapping"]]
-    if locationFileMatch is False and ((folderAndFile in ignoreFileNames) or (details["source_dir"] + folderAndFile in ignoreWholePaths)):
+    if ((locationFileMatch is False and
+        ((folderAndFile in ignoreFileNames) or
+         (folderAndFile.endswith(tuple(details["img_src_filetypes"])) and details['unprocessed'] is False) or
+         (details["source_dir"] + folderAndFile in ignoreWholePaths))) or
+       (folderAndFile == details['featureFlagFile'] and details['unprocessed'] is False)):
         locationHandling = 'remove'
 
     return (locationHandling, returnedFileName, returnedFolderName)

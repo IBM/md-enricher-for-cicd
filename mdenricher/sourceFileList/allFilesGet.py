@@ -14,7 +14,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # Like if a conref file changes, this list will be used to look inside each file to see if that conref is used in it
 
     def allFileCheck(details, path, file, folder_name, all_files_dict, conref_files_list,
-                     filesForOtherLocations, image_files_list, image_src_files_list, sitemap_file):
+                     filesForOtherLocations, image_files_list, sitemap_file):
 
         try:
             userMapping = str(details["slack_user_mapping"].rsplit('/', 1)[1])
@@ -58,7 +58,10 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
             # log.info('Handling image filetypes: ' + folder_name + file)
 
         elif file.endswith(tuple(details["img_src_filetypes"])):
-            image_src_files_list.append(folder_name + file)
+            # Will be automatically removed
+            all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
+                                       folder_name + file, all_files_dict, location_contents_files,
+                                       location_contents_folders, remove_all_other_files_folders)
 
         if (details["reuse_snippets_folder"] in path):
             if (not file == str(details["reuse_phrases_file"])) and details['unprocessed'] is False:
@@ -74,7 +77,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
             sitemap_file = folder_name + file
             log.debug('Setting sitemap_file as ' + sitemap_file)
 
-        return (all_files_dict, conref_files_list, filesForOtherLocations, image_files_list, image_src_files_list, sitemap_file)
+        return (all_files_dict, conref_files_list, filesForOtherLocations, image_files_list, sitemap_file)
 
     # All of these list entries always start with a slash
 
@@ -89,7 +92,6 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     all_files_dict: dict[dict[str, str], dict[str, str]] = {}  # type: ignore[misc]
     conref_files_list: list[str] = []  # type: ignore[misc]
     image_files_list: list[str] = []  # type: ignore[misc]
-    image_src_files_list: list[str] = []  # type: ignore[misc]
     sitemap_file = 'None'
     # filesForOtherLocations to collect all file names from all locations
     # for complete validation even when not all locations are built
@@ -125,13 +127,11 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                  conref_files_list,
                  filesForOtherLocations,
                  image_files_list,
-                 image_src_files_list,
                  sitemap_file) = allFileCheck(details, path, file, folder_name,
                                               all_files_dict,
                                               conref_files_list,
                                               filesForOtherLocations,
-                                              image_files_list,
-                                              image_src_files_list, sitemap_file)
+                                              image_files_list, sitemap_file)
 
     # Add things that might have been deleted
     for source_file in source_files_original_list:
@@ -149,12 +149,10 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
              conref_files_list,
              filesForOtherLocations,
              image_files_list,
-             image_src_files_list,
              sitemap_file) = (allFileCheck(details, details["source_dir"],
                                            file, folder_name, all_files_dict,
                                            conref_files_list, filesForOtherLocations,
                                            image_files_list,
-                                           image_src_files_list,
                                            sitemap_file))
 
     # Check TOC files for tagging to apply to the content files
@@ -177,16 +175,12 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
 
         # Feature flag tags
         for tagJSON in details['featureFlags']:
-            try:
-                tagList.append(tagJSON['name'] + ':' + tagJSON['location'])
-            except Exception:
-                pass
+            tagList.append(tagJSON['name'] + ':' + tagJSON['location'])
 
         all_files_dict = tocTagHandling(log, details, all_files_dict, tagList)
 
     conref_files_list.sort()
     image_files_list.sort()
-    image_src_files_list.sort()
     # if not all_files_dict == {}:
     # log.debug('All files gathered.')
     # if not conref_files_list == []:
@@ -198,4 +192,4 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # log.info('\nIMAGE_FILES_LIST:')
     # log.info(image_files_list)
 
-    return (all_files_dict, conref_files_list, image_files_list, image_src_files_list, sitemap_file, filesForOtherLocations)
+    return (all_files_dict, conref_files_list, image_files_list, sitemap_file, filesForOtherLocations)

@@ -178,7 +178,6 @@ def pushUpdatedFiles(self, details):
                 LOCATION_COMMIT_SUMMARY = locationCommitSummary(self, details)
                 status_bytes = subprocess.check_output('git -C ' + self.location_dir + ' status --short', shell=True)
                 status = status_bytes.decode("utf-8")
-                self.log.info('Pushing files: ' + self.location_name + '\n' + status)
                 if ('nothing to commit' in status.lower()) or (status == '\n') or (status == ''):
                     self.log.debug('Nothing to commit to ' + self.location_name + '.')
                 else:
@@ -277,6 +276,7 @@ def pushUpdatedFiles(self, details):
             # Was something commited to Next Prod Push? If a PR doesn't already exist that's created by the user, create the PR for prod
 
             if self.pushSuccessful is True:
+                self.log.info('Pushed files: ' + self.location_name + '\n' + status)
                 self.log.debug('Push successful.')
                 startTime = time.time()
 
@@ -402,9 +402,12 @@ def pushUpdatedFiles(self, details):
                 sectionTime = str(round(totalTime, 2))
                 self.log.debug(self.location_name + ' pr: ' + sectionTime)
             else:
-                addToErrors('The changes could not be pushed to the ' + str(self.location_github_branch_push) +
-                            ' branch of the repo for ' + self.location_name + '.' + '\n' + str(subprocessOutput.stdout),
-                            'push', '', details, self.log, 'post-build', '', '')
+                message = ('The changes were not pushed to the ' + str(self.location_github_branch_push) +
+                           ' branch of the repo for ' + self.location_name + '.')
+                if os.path.isfile(details["error_file"]):
+                    message = message + ' Fix content errors that are preventing the push from completing.'
+                addToErrors(message, 'push', '', details, self.log, 'post-build', '', '')
+                self.log.debug(str(subprocessOutput.stdout))
     except Exception as e:
         addToErrors('The push could not be completed for ' + self.location_name + '.\n' + str(e),
                     'push', '', details, self.log, 'push', '', '')

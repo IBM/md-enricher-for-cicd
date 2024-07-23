@@ -10,7 +10,7 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
     import re
 
     from mdenricher.errorHandling.errorHandling import addToWarnings
-    # from mdenricher.errorHandling.errorHandling import addToErrors
+    from mdenricher.errorHandling.errorHandling import addToErrors
     # from mdenricher.setup.exitBuild import exitBuild
 
     # Get a list of all of the conrefs that are used in the file in the Doctopus styling
@@ -96,18 +96,18 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
                               folderPath + file_name, details, self.log, self.location_name, '{[' + conrefName + ']}', topicContents)
 
             elif topicContents.count('{[' + conrefName + ']') > 0:
-                addToWarnings(str('{[' + conrefName + ']') + ' was not replaced because of a missing curly brace.',
-                              folderAndFile, folderPath + file_name, details, self.log, self.location_name,
-                              '{[' + conrefName + ']', topicContents)
+                addToErrors(str('{[' + conrefName + ']') + ' was not replaced because of a missing curly brace.',
+                            folderAndFile, folderPath + file_name, details, self.log, self.location_name,
+                            '{[' + conrefName + ']', topicContents)
 
             elif topicContents.count('[' + conrefName + ']}') > 0:
-                addToWarnings(str('[' + conrefName + ']}') + ' was not replaced because of a missing curly brace.',
-                              folderAndFile, folderPath + file_name, details, self.log, self.location_name,
-                              '[' + conrefName + ']}', topicContents)
+                addToErrors(str('[' + conrefName + ']}') + ' was not replaced because of a missing curly brace.',
+                            folderAndFile, folderPath + file_name, details, self.log, self.location_name,
+                            '[' + conrefName + ']}', topicContents)
 
             if topicContents.count('{{' + conrefName + '}}') > 0:
-                addToWarnings(str('{{' + conrefName + '}}') + ' was not replaced because the wrong formatting was used.',
-                              folderAndFile, folderPath + file_name, details, self.log, self.location_name,
-                              '{{' + conrefName + '}}', topicContents)
+                addToErrors(str('{{' + conrefName + '}}') + ' was not replaced because the wrong formatting was used.',
+                            folderAndFile, folderPath + file_name, details, self.log, self.location_name,
+                            '{{' + conrefName + '}}', topicContents)
 
     return (topicContents)
