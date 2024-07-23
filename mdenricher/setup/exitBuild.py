@@ -27,6 +27,10 @@ def exitBuild(details, log):
             itemListSplits.sort()
             itemListSplits = list(filter(('').__ne__, itemListSplits))
             for itemListSplit in itemListSplits:
+                if 'Output: ' in itemListSplit and '|>' in itemListSplit:
+                    noOutputInstances = re.findall('Output: ' + '.*?' + '|>', itemListSplit)
+                    for noOutputInstance in noOutputInstances:
+                        itemListSplit = itemListSplit.replace(noOutputInstance, 'Output: None')
                 if 'Stage: ' in itemListSplit:
                     errorWithoutLocation, errorLocation = itemListSplit.rsplit('Stage: ', 1)
                     if errorWithoutLocation in itemListNoDupes:

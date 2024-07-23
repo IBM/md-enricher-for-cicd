@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-07-18
+# Last updated: 2024-07-23
 -->
 
 # Default tags
@@ -54,7 +54,7 @@ Example metadata for marked-it:
 
 copyright:
   years: 2014, 2024
-lastupdated: "2024-07-18"
+lastupdated: "2024-07-23"
 
 keywords: keyword1, keyword 2
 

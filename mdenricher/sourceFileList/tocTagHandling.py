@@ -22,34 +22,35 @@ def tocTagHandling(log, details, all_files_original, tagList):
             for taggedLine in taggedLines:
                 while taggedLine.endswith(' '):
                     taggedLine = taggedLine[:-1]
-                taggedNoSpaces = taggedLine.split(' ')
-                for taggedLineNoSpaces in taggedNoSpaces:
-                    taggedLineNoSpaces = '/' + taggedLineNoSpaces
-                    if taggedLineNoSpaces.endswith(tuple(details['filetypes'])):
-                        try:
-                            fileList[taggedLineNoSpaces]
-                        except Exception:
-                            fileList[taggedLineNoSpaces] = {}
-                        try:
-                            fileList[taggedLineNoSpaces]['locations']
-                        except Exception:
-                            fileList[taggedLineNoSpaces]['locations'] = []
-                        try:
-                            fileList[taggedLineNoSpaces]['tagsInTOC']
-                        except Exception:
-                            fileList[taggedLineNoSpaces]['tagsInTOC'] = []
+                if 'include:' not in str(taggedLine):
+                    taggedNoSpaces = taggedLine.split(' ')
+                    for taggedLineNoSpaces in taggedNoSpaces:
+                        taggedLineNoSpaces = '/' + taggedLineNoSpaces
+                        if taggedLineNoSpaces.endswith(tuple(details['filetypes'])):
+                            try:
+                                fileList[taggedLineNoSpaces]
+                            except Exception:
+                                fileList[taggedLineNoSpaces] = {}
+                            try:
+                                fileList[taggedLineNoSpaces]['locations']
+                            except Exception:
+                                fileList[taggedLineNoSpaces]['locations'] = []
+                            try:
+                                fileList[taggedLineNoSpaces]['tagsInTOC']
+                            except Exception:
+                                fileList[taggedLineNoSpaces]['tagsInTOC'] = []
 
-                        if ', ' in tagLocations:
-                            tagLocationList = tagLocations.split(', ')
-                        elif ',' in tagLocations:
-                            tagLocationList = tagLocations.split(',')
-                        else:
-                            tagLocationList = [tagLocations]
-                        for location in tagLocationList:
-                            if location not in fileList[taggedLineNoSpaces]['locations']:
-                                fileList[taggedLineNoSpaces]['locations'].append(location)
-                        if tag not in fileList[taggedLineNoSpaces]['tagsInTOC']:
-                            fileList[taggedLineNoSpaces]['tagsInTOC'].append(tag)
+                            if ', ' in tagLocations:
+                                tagLocationList = tagLocations.split(', ')
+                            elif ',' in tagLocations:
+                                tagLocationList = tagLocations.split(',')
+                            else:
+                                tagLocationList = [tagLocations]
+                            for location in tagLocationList:
+                                if location not in fileList[taggedLineNoSpaces]['locations']:
+                                    fileList[taggedLineNoSpaces]['locations'].append(location)
+                            if tag not in fileList[taggedLineNoSpaces]['tagsInTOC']:
+                                fileList[taggedLineNoSpaces]['tagsInTOC'].append(tag)
 
     for file in fileList:
 
