@@ -46,6 +46,7 @@ from mdenricher.tags.tagListCompile import tagListCompile
 def main(
          builder,
          debug,
+         feature_flag_migration,
          gh_username,
          gh_token,
          ibm_cloud_docs,
@@ -128,6 +129,10 @@ def main(
             self.log.debug('---------------------------------------------------------')
             self.log.debug('%s', self.location_name.upper())
             self.log.debug('---------------------------------------------------------\n\n')
+            self.log.debug('Changed files:')
+            for changedFile in self.source_files_original_list:
+                self.log.debug(changedFile)
+            self.log.debug('\n')
 
             (location_build, location_comments, location_commit_summary_style,
              location_contents, location_contents_files, location_contents_folders,
@@ -196,9 +201,8 @@ def main(
                 self.all_files_dict = all_files_get_result[0]
                 self.conref_files_list = all_files_get_result[1]
                 self.image_files_list = all_files_get_result[2]
-                self.image_src_files_list = all_files_get_result[3]
-                self.sitemap_file = all_files_get_result[4]
-                self.filesForOtherLocations = all_files_get_result[5]
+                self.sitemap_file = all_files_get_result[3]
+                self.filesForOtherLocations = all_files_get_result[4]
                 allSourceFiles.update(self.all_files_dict)
 
                 if details['debug'] is True:
@@ -268,6 +272,7 @@ def main(
                             fileStatus = self.source_files_original_list[source_files_original]["fileStatus"]
                             filePatch = self.source_files_original_list[source_files_original]["filePatch"]
                             fileNamePrevious = self.source_files_original_list[source_files_original]["fileNamePrevious"]
+                            locationHandling = self.source_files_original_list[source_files_original]["locationHandling"]
                             try:
                                 fileContents = self.all_files_dict[source_files_original]['fileContents']
                             except Exception:
@@ -297,7 +302,9 @@ def main(
                                 source_files_location_list[source_files_original]['fileStatus'] = fileStatus
                                 source_files_location_list[source_files_original]['filePatch'] = filePatch
                                 source_files_location_list[source_files_original]['fileNamePrevious'] = fileNamePrevious
+                                source_files_location_list[source_files_original]['fileNamePrevious'] = fileNamePrevious
                                 source_files_location_list[source_files_original]['fileContents'] = fileContents
+                                source_files_location_list[source_files_original]['locationHandling'] = locationHandling
                             except Exception as e:
                                 self.log.debug('Could not add details to location list: ' + source_files_original)
                                 self.log.debug(e)
@@ -451,22 +458,6 @@ def main(
                                 self.log.debug('Deleted: ' + self.location_dir + directory_to_delete)
                                 shutil.rmtree(self.location_dir + directory_to_delete)
 
-                    if details['unprocessed'] is False:
-                        for img_src_file in self.image_src_files_list:
-                            if os.path.isfile(self.location_dir + img_src_file):
-                                self.log.debug('Removing image source file: ' + img_src_file)
-                                os.remove(self.location_dir + img_src_file)
-
-                    # Don't remove the .travis.yml in case there's another one not created by us in the repo
-                    if os.path.isfile(self.location_dir + details["featureFlagFile"]) and details['unprocessed'] is False:
-                        os.remove(self.location_dir + details["featureFlagFile"])
-                        self.log.debug('Removing: ' + self.location_dir + details["featureFlagFile"])
-
-                    locations_file_name = details["locations_file"].rsplit('/', 1)[1]
-                    if os.path.isfile(self.location_dir + '/' + locations_file_name):
-                        os.remove(self.location_dir + '/' + locations_file_name)
-                        self.log.debug('Removing: ' + self.location_dir + '/' + locations_file_name)
-
                     if os.path.isdir(self.location_dir + '/doctopus-common'):
                         shutil.rmtree(self.location_dir + '/doctopus-common')
                         self.log.debug('Removing: ' + self.location_dir + '/doctopus-common')
@@ -535,11 +526,27 @@ def main(
                         #  downstream branches
                         pushUpdatedFiles(self, details)
 
+                    # Write all file handling details to JSON file
+                    for entry in self.all_files_dict:
+                        del self.all_files_dict[entry]['fileContents']
+                        del self.all_files_dict[entry]['filePatch']
+                        if self.sitemap_file == entry:
+                            try:
+                                del self.all_files_dict[entry]['downstream_sitemap_contents']
+                            except Exception:
+                                # containers unprocessed does not have this entry
+                                pass
+                    with open(details["output_dir"] +
+                              '/.' + details['tool_name'] + '_' + self.location_name + '_file-handling.json',
+                              'w+', encoding="utf8", errors="ignore") as fileHandling:
+                        fileHandling.write(json.dumps(self.all_files_dict, indent=2))
+
             self.log.info('Finished: ' + self.location_name)
             endTime = time.time()
             totalTime = endTime - startTime
             totalTimeRounded = str(round(totalTime, 2))
             self.log.debug('Took ' + totalTimeRounded + ' seconds to run: ' + self.location_name)
+
             return
 
     # Start
@@ -550,6 +557,7 @@ def main(
 
         details = {}
         details.update({"debug": debug})
+        details.update({"feature_flag_migration": feature_flag_migration})
         details.update({"ibm_cloud_docs": ibm_cloud_docs})
         details.update({"ibm_cloud_docs_sitemap_depth": ibm_cloud_docs_sitemap_depth})
         details.update({"ibm_cloud_docs_sitemap_rebuild_always": ibm_cloud_docs_sitemap_rebuild_always})
@@ -798,52 +806,6 @@ def main(
         details.update({"source_github_repo": source_github_repo})
         details.update({"source_github_url": source_github_url})
 
-        log.debug('Gathering feature flags.')
-
-        # Get the contents of the feature flags file
-        jsonStaging = {
-            "name": "staging",
-            "location": "draft,review"
-            }
-        jsonStagingAllowlist = {
-            "name": "staging",
-            "location": "draft"
-            }
-        jsonProd = {
-            "name": "prod",
-            "location": "publish"
-            }
-        featureFlags = []
-        if os.path.isfile((details["source_dir"]) + '/feature-flags.json'):
-            details.update({"featureFlagFile": '/feature-flags.json'})
-            with open(details["source_dir"] + details["featureFlagFile"], 'r', encoding="utf8", errors="ignore") as featureFlagJson:
-                try:
-                    featureFlags = json.load(featureFlagJson)
-                except Exception as e:
-                    addToErrors('JSON not formatted properly. ' + str(e),
-                                details["featureFlagFile"], '', details, log, 'pre-build', '', '')
-                else:
-                    if details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in str(details['source_github_org']):
-                        if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in details['source_github_org']:
-                            featureFlags.append(jsonStagingAllowlist)
-                        elif '\'staging\'' not in str(featureFlags):
-                            featureFlags.append(jsonStaging)
-                        if '\'prod\'' not in str(featureFlags):
-                            featureFlags.append(jsonProd)
-                    details.update({"featureFlags": featureFlags})
-        elif details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in str(details['source_github_org']):
-            if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in details['source_github_org']:
-                featureFlags.append(jsonStagingAllowlist)
-            elif '\'staging\'' not in str(featureFlags):
-                featureFlags.append(jsonStaging)
-            if '\'prod\'' not in str(featureFlags):
-                featureFlags.append(jsonProd)
-            details.update({"featureFlags": featureFlags})
-            details.update({"featureFlagFile": 'None'})
-        else:
-            details.update({"featureFlagFile": 'None'})
-            details.update({"featureFlags": 'None'})
-
         log.debug('Checking branches.')
 
         # If the branch is not the source branch, don't push anything anywhere
@@ -914,11 +876,6 @@ def main(
         details.update({"ibm_cloud_docs_product_names": ibm_cloud_docs_product_names})
         details.update({"ibm_cloud_docs_keyref_check": ibm_cloud_docs_keyref_check})
 
-        # Make a list of enricher required JSON files for pre-build check
-        enricher_json_files = ['/' + details["reuse_snippets_folder"] + '/' + details["reuse_phrases_file"],
-                               details["featureFlagFile"], details["slack_user_mapping"]]
-        jsonCheck(details, log, 'False', enricher_json_files, 'None')
-
         all_tags = []
         all_locations: list[str] = []  # type: ignore[misc]
         allSourceFiles = {}  # type: ignore[var-annotated]
@@ -979,6 +936,57 @@ def main(
         join_comma = ', '
         log.info('Locations can be used as tags: %s', join_comma.join(all_tags))
         details.update({"location_tags": all_tags})
+
+        log.debug('Gathering feature flags.')
+
+        # Get the contents of the feature flags file
+        jsonStaging = {
+            "name": "staging",
+            "location": "draft,review"
+            }
+        jsonStagingAllowlist = {
+            "name": "staging",
+            "location": "draft"
+            }
+        jsonProd = {
+            "name": "prod",
+            "location": "publish"
+            }
+        featureFlags = []
+        if os.path.isfile((details["source_dir"]) + '/feature-flags.json'):
+            details.update({"featureFlagFile": '/feature-flags.json'})
+            with open(details["source_dir"] + details["featureFlagFile"], 'r', encoding="utf8", errors="ignore") as featureFlagJson:
+                try:
+                    featureFlags = json.load(featureFlagJson)
+                except Exception as e:
+                    addToErrors('JSON not formatted properly. ' + str(e),
+                                details["featureFlagFile"], '', details, log, 'pre-build', '', '')
+                else:
+                    if details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in str(details['source_github_org']):
+                        if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in details['source_github_org'] and 'draft' in all_tags:
+                            featureFlags.append(jsonStagingAllowlist)
+                        elif '\'staging\'' not in str(featureFlags) and 'draft' in all_tags and 'review' in all_tags:
+                            featureFlags.append(jsonStaging)
+                        if '\'prod\'' not in str(featureFlags) and 'publish' in all_tags:
+                            featureFlags.append(jsonProd)
+                    details.update({"featureFlags": featureFlags})
+        elif details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in str(details['source_github_org']):
+            if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in details['source_github_org'] and 'draft' in all_tags:
+                featureFlags.append(jsonStagingAllowlist)
+            elif '\'staging\'' not in str(featureFlags) and 'draft' in all_tags and 'review' in all_tags:
+                featureFlags.append(jsonStaging)
+            if '\'prod\'' not in str(featureFlags) and 'publish' in all_tags:
+                featureFlags.append(jsonProd)
+            details.update({"featureFlags": featureFlags})
+            details.update({"featureFlagFile": 'None'})
+        else:
+            details.update({"featureFlagFile": 'None'})
+            details.update({"featureFlags": 'None'})
+
+        # Make a list of enricher required JSON files for pre-build check
+        enricher_json_files = ['/' + details["reuse_snippets_folder"] + '/' + details["reuse_phrases_file"],
+                               details["featureFlagFile"], details["slack_user_mapping"]]
+        jsonCheck(details, log, 'False', enricher_json_files, 'None')
 
         if (str(source_github_url) + ',' + str(current_github_branch)) in all_locations:
             addToErrors('The ' + str(current_github_branch) + ' branch in ' + str(source_github_url) +

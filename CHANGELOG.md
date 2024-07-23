@@ -2,13 +2,35 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.5.3, released 17 July 2024
+<dl>
+<dt>Added file handling tracking as a JSON file</dt>
+<dd><ul>
+<li>In the logs branch and in the output for local builds, a <code>.md-enricher-for-cicd_<location-name>_file-handling.json</code> file is included for troubleshooting purposes. The information in it includes the path in the source directory, the output path, the Git status in the commit that was processed (such as modified or removed), and the location handling as defined by the locations file.</li>
+</ul></dd>
+<dt>Bug fixes</dt>
+<dd><ul>
+<li>Source files in different directories but with the same name are not handled properly as defined in the locations file.</li>
+<li>When the <code>--unprocessed</code> option is included, the <code>feature-flags.json</code> output is not accurate.</li>
+</ul></dd></dl>
+
+## Version 1.2.5.2, released 16 July 2024
+
+<dl>
+<dt>Bug fixes</dt>
+<dd><ul>
+<li><code>_io.BufferedReader</code> message confusing.</li>
+<li>Timeout on <code>git pull</code>.</li>
+<li>Archived mdEnricherForCICD directory.</li>
+</ul></dd></dl>
+
 ## Version 1.2.5.1, released 12 July 2024
 <dl>
 <dt>Bug fixes</dt>
 <dd><ul>
 <li>CVE-2024-5569.</li>
 <li>In a CI/CD build, like Travis, where the source is cloned to the root of the workspace and the Markdown Enricher repository is cloned in a subfolder of the workspace, the documentation from the Markdown Enricher was scanned as part of the source.</li>
-</ul></dd>
+</ul></dd></dl>
 
 
 ## Version 1.2.5, released 11 July 2024

@@ -5,7 +5,7 @@
 
 def start():
 
-    versionNumber = '1.2.5.1.20240712'
+    versionNumber = '1.2.5.3.20240717'
 
     # Process the command-line options
 
@@ -176,19 +176,11 @@ def start():
                 cleanup_flags_not_content,
                 source_dir)
 
-    if feature_flag_migration is True:
-        try:
-            from mdenricher.internal.locations.featureFlagMigration import featureFlagMigration
-            featureFlagMigration(locations_file, source_dir)
-        except Exception as e:
-            print(e)
-            print('Option not available outside of IBM.')
-            sys.exit(1)
-
     if source_dir is not None:
         from mdenricher.main import main
         main(builder,
              debug,
+             feature_flag_migration,
              gh_username,
              gh_token,
              ibm_cloud_docs,

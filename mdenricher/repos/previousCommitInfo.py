@@ -84,8 +84,14 @@ def previousCommitInfo(details, log):
 
     # Make sure the local files are from the most recent commit
     try:
+        # cloud-governance-framework/security-governed-content requires the token with the pull
+        subprocessOutput = subprocess.Popen('git pull -q https://' +
+                                            details["token"] + '@' +
+                                            details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
+                                            details["source_github_repo"], shell=True, stdout=PIPE, stderr=STDOUT)
 
-        subprocessOutput = subprocess.Popen('git pull origin ' + details["source_github_branch"], shell=True, stdout=PIPE, stderr=STDOUT)
+        # solution-tutorials is not using source as the default branch, so it needs checked out again
+        subprocessOutput = subprocess.Popen('git checkout ' + details["source_github_branch"], shell=True, stdout=PIPE, stderr=STDOUT)
         exitCode = parseSubprocessOutput(subprocessOutput, log)
         log.debug(exitCode)
 

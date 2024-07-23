@@ -116,8 +116,10 @@ def sourceFilesForThisBranch(self, details):
             except Exception:
                 pass
 
-        elif (details["featureFlagFile"] in folderAndFile):
-            self.log.debug('No additional processing needed for the feature flag file.')
+        elif (details["featureFlagFile"] == folderAndFile):
+            source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
+                                     folderAndFile, source_files, self.location_contents_files,
+                                     self.location_contents_folders, self.remove_all_other_files_folders)
 
             # If the toc.yaml file was updated, see if any other markdown files use those IDs also need to be updated
             """
@@ -266,7 +268,7 @@ def sourceFilesForThisBranch(self, details):
                 del source_files[source_file]
 
         # If the file is included in the list for this location, add it.
-        elif source_file in self.all_files_dict:
+        elif source_file in self.all_files_dict and not details['featureFlagFile'] in folderAndFile:
             # self.log.debug(source_file + ' is in all_files_dict')
             if source_file not in source_files:
                 self.log.debug(source_file + ' is not in source_files')

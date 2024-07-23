@@ -25,5 +25,6 @@ def pushErrors(details, e, log):
                     'to the repo. Most likely, something that is not a secret is being ' +
                     'interpreted as a secret.\n' + str(e), 'push', '', details, log, 'post-build', '', '')
     else:
-        addToErrors('The changes could not be pushed to the repo. ' + str(e), 'push', '', details, log, 'post-build', '', '')
+        addToErrors('The changes could not be pushed to the repo. ', 'push', '', details, log, 'post-build', '', '')
+        log.debug(str(e))
     exitBuild(details, log)
