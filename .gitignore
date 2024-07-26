@@ -1,7 +1,6 @@
 *.log
 __pycache__
 .DS_Store
-content
 *.egg-info
 ~$*.*
 .coverage
@@ -12,3 +11,4 @@ docs-output
 .mypy_cache
 .pytest_cache
 tests/local.sh
+tests/output/*

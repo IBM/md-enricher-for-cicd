@@ -160,6 +160,7 @@ def cleanupEachFile(self, details):
                 self.log.debug('writeTime: ' + writeTime)
                 self.log.debug('htmlValidatorTime: ' + htmlValidatorTime)
 
+        handledList = []
         if self.source_files == {}:
             self.log.debug('No files to process for ' + self.location_name + '.')
         else:
@@ -177,7 +178,6 @@ def cleanupEachFile(self, details):
             # Start handling each file individually from the source_files dictionary
             sortedList = sorted(self.source_files.items())
             source_files = dict(sortedList)
-            handledList = []
 
             # Do removals first in case a keep file outputs to the same location
             for source_file, source_file_info in source_files.items():

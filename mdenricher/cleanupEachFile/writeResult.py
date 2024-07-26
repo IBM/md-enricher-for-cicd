@@ -126,6 +126,9 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
 
             if write is True:
 
+                if file_name.endswith('.md') and not topicContents.endswith('\n'):
+                    topicContents = topicContents + '\n'
+
                 currentYear, currentMonth, currentDay = getTodaysDate()
                 lastUpdatedDate = currentYear + '-' + currentMonth + '-' + currentDay
 

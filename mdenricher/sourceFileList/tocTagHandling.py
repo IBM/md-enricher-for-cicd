@@ -3,6 +3,7 @@ def tocTagHandling(log, details, all_files_original, tagList):
     from mdenricher.errorHandling.errorHandling import addToErrors
     import copy
     import re
+    import string
 
     all_files_revised = copy.deepcopy(all_files_original)
 
@@ -46,22 +47,28 @@ def tocTagHandling(log, details, all_files_original, tagList):
                                 tagLocationList = tagLocations.split(',')
                             else:
                                 tagLocationList = [tagLocations]
+                            if tag not in fileList[taggedLineNoSpaces]['tagsInTOC']:
+                                fileList[taggedLineNoSpaces]['tagsInTOC'].append(tag)
                             for location in tagLocationList:
                                 if location not in fileList[taggedLineNoSpaces]['locations']:
                                     fileList[taggedLineNoSpaces]['locations'].append(location)
-                            if tag not in fileList[taggedLineNoSpaces]['tagsInTOC']:
-                                fileList[taggedLineNoSpaces]['tagsInTOC'].append(tag)
+                            log.debug(taggedLineNoSpaces + ' TOC tags: ' + ', '.join(fileList[taggedLineNoSpaces]['tagsInTOC']))
 
     for file in fileList:
 
         try:
             applyTag = True
             originalFileContents = all_files_original[file]['fileContents']
+            while originalFileContents.startswith(string.whitespace) or originalFileContents.startswith('\n') or originalFileContents.startswith('\r'):
+                originalFileContents = originalFileContents[1:]
+            while originalFileContents.endswith(string.whitespace) or originalFileContents.endswith('\n') or originalFileContents.endswith('\r'):
+                originalFileContents = originalFileContents[:-1]
             if originalFileContents.startswith('<') and originalFileContents.endswith('>'):
                 firstTag, originalFileContents = originalFileContents.split('>', 1)
                 firstTag = firstTag.replace('<', '')
                 originalFileContents = originalFileContents.rsplit('<', 1)[0]
-                if firstTag in fileList[file]['tagsInTOC']:
+                log.debug(file + ' content tag: ' + firstTag)
+                if firstTag in fileList[file]['tagsInTOC'][0]:
                     applyTag = False
                 else:
                     for tagPossibility in tagList:
@@ -69,7 +76,7 @@ def tocTagHandling(log, details, all_files_original, tagList):
                             tagPossibilityLocations = tagPossibility.split(':')[1]
                             tagPossibilityLocationsList = tagPossibilityLocations.split(',')
                             break
-                    if tagPossibilityLocationsList == fileList[file]['locations']:
+                    if tagPossibilityLocationsList == fileList[file]['locations'] or tagPossibilityLocationsList == fileList[file]['locations'].pop(0):
                         applyTag = False
                     else:
                         applyTag = False
@@ -87,7 +94,7 @@ def tocTagHandling(log, details, all_files_original, tagList):
                         # tocTag=draft, fileTag=draft
                         if not '<' + tag + '>' + originalFileContents + '</' + tag + '>' in newContent:
                             newContent = newContent + '<' + tag + '>' + originalFileContents + '</' + tag + '>'
-                            log.debug('Adding ' + tag + ' tag around /' + file + ' file contents.')
+                            log.debug('Adding ' + tag + ' tag around ' + file + ' file contents.')
                     all_files_revised[file]['fileContents'] = newContent
             except Exception:
                 log.debug('Cannot change the tagging.')
