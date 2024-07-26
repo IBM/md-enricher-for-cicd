@@ -177,6 +177,8 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
         for tagJSON in details['featureFlags']:
             tagList.append(tagJSON['name'] + ':' + tagJSON['location'])
 
+        log.debug('Tag list: ' + ', '.join(tagList))
+
         all_files_dict = tocTagHandling(log, details, all_files_dict, tagList)
 
     conref_files_list.sort()

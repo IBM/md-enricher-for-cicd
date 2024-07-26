@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-07-23
+# Last updated: 2024-07-25
 -->
 
 # Metadata replacements
@@ -14,7 +14,7 @@ These common variables can be used in the metadata of each of your markdown cont
 |Metadata variable|Description|
 |----------|-----------|
 |`2024`|In the copyright metadata, the current year is automatically inserted. At the start of the new year, the value will change automatically the next time you make a change to the file. You can choose whether to force a change to every file by adding something like a line break or just let them update as you make necessary content changes.|
-|`2024-07-23`|The date of the last file modification is automatically inserted at build time.|
+|`2024-07-25`|The date of the last file modification is automatically inserted at build time.|
 
 Example metadata source for the marked-it markdown processor:
 ```
@@ -22,7 +22,7 @@ Example metadata source for the marked-it markdown processor:
 
 copyright:
   years: 2014, 2024
-lastupdated: "2024-07-23"
+lastupdated: "2024-07-25"
 
 keywords: keyword1, keyword2
 
@@ -37,7 +37,7 @@ Example output:
 
 copyright:
   years: 2014, 2024
-lastupdated: "2024-07-23"
+lastupdated: "2024-07-25"
 
 keywords: keyword1, keyword2
 
