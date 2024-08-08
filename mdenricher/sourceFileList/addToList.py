@@ -31,7 +31,6 @@ def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folde
         dictionary[folderAndFile]['filePatch'] = filePatch
         dictionary[folderAndFile]['fileNamePrevious'] = fileNamePrevious
         dictionary[folderAndFile]['locationHandling'] = locationHandling
-
         # log.debug('Adding: ' + folderAndFile + ' (upstream path), ' + returnedFolderName + returnedFileName + ' (downstream path)')
 
         if (os.path.isfile(details["source_dir"] + folderAndFile)) and (folderAndFile.endswith(tuple(details["filetypes"]))):

@@ -200,9 +200,10 @@ def main(
                                                    self.remove_all_other_files_folders, self.source_files_original_list)
                 self.all_files_dict = all_files_get_result[0]
                 self.conref_files_list = all_files_get_result[1]
-                self.image_files_list = all_files_get_result[2]
-                self.sitemap_file = all_files_get_result[3]
-                self.filesForOtherLocations = all_files_get_result[4]
+                self.expected_output_files = all_files_get_result[2]
+                self.image_files_list = all_files_get_result[3]
+                self.sitemap_file = all_files_get_result[4]
+                self.filesForOtherLocations = all_files_get_result[5]
                 allSourceFiles.update(self.all_files_dict)
 
                 if details['debug'] is True:
@@ -422,7 +423,7 @@ def main(
                         startTimeSection = time.time()
 
                     # Actually do the conref and tag replacements in the new source file list
-                    handledList = cleanupEachFile(self, details)
+                    cleanupEachFile(self, details)
                     if details['debug'] is True:
                         endTime = time.time()
                         totalTime = endTime - startTimeSection
@@ -433,8 +434,7 @@ def main(
                         startTimeSection = time.time()
 
                     # After all of the content files are updated, update the images
-                    if details['unprocessed'] is False:
-                        self.unusedInThisLocation = checkUsedImages(self, details, handledList)
+                    self.unusedInThisLocation = checkUsedImages(self, details)
 
                     if details['debug'] is True:
                         endTime = time.time()
@@ -450,17 +450,76 @@ def main(
                     for folder in self.location_contents_folders_remove:
                         directories_to_delete.append(folder)
 
-                        # Should these be within the location_dir or the output_dir
-                        for directory_to_delete in directories_to_delete:
-                            if not directory_to_delete.startswith('/') and not directory_to_delete.startswith('includes'):
-                                directory_to_delete = '/' + directory_to_delete
-                            if os.path.isdir(self.location_dir + directory_to_delete):
-                                self.log.debug('Deleted: ' + self.location_dir + directory_to_delete)
-                                shutil.rmtree(self.location_dir + directory_to_delete)
+                    # Should these be within the location_dir or the output_dir
+                    for directory_to_delete in directories_to_delete:
+                        if not directory_to_delete.startswith('/') and not directory_to_delete.startswith('includes'):
+                            directory_to_delete = '/' + directory_to_delete
+                        if os.path.isdir(self.location_dir + directory_to_delete):
+                            self.log.debug('Deleted: ' + self.location_dir + directory_to_delete)
+                            shutil.rmtree(self.location_dir + directory_to_delete)
 
                     if os.path.isdir(self.location_dir + '/doctopus-common'):
                         shutil.rmtree(self.location_dir + '/doctopus-common')
                         self.log.debug('Removing: ' + self.location_dir + '/doctopus-common')
+
+                    # Remove all old files
+                    # Also verify that every topic is used in the toc
+                    try:
+                        self.all_files_dict['/toc.yaml']['fileContents']
+                        testExistenceInTOC = True
+                    except Exception:
+                        testExistenceInTOC = False
+                    ignoredFileList = ['/.build.yaml', '/conref.md', '/ignoreLinks.txt', '/keyref.yaml',
+                                       '/landing.json', '/README.md', '/toc.yaml', '/user-mapping.json',
+                                       '/utterances.json']
+                    ignoredFolderList = ['/.github/', '/_include-segments/', '/images/']
+                    for (path, dirs, files) in os.walk(self.location_dir):
+                        if self.location_dir == path:
+                            folder = '/'
+                        else:
+                            folder = path.split(self.location_dir)[1]
+                            if not folder.endswith('/'):
+                                folder = folder + '/'
+                            if not folder.startswith('/'):
+                                folder = '/' + folder
+                        for file in files:
+                            if (('.git' not in path) and
+                                    ((file) not in self.expected_output_files) and
+                                    ((folder + file) not in self.expected_output_files) and
+                                    ((folder[1:] + file) not in self.expected_output_files) and
+                                    (file.endswith(tuple(details["filetypes"]))) and
+                                    (os.path.isfile(path + '/' + file)) and
+                                    (not folder + file in ignoredFileList) and
+                                    (not (folder.startswith(tuple(ignoredFolderList)))) and
+                                    (details['rebuild_all_files'] is True or details['builder'] == 'local')):
+                                os.remove(path + '/' + file)
+                                log.info('Removing old file from ' + self.location_name + ': ' + folder + file)
+
+                            elif ((testExistenceInTOC is True) and
+                                  file.endswith(tuple(details["filetypes"])) and
+                                  (not (' ' + folder + file) in self.all_files_dict['/toc.yaml']['fileContents']) and
+                                  (not (' ' + folder[1:] + file) in self.all_files_dict['/toc.yaml']['fileContents']) and
+                                  ('reuse-snippets' not in folder) and
+                                  (not folder + file in ignoredFileList) and
+                                  (not (folder.startswith(tuple(ignoredFolderList))))):
+                                try:
+                                    for item in self.all_files_dict:
+                                        if self.all_files_dict[item]['folderPath'] == folder and self.all_files_dict[item]['file_name'] == file:
+                                            folderAndFile = item
+                                            break
+                                    addToWarnings('File is not used in the ' + self.location_name + ' toc.yaml: ' + folder + file,
+                                                  folderAndFile, folder + file, details, log, self.location_name, '', '')
+                                except Exception as e:
+                                    log.error('Traceback')
+                                    log.error(e)
+
+                        if details['rebuild_all_files'] is True or details['builder'] == 'local':
+                            if (('.git' not in path) and
+                                    (not folder.startswith(tuple(self.expected_output_files))) and
+                                    (not folder.startswith(tuple(ignoredFolderList)))):
+                                if os.path.isdir(path):
+                                    shutil.rmtree(path)
+                                    log.info('Removing old folder from ' + self.location_name + ': ' + folder)
 
                     if details['debug'] is True:
                         endTime = time.time()
@@ -842,7 +901,7 @@ def main(
             payload = [{"color": "good", "title_link": details["build_url"],
                        "title": current_github_branch +
                         buildNumberPost + " started"}]
-            postToSlack(log, details, payload)
+            postToSlack(log, details, payload, 'start')
 
         # Set the GITHUB API variables
         if (('github.com' in details["source_github_url"]) and (not details["builder"] == 'local')):

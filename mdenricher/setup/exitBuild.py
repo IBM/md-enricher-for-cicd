@@ -27,10 +27,10 @@ def exitBuild(details, log):
             itemListSplits.sort()
             itemListSplits = list(filter(('').__ne__, itemListSplits))
             for itemListSplit in itemListSplits:
-                if 'Output: ' in itemListSplit and '|>' in itemListSplit:
-                    noOutputInstances = re.findall('Output: ' + '.*?' + '|>', itemListSplit)
-                    for noOutputInstance in noOutputInstances:
-                        itemListSplit = itemListSplit.replace(noOutputInstance, 'Output: None')
+                # if 'Output: ' in itemListSplit and '|>' in itemListSplit:
+                # noOutputInstances = re.findall('Output: ' + '.*?' + '|>', itemListSplit)
+                # for noOutputInstance in noOutputInstances:
+                # itemListSplit = itemListSplit.replace(noOutputInstance, 'Output: None')
                 if 'Stage: ' in itemListSplit:
                     errorWithoutLocation, errorLocation = itemListSplit.rsplit('Stage: ', 1)
                     if errorWithoutLocation in itemListNoDupes:
@@ -198,7 +198,7 @@ def exitBuild(details, log):
                     buildNumberPost + " failed with " + str(errors) + " " + errorsString + ", " +
                     str(warnings) + " " + warningsString + " in " + errorLocation,
                     "text": instanceList}]
-        postToSlack(log, details, payload)
+        postToSlack(log, details, payload, 'errors')
 
         log.info('BUILD FAILED')
         log.info('\n\n')
@@ -215,7 +215,7 @@ def exitBuild(details, log):
                     "title": current_commit_author + possessive + ' ' + current_github_branch + buildNumberPost +
                     " passed with " + str(warnings) + " " + warningsString + " in " + errorLocation,
                     "text": instanceList}]
-        postToSlack(log, details, payload)
+        postToSlack(log, details, payload, 'warnings')
 
         log.info('BUILD SUCCESSFUL WITH WARNINGS')
         log.info('\n\n')
@@ -227,7 +227,7 @@ def exitBuild(details, log):
             payload = [{"color": "good", "title_link": details["build_url"],
                        "title": current_commit_author + possessive + ' ' + current_github_branch +
                         buildNumberPost + " passed"}]
-            postToSlack(log, details, payload)
+            postToSlack(log, details, payload, 'success')
 
         log.info('BUILD SUCCESSFUL')
         log.info('\n\n')

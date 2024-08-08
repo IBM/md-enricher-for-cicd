@@ -1,4 +1,4 @@
-def postToSlack(log, details, payload):
+def postToSlack(log, details, payload, type):
 
     import json
     import os
@@ -56,6 +56,13 @@ def postToSlack(log, details, payload):
                         channel=slack_channel,
                         user=userID,
                         text='<@' + userID + '> Markdown enricher:',
+                        attachments=payload
+                    )
+                elif type == 'errors':
+                    log.info('Posting message to ' + slack_channel + ' mentioning members of the channel that are online (here).')
+                    response = client.chat_postMessage(
+                        channel=slack_channel,
+                        text='<!here> Markdown enricher:',
                         attachments=payload
                     )
                 else:
