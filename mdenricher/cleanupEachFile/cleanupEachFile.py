@@ -160,7 +160,6 @@ def cleanupEachFile(self, details):
                 self.log.debug('writeTime: ' + writeTime)
                 self.log.debug('htmlValidatorTime: ' + htmlValidatorTime)
 
-        handledList = []
         if self.source_files == {}:
             self.log.debug('No files to process for ' + self.location_name + '.')
         else:
@@ -203,7 +202,6 @@ def cleanupEachFile(self, details):
                         fileStatus = source_files[source_file]['fileStatus']
                         fileNamePrevious = source_files[source_file]['fileNamePrevious']
                         locationHandling = source_files[source_file]['locationHandling']
-                        handledList.append(self.location_dir + source_files[source_file]['folderPath'] + source_files[source_file]['file_name'])
                         try:
                             topicContents = self.all_files_dict[source_file]['fileContents']
                         except Exception:
@@ -351,5 +349,3 @@ def cleanupEachFile(self, details):
     except Exception as e:
         addToErrors('Could not complete the file cleanup steps for ' + self.location_name + ': ' + str(e),
                     '', '', details, self.log, self.location_name, '', '')
-
-    return (handledList)

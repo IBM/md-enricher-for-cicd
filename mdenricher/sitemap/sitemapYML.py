@@ -111,7 +111,8 @@ def sitemapYML(self, details):
                               "r", encoding="utf8", errors="ignore") as fileOpen:
                         reuseTopicContents = fileOpen.read()
                 else:
-                    addToErrors('The reused file could not be found: ' + self.location_dir + '/includes/' + reuseTopic, location_sitemap_file, '',
+                    addToErrors('The reused file could not be found: ' + self.location_dir +
+                                '/includes/' + reuseTopic, location_sitemap_file, location_sitemap_file,
                                 details, self.log, self.location_name, '', '')
                     reuseTopicContents = ''
                 reuseRepo = reuseTopic.split('/', 1)[0]
@@ -282,7 +283,7 @@ def sitemapYML(self, details):
                     exitCode = parseSubprocessOutput(subprocessOutput, self.log)
                     if exitCode > 0:
                         addToErrors('The repo could not be cloned to resolve the sitemap: ' + tempRepo[4],
-                                    'sitemap', '', details, self.log, self.location_name, '', '')
+                                    location_sitemap_file, location_sitemap_file, details, self.log, self.location_name, '', '')
                 if (os.path.isdir(self.location_dir + '/includes/' + tempRepo[4] + '/.git')):
                     shutil.rmtree(self.location_dir + '/includes/' + tempRepo[4] + '/.git')
 
@@ -299,7 +300,7 @@ def sitemapYML(self, details):
                 lineNumberLine = eString.rsplit('\n', 1)[1]
                 lineNumber = lineNumberLine.split('line ')[1]
                 addToErrors('The ' + input_file + ' could not be loaded to build the sitemap because ' +
-                            'of a problem with output line ' + lineNumber + '.', location_sitemap_file, '',
+                            'of a problem with output line ' + lineNumber + '.', location_sitemap_file, location_sitemap_file,
                             details, self.log, self.location_name, '', '')
             else:
                 self.log.debug('Loading: ' + self.location_dir + input_file)
@@ -334,7 +335,7 @@ def sitemapYML(self, details):
                     elif type == 'link':
                         titleNoSpaces = title.replace(' ', '-')
                     else:
-                        addToErrors('Type not set.', location_sitemap_file, '', details, self.log, self.location_name, '', '')
+                        addToErrors('Type not set.', location_sitemap_file, location_sitemap_file, details, self.log, self.location_name, '', '')
                         titleNoSpaces = title
 
                     # Remove product names
@@ -425,7 +426,7 @@ def sitemapYML(self, details):
                                     sitemapList = appendToFile('\n*[' + topicLabel + '](' + topicLinkRevised + ')', sitemapList)
                                     self.log.debug('Appending to file: ' + '*[' + topicLabel + '](' + topicLinkRevised + ')', sitemapList)
                             else:
-                                addToErrors('Not handling tuple', location_sitemap_file, '', details, self.log, self.location_name, '', '')
+                                addToErrors('Not handling tuple', location_sitemap_file, location_sitemap_file, details, self.log, self.location_name, '', '')
                     return (sitemapList)
 
                 def fileEvaluation(topicInfo, navtitle, topicGroup, nestedTOC, predictedFilePath, relativeTOC, sitemapAnchorList, sitemapList):
@@ -517,19 +518,25 @@ def sitemapYML(self, details):
                                 sitemapList = getFileContents(file_name, navtitle, topicGroup, nestedTOC, predictedFilePath, sitemapAnchorList, sitemapList)
                             else:
                                 addToErrors('The topic referenced in the TOC does not exist and its contents could not be included in the sitemap: ' +
-                                            file_name.replace(self.location_dir, ''), location_sitemap_file, '', details, self.log, self.location_name, '', '')
+                                            file_name.replace(self.location_dir, ''),
+                                            location_sitemap_file, location_sitemap_file, details,
+                                            self.log, self.location_name, '', '')
                         elif topicInfo['href']:
                             self.log.debug('Handling links!')
                             sitemapList = getLink(linkIntro, topicInfo, topicGroup, sitemapList)
                         else:
-                            addToErrors('Not sure how to handle:\n' + topicInfo, location_sitemap_file, '', details, self.log, self.location_name, '', '')
+                            addToErrors('Not sure how to handle:\n' + topicInfo, location_sitemap_file,
+                                        location_sitemap_file, details, self.log, self.location_name,
+                                        '', '')
                     except Exception as e:
                         if str(topicInfo).startswith('{\'topicgroup\''):
                             addToWarnings('marked-it does not support topicgroups this deep. ' +
                                           'Section not included in the sitemap: ' + str(topicInfo), location_sitemap_file, '',
                                           details, self.log, self.location_name, '', '')
                         else:
-                            addToErrors('Cannot evaluate: ' + str(topicInfo), location_sitemap_file, '', details, self.log, self.location_name, '', '')
+                            addToErrors('Cannot evaluate: ' + str(topicInfo), location_sitemap_file,
+                                        location_sitemap_file, details, self.log, self.location_name,
+                                        '', '')
                             self.log.debug(e)
                     return (sitemapList)
 
@@ -767,7 +774,7 @@ def sitemapYML(self, details):
                                                     filePathShort = filePath.split(self.location_dir)[1]
                                                     addToWarnings('The anchor "' + anchor + '" in ' + filePathShort +
                                                                   ' contains a space and affects the sitemap link.',
-                                                                  location_sitemap_file, '',
+                                                                  location_sitemap_file, location_sitemap_file,
                                                                   details, self.log,
                                                                   self.location_name, '', '')
                                                     anchor = anchor.split(' ', 1)[0]
@@ -836,7 +843,9 @@ def sitemapYML(self, details):
                                     # self.log.debug(topicOrGroup1)
                                     if topicOrGroup1 is None:
                                         addToErrors('A topic group is defined but has no topics within it. The sitemap cannot continue to be built past: ' +
-                                                    str(topicOrGroup), location_sitemap_file, '', details, self.log, self.location_name, '', '')
+                                                    str(topicOrGroup), location_sitemap_file,
+                                                    location_sitemap_file, details, self.log,
+                                                    self.location_name, '', '')
                                         break
                                     if str(topicOrGroup1).startswith('{\'link\''):
                                         sitemapList = getLink(linkIntro, topicOrGroup1, 1, sitemapList)
@@ -890,7 +899,7 @@ def sitemapYML(self, details):
                                                             topicOrGroup6 = topicOrGroup5['topicgroup']['topics']
                                                         except Exception:
                                                             topicOrGroup6 = topicOrGroup5['topics']
-                                                        addToErrors('Needs another topicgroup', location_sitemap_file, '', details,
+                                                        addToErrors('Needs another topicgroup', location_sitemap_file, location_sitemap_file, details,
                                                                     self.log, self.location_name, '', '')
                                                         # self.log.debug('\n')
                                                         # self.log.debug(topicOrGroup3)
@@ -998,7 +1007,7 @@ def sitemapYML(self, details):
                         # fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
                         # self.log.debug(exc_type, fname, exc_tb.tb_lineno)
                         addToErrors('The sitemap could not be generated because of an error in the toc: ' +
-                                    str(e) + '\n' + str(section), location_sitemap_file, '', details, self.log,
+                                    str(e) + '\n' + str(section), location_sitemap_file, location_sitemap_file, details, self.log,
                                     self.location_name, '', '')
                     return (sitemapList)
 
@@ -1026,13 +1035,14 @@ def sitemapYML(self, details):
 
         else:
             addToErrors('The ' + input_file + ' could not be found at this location to build the sitemap from: ' +
-                        self.location_dir + input_file, location_sitemap_file, '', details, self.log, self.location_name, '', '')
+                        self.location_dir + input_file, location_sitemap_file, location_sitemap_file, details, self.log, self.location_name, '', '')
 
     except Exception as e:
         # exc_type, exc_obj, exc_tb = sys.exc_info()
         # fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         # self.log.debug(exc_type, fname, exc_tb.tb_lineno)
-        addToErrors('The sitemap could not be generated: ' + str(e), location_sitemap_file, '', details, self.log, self.location_name, '', '')
+        addToErrors('The sitemap could not be generated: ' + str(e), location_sitemap_file,
+                    location_sitemap_file, details, self.log, self.location_name, '', '')
 
     if os.path.isdir(self.location_dir + '/includes'):
         shutil.rmtree(self.location_dir + '/includes')

@@ -14,7 +14,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # Like if a conref file changes, this list will be used to look inside each file to see if that conref is used in it
 
     def allFileCheck(details, path, file, folder_name, all_files_dict, conref_files_list,
-                     filesForOtherLocations, image_files_list, sitemap_file):
+                     expected_output_files, filesForOtherLocations, image_files_list, sitemap_file):
 
         try:
             userMapping = str(details["slack_user_mapping"].rsplit('/', 1)[1])
@@ -28,6 +28,15 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                          'user-mapping.json',
                          str(details["locations_file"].rsplit('/', 1)[1]),
                          userMapping]
+
+        try:
+            fileStatus = source_files_original_list[folder_name + file]['fileStatus']
+        except Exception:
+            fileStatus = 'modified'
+        try:
+            fileNamePrevious = source_files_original_list[folder_name + file]['fileNamePrevious']
+        except Exception:
+            fileNamePrevious = 'None'
 
         # Remove files that are meant to be removed, no matter what type they are
         if (folder_name + file in location_contents_files_remove):
@@ -46,28 +55,29 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
         if file.endswith(tuple(details["filetypes"])) and (file not in filesToRemove):
             # if not file == str(details["reuse_phrases_file"]):
             # log.info('Handling filetypes: ' + folder_name + file)
-            all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
+            all_files_dict = addToList('None', details, log, fileNamePrevious, 'None', fileStatus,
                                        folder_name + file, all_files_dict, location_contents_files,
                                        location_contents_folders, remove_all_other_files_folders)
-
-        elif file.endswith(tuple(details["img_output_filetypes"])):
-            image_files_list.append(path + '/' + file)
-            all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
-                                       folder_name + file, all_files_dict, location_contents_files,
-                                       location_contents_folders, remove_all_other_files_folders)
-            # log.info('Handling image filetypes: ' + folder_name + file)
 
         elif file.endswith(tuple(details["img_src_filetypes"])):
             # Will be automatically removed
-            all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
+            all_files_dict = addToList('None', details, log, fileNamePrevious, 'None', fileStatus,
                                        folder_name + file, all_files_dict, location_contents_files,
                                        location_contents_folders, remove_all_other_files_folders)
+
+        # Changed order to get .drawio.svg before .svg
+        elif file.endswith(tuple(details["img_output_filetypes"])):
+            image_files_list.append(path + '/' + file)
+            all_files_dict = addToList('None', details, log, fileNamePrevious, 'None', fileStatus,
+                                       folder_name + file, all_files_dict, location_contents_files,
+                                       location_contents_folders, remove_all_other_files_folders)
+            # log.info('Handling image filetypes: ' + folder_name + file)
 
         if (details["reuse_snippets_folder"] in path):
             if (not file == str(details["reuse_phrases_file"])) and details['unprocessed'] is False:
                 conref_files_list.append(folder_name + file)
             elif details['unprocessed'] is True:
-                all_files_dict = addToList('None', details, log, 'None', 'None', 'modified',
+                all_files_dict = addToList('None', details, log, fileNamePrevious, 'None', fileStatus,
                                            folder_name + file, all_files_dict, location_contents_files,
                                            location_contents_folders, remove_all_other_files_folders)
 
@@ -77,7 +87,15 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
             sitemap_file = folder_name + file
             log.debug('Setting sitemap_file as ' + sitemap_file)
 
-        return (all_files_dict, conref_files_list, filesForOtherLocations, image_files_list, sitemap_file)
+        try:
+            if all_files_dict[folder_name + file]['folderPath'] not in expected_output_files:
+                expected_output_files.append(all_files_dict[folder_name + file]['folderPath'])
+            if all_files_dict[folder_name + file]['folderPath'] + all_files_dict[folder_name + file]['file_name'] not in expected_output_files:
+                expected_output_files.append(all_files_dict[folder_name + file]['folderPath'] + all_files_dict[folder_name + file]['file_name'])
+        except Exception:
+            pass
+
+        return (all_files_dict, conref_files_list, expected_output_files, filesForOtherLocations, image_files_list, sitemap_file)
 
     # All of these list entries always start with a slash
 
@@ -91,6 +109,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # log.debug('Gathering all source files.')
     all_files_dict: dict[dict[str, str], dict[str, str]] = {}  # type: ignore[misc]
     conref_files_list: list[str] = []  # type: ignore[misc]
+    expected_output_files: list[str] = []  # type: ignore[misc]
     image_files_list: list[str] = []  # type: ignore[misc]
     sitemap_file = 'None'
     # filesForOtherLocations to collect all file names from all locations
@@ -124,12 +143,12 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                     allFiles.insert(0, filesToScanFirst)
             for file in sorted(allFiles):
                 (all_files_dict,
-                 conref_files_list,
+                 conref_files_list, expected_output_files,
                  filesForOtherLocations,
                  image_files_list,
                  sitemap_file) = allFileCheck(details, path, file, folder_name,
                                               all_files_dict,
-                                              conref_files_list,
+                                              conref_files_list, expected_output_files,
                                               filesForOtherLocations,
                                               image_files_list, sitemap_file)
 
@@ -146,12 +165,12 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                 folder_name = '/'
                 file = source_file[1:]
             (all_files_dict,
-             conref_files_list,
+             conref_files_list, expected_output_files,
              filesForOtherLocations,
              image_files_list,
              sitemap_file) = (allFileCheck(details, details["source_dir"],
                                            file, folder_name, all_files_dict,
-                                           conref_files_list, filesForOtherLocations,
+                                           conref_files_list, expected_output_files, filesForOtherLocations,
                                            image_files_list,
                                            sitemap_file))
 
@@ -189,9 +208,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # log.debug('Conref files gathered.')
     # if not image_files_list == []:
     # log.debug('Image files gathered.')
-    # import json, sys
-    # log.info(json.dumps(all_files_dict, indent=4))
     # log.info('\nIMAGE_FILES_LIST:')
     # log.info(image_files_list)
 
-    return (all_files_dict, conref_files_list, image_files_list, sitemap_file, filesForOtherLocations)
+    return (all_files_dict, conref_files_list, expected_output_files, image_files_list, sitemap_file, filesForOtherLocations)

@@ -83,10 +83,21 @@ def pushUpdatedFiles(self, details):
                     except Exception as e:
                         self.log.error(e)
                         addToErrors('The new branch ' + self.location_github_branch_push + ' could not be pushed to the repo.',
-                                    'push', '', details, self.log, 'post-build', '', '')
+                                    self.location_name, '', details, self.log, 'post-build', '', '')
                     else:
                         self.log.debug('New branch ' + self.location_github_branch_push + ' pushed to repo.')
+                        time.sleep(5)
                         self.log.debug(subprocessOutput)
+                        try:
+                            status_bytes = subprocess.check_output('git -C ' + self.location_dir + ' status --short', shell=True)
+                            status = status_bytes.decode("utf-8")
+                        except Exception:
+                            status = ''
+
+                        if ('nothing to commit' in status.lower()) or (status == '\n') or (status == '') and (self.location_github_branch_push is not None):
+                            self.log.debug('No additional commits to push.')
+                        else:
+                            self.pushSuccessful = True
 
         else:
 
@@ -267,147 +278,151 @@ def pushUpdatedFiles(self, details):
                                 else:
                                     if self.exitCode == 0:
                                         self.pushSuccessful = True
+                    if self.pushSuccessful is True:
+                        self.log.info('Pushed files: ' + self.location_name + '\n' + status)
+                        self.log.debug('Push successful.')
+                        startTime = time.time()
+                    else:
+                        message = ('The changes were not pushed to the ' + str(self.location_github_branch_push) +
+                                   ' branch of the repo for ' + self.location_name + '.')
+                        if os.path.isfile(details["error_file"]):
+                            message = message + ' Fix content errors that are preventing the push from completing.'
+                        addToErrors(message, self.location_name, '', details, self.log, 'post-build', '', '')
+                        self.log.debug(str(subprocessOutput.stdout))
 
                 endTime = time.time()
                 totalTime = endTime - startTime
                 sectionTime = str(round(totalTime, 2))
                 self.log.debug(self.location_name + ' push: ' + sectionTime)
 
-            # Was something commited to Next Prod Push? If a PR doesn't already exist that's created by the user, create the PR for prod
+        # Was something commited to create-pr locations? If a PR doesn't already exist that's created by the user, create the PR
+        if ((self.location_output_action == 'create-pr') and
+                (not self.location_github_branch_push == self.location_github_branch) and
+                (self.pushSuccessful is True)):
+            startTime = time.time()
+            # List PRs
+            listPRs = requests.get(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
+                                   auth=(details["username"], details["token"]))
+            try:
+                PRs = listPRs.json()
+                PRstring = str(PRs)
+            except Exception:
+                PRstring = ''
+            if not PRstring == '[]':
+                self.log.debug('Existing PRs:')
+                for PR in PRs:
+                    PRNumber = PR['number']
+                    PRTitle = PR['title']
+                    self.log.debug(str(PRNumber) + ': ' + PRTitle)
 
-            if self.pushSuccessful is True:
-                self.log.info('Pushed files: ' + self.location_name + '\n' + status)
-                self.log.debug('Push successful.')
-                startTime = time.time()
+            # Get topic links for the PR body
+            if self.location_internal_framework is not None:
+                changedFileList = status.split('\n')
+                linkList = []
 
-                if (self.location_output_action == 'create-pr') and (not self.location_github_branch_push == self.location_github_branch):
-                    # List PRs
-                    listPRs = requests.get(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
-                                           auth=(details["username"], details["token"]))
+                for changedFile in changedFileList:
                     try:
-                        PRs = listPRs.json()
-                        PRstring = str(PRs)
+                        changedFile = changedFile.rsplit(' ', 1)[1]
+                        self.log.debug('Changed file: ' + changedFile)
+                        # self.log.debug(self.source_files_location_list)
+                        for file_included in self.source_files:
+                            if self.source_files[file_included]['file_name'] == changedFile:
+                                with open(self.location_dir + self.source_files[file_included]['folderPath'] +
+                                          self.source_files[file_included]['file_name'], 'r', encoding="utf8", errors="ignore") as fileName_write:
+                                    fileContents = fileName_write.read()
+                                break
+                        topicID = re.findall('{: #(.*?)}', fileContents)[0]
+                        self.log.debug('Topic ID found: ' + topicID)
+                        subcollection = re.findall('subcollection: (.*?)\n', fileContents)[0]
+                        self.log.debug('Subcollection: ' + subcollection)
+                        linkList.append('[' + changedFile + '](' + self.location_internal_framework + '/' +
+                                        subcollection + '?topic=' + subcollection + '-' + topicID + ')')
+                        self.log.debug('[' + changedFile + '](' + self.location_internal_framework + '/' +
+                                       subcollection + '?topic=' + subcollection + '-' + topicID + ')')
                     except Exception:
-                        PRstring = ''
-                    if not PRstring == '[]':
-                        self.log.debug('Existing PRs:')
-                        for PR in PRs:
-                            PRNumber = PR['number']
-                            PRTitle = PR['title']
-                            self.log.debug(str(PRNumber) + ': ' + PRTitle)
+                        if not changedFile == '':
+                            linkList.append(changedFile)
+                self.log.debug(linkList)
 
-                    # Get topic links for the PR body
-                    if self.location_internal_framework is not None:
-                        changedFileList = status.split('\n')
-                        linkList = []
-
-                        for changedFile in changedFileList:
-                            try:
-                                changedFile = changedFile.rsplit(' ', 1)[1]
-                                self.log.debug('Changed file: ' + changedFile)
-                                # self.log.debug(self.source_files_location_list)
-                                for file_included in self.source_files:
-                                    if self.source_files[file_included]['file_name'] == changedFile:
-                                        with open(self.location_dir + self.source_files[file_included]['folderPath'] +
-                                                  self.source_files[file_included]['file_name'], 'r', encoding="utf8", errors="ignore") as fileName_write:
-                                            fileContents = fileName_write.read()
-                                        break
-                                topicID = re.findall('{: #(.*?)}', fileContents)[0]
-                                self.log.debug('Topic ID found: ' + topicID)
-                                subcollection = re.findall('subcollection: (.*?)\n', fileContents)[0]
-                                self.log.debug('Subcollection: ' + subcollection)
-                                linkList.append('[' + changedFile + '](' + self.location_internal_framework + '/' +
-                                                subcollection + '?topic=' + subcollection + '-' + topicID + ')')
-                                self.log.debug('[' + changedFile + '](' + self.location_internal_framework + '/' +
-                                               subcollection + '?topic=' + subcollection + '-' + topicID + ')')
-                            except Exception:
-                                if not changedFile == '':
-                                    linkList.append(changedFile)
-                        self.log.debug(linkList)
-
-                    if self.location_downstream_build_url is None:
-                        buildLink = 'IBM Cloud Docs builds'
-                    else:
-                        buildLink = ('[IBM Cloud Docs builds](' + self.location_downstream_build_url)
-                        try:
-                            buildLink = buildLink + '/job/' + subcollection + ')'
-                        except Exception:
-                            buildLink = buildLink + ')'
-
-                    PRBodyIntroTip = ('Tip: The changes in this PR might not be visible in the ' +
-                                      'framework immediately. If not, allow the ' + buildLink + ' to ' +
-                                      'complete and check back.\n\n')
-                    PRBodyIntro = 'Changed topics:\n'
-
-                    if self.location_github_branch_pr not in PRstring:
-                        if self.location_internal_framework is not None:
-                            PRBody = PRBodyIntroTip + PRBodyIntro + '\n'.join(linkList)
-                        else:
-                            PRBody = ("See the Commits and Files changed tabs for more information about what is " +
-                                      "included in this pull request.")
-                        g = {"title": "Next " + self.location_github_branch + " push", "body": PRBody,
-                             "head": self.location_github_branch_push, "base": self.location_github_branch}
-                        r = requests.post(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
-                                          auth=(details["username"], details["token"]), data=json.dumps(g))
-                        self.log.debug('Creating pull request for commit ' + details["current_commit_id"])
-                        if r.status_code == 201:
-                            self.log.debug('SUCCESS!')
-                        else:
-                            if r.status_code == 401:
-                                addToErrors('Authentication error. Maybe the token expired or the username must be updated.',
-                                            'pr', '', details, self.log, 'post-build', '', '')
-                            elif r.status_code == 422:
-                                addToErrors('The pull request could not be created for one of three potential reasons. ' +
-                                            '1. There might be a pull request already created for the ' +
-                                            str(self.location_github_branch_push) + ' branch. Close the pull request. ' +
-                                            '2. The ' +
-                                            str(self.location_github_branch_push) + ' branch history might not match the publish branch history. ' +
-                                            'Delete the ' +
-                                            str(self.location_github_branch_push) + ' branch and let the build re-create it. ' +
-                                            '3. The response from the API call might be empty. ' +
-                                            'If Github is accessible, try starting another build.',
-                                            'pr', '', details, self.log, 'post-build', '', '')
-                            elif r.status_code == 500:
-                                addToErrors('The pull request could not be created. The repo or the ' +
-                                            details["source_github_domain"] + ' domain might not be accessible.' +
-                                            str(r.status_code), 'pr', '', details, self.log, 'post-build', '', '')
-                            else:
-                                addToErrors('The pull request could not be created. ' + str(r.status_code), 'pr', '', details, self.log, 'post-build', '', '')
-                            exitBuild(details, self.log)
-                    else:
-                        for PR in PRs:
-                            PRHead = PR['head']['ref']
-                            if PRHead == self.location_github_branch_push:
-                                PRNumber = PR['number']
-                                PRTitle = PR['title']
-                                PRBase = PR['base']['ref']
-                                PRBody = str(PR['body'])
-                                if str(PRBodyIntro) in PRBody and self.location_internal_framework is not None:
-                                    existingLinkListString = PRBody.split(PRBodyIntro, 1)[1]
-                                    existingLinkList = existingLinkListString.split('\n')
-                                    for link in linkList:
-                                        if link not in existingLinkList and not link == '':
-                                            existingLinkList.append(link)
-                                    existingLinkList.sort()
-                                    PRBodyRevised = PRBodyIntroTip + PRBodyIntro + '\n'.join(existingLinkList)
-                                    if not PRBodyRevised == PRBody:
-                                        self.log.debug('Updating PR body.')
-                                        g = {"body": PRBodyRevised}
-                                        r = requests.patch(self.location_github_api_repos + '/pulls/' + str(PRNumber),
-                                                           auth=(details["username"], details["token"]), data=json.dumps(g))
-                                self.log.debug('Updating pull request #' + str(PRNumber) + ': ' + PRTitle + ', head: ' + PRHead + ', base: ' + PRBase + '.')
-                self.log.debug('File update complete.')
-                endTime = time.time()
-                totalTime = endTime - startTime
-                sectionTime = str(round(totalTime, 2))
-                self.log.debug(self.location_name + ' pr: ' + sectionTime)
+            if self.location_downstream_build_url is None:
+                buildLink = 'IBM Cloud Docs builds'
             else:
-                message = ('The changes were not pushed to the ' + str(self.location_github_branch_push) +
-                           ' branch of the repo for ' + self.location_name + '.')
-                if os.path.isfile(details["error_file"]):
-                    message = message + ' Fix content errors that are preventing the push from completing.'
-                addToErrors(message, 'push', '', details, self.log, 'post-build', '', '')
-                self.log.debug(str(subprocessOutput.stdout))
+                buildLink = ('[IBM Cloud Docs builds](' + self.location_downstream_build_url)
+                try:
+                    buildLink = buildLink + '/job/' + subcollection + ')'
+                except Exception:
+                    buildLink = buildLink + ')'
+
+            PRBodyIntroTip = ('Tip: The changes in this PR might not be visible in the ' +
+                              'framework immediately. If not, allow the ' + buildLink + ' to ' +
+                              'complete and check back.\n\n')
+            PRBodyIntro = 'Changed topics:\n'
+
+            if self.location_github_branch_pr not in PRstring:
+                if self.location_internal_framework is not None:
+                    PRBody = PRBodyIntroTip + PRBodyIntro + '\n'.join(linkList)
+                else:
+                    PRBody = ("See the Commits and Files changed tabs for more information about what is " +
+                              "included in this pull request.")
+                g = {"title": "Next " + self.location_github_branch + " push", "body": PRBody,
+                     "head": self.location_github_branch_push, "base": self.location_github_branch}
+                r = requests.post(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
+                                  auth=(details["username"], details["token"]), data=json.dumps(g))
+                self.log.debug('Creating pull request for commit ' + details["current_commit_id"])
+                if r.status_code == 201:
+                    self.log.debug('SUCCESS!')
+                else:
+                    if r.status_code == 401:
+                        addToErrors('The pull request could not be created because of an authentication error. ' +
+                                    'Maybe the token expired or the username must be updated.',
+                                    self.location_name, '', details, self.log, 'post-build', '', '')
+                    elif r.status_code == 422:
+                        addToErrors('The pull request could not be created for one of three potential reasons. ' +
+                                    '1. There might be a pull request already created for the ' +
+                                    str(self.location_github_branch_push) + ' branch. Close the pull request. ' +
+                                    '2. The ' +
+                                    str(self.location_github_branch_push) + ' branch history might not match the publish branch history. ' +
+                                    'Delete the ' +
+                                    str(self.location_github_branch_push) + ' branch and let the build re-create it. ' +
+                                    '3. The response from the API call might be empty. ' +
+                                    'If Github is accessible, try starting another build.',
+                                    self.location_name, '', details, self.log, 'post-build', '', '')
+                    elif r.status_code == 500:
+                        addToErrors('The pull request could not be created. The repo or the ' +
+                                    details["source_github_domain"] + ' domain might not be accessible.' +
+                                    str(r.status_code), self.location_name, '', details, self.log, 'post-build', '', '')
+                    else:
+                        addToErrors('The pull request could not be created. ' + str(r.status_code),
+                                    self.location_name, '', details, self.log, 'post-build', '', '')
+                    exitBuild(details, self.log)
+            else:
+                for PR in PRs:
+                    PRHead = PR['head']['ref']
+                    if PRHead == self.location_github_branch_push:
+                        PRNumber = PR['number']
+                        PRTitle = PR['title']
+                        PRBase = PR['base']['ref']
+                        PRBody = str(PR['body'])
+                        if str(PRBodyIntro) in PRBody and self.location_internal_framework is not None:
+                            existingLinkListString = PRBody.split(PRBodyIntro, 1)[1]
+                            existingLinkList = existingLinkListString.split('\n')
+                            for link in linkList:
+                                if link not in existingLinkList and not link == '':
+                                    existingLinkList.append(link)
+                            existingLinkList.sort()
+                            PRBodyRevised = PRBodyIntroTip + PRBodyIntro + '\n'.join(existingLinkList)
+                            if not PRBodyRevised == PRBody:
+                                self.log.debug('Updating PR body.')
+                                g = {"body": PRBodyRevised}
+                                r = requests.patch(self.location_github_api_repos + '/pulls/' + str(PRNumber),
+                                                   auth=(details["username"], details["token"]), data=json.dumps(g))
+                        self.log.debug('Updating pull request #' + str(PRNumber) + ': ' + PRTitle + ', head: ' + PRHead + ', base: ' + PRBase + '.')
+            self.log.debug('File update complete.')
+            endTime = time.time()
+            totalTime = endTime - startTime
+            sectionTime = str(round(totalTime, 2))
+            self.log.debug(self.location_name + ' pr: ' + sectionTime)
+
     except Exception as e:
         addToErrors('The push could not be completed for ' + self.location_name + '.\n' + str(e),
-                    'push', '', details, self.log, 'push', '', '')
+                    self.location_name, '', details, self.log, 'push', '', '')

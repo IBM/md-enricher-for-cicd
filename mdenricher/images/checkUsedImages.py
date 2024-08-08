@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def checkUsedImages(self, details, handledList):
+def checkUsedImages(self, details):
 
     try:
         import os
@@ -23,17 +23,10 @@ def checkUsedImages(self, details, handledList):
         for (path, dirs, files) in os.walk(self.location_dir):
             for entry in files:
                 if entry.endswith(tuple(details["filetypes"])) and os.path.isfile(path + '/' + entry) and ('.git' not in path):
-                    process = True
-                    # Delete old files that are not being rebuilt and don't add their images to this list
-                    if details['rebuild_all_files'] is True:
-                        if not path + '/' + entry in handledList:
-                            process = False
-                            os.remove(path + '/' + entry)
-                    if process is True:
-                        with open(path + '/' + entry, 'r', encoding="utf8", errors="ignore") as fileName_open:
-                            topicContentsCheckImages = fileName_open.read()
-                        self.imagesUsedInThisBuild = gatherUsedImages(self, details, path, path + '/' + entry, topicContentsCheckImages)
-                        filesChecked.append(path + '/' + entry)
+                    with open(path + '/' + entry, 'r', encoding="utf8", errors="ignore") as fileName_open:
+                        topicContentsCheckImages = fileName_open.read()
+                    self.imagesUsedInThisBuild = gatherUsedImages(self, details, path, path + '/' + entry, topicContentsCheckImages)
+                    filesChecked.append(path + '/' + entry)
 
         if not filesChecked == [] and not filesChecked == [self.location_dir + '/README.md']:
             # Go through the original list of images in the source directory and compare it against the used images list
@@ -82,9 +75,10 @@ def checkUsedImages(self, details, handledList):
 
                     for originalFileName in self.imagesUsedInThisBuild[downstreamImage]:
                         try:
-                            addToWarnings(originalFileName + ' does not exist as referenced in downstream ' + self.location_name + ': ' +
-                                          ','.join(self.imagesUsedInThisBuild[downstreamImage][originalFileName]['files']),
-                                          originalFileName, originalFileName, details, self.log, self.location_name, '', '')
+                            if ('reuse-snippets' not in ','.join(self.imagesUsedInThisBuild[downstreamImage][originalFileName]['files'])):
+                                addToWarnings(originalFileName + ' does not exist as referenced in downstream ' + self.location_name + ': ' +
+                                              ','.join(self.imagesUsedInThisBuild[downstreamImage][originalFileName]['files']),
+                                              originalFileName, originalFileName, details, self.log, self.location_name, '', '')
                         except Exception:
                             addToWarnings(originalFileName + ' could not be validated in downstream ' + self.location_name + ': ' +
                                           ','.join(self.imagesUsedInThisBuild[downstreamImage][originalFileName]['files']),
