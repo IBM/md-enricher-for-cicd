@@ -480,15 +480,12 @@ def main(
                                   (not '/' + file in ignoredFileList) and
                                   (not folder + file in ignoredFileList) and
                                   (not (folder.startswith(tuple(ignoredFolderList))))):
+                                folderAndFile = folder + file
                                 try:
-                                    originalFileNameFound = False
                                     for item in self.all_files_dict:
                                         if self.all_files_dict[item]['folderPath'] == folder and self.all_files_dict[item]['file_name'] == file:
                                             folderAndFile = item
-                                            originalFileNameFound = True
                                             break
-                                    if originalFileNameFound is False:
-                                        folderAndFile = folder + file
                                     addToWarnings('File is not used in the ' + self.location_name + ' toc.yaml: ' + folder + file,
                                                   folderAndFile, folder + file, details, log, self.location_name, '', '')
                                 except Exception as e:

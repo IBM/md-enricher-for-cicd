@@ -2,6 +2,12 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.7.1.20240826
+<dl><dt>Bug fixes:</dt>
+<dd><ul>
+<li><code>local variable 'folderAndFile' referenced before assignment</code> traceback error.</li>
+</ul></dd></dl>
+
 ## Version 1.2.7.0.20240826
 <dl>
 <dt>First build behavior changes</dt>
