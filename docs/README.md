@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-08-08
+# Last updated: 2024-08-26
 -->
 
 # Markdown Enricher
@@ -61,8 +61,3 @@ For example, the Markdown Enricher documentation is stored in Git, and then disp
 |[markdown-to-jsx](https://www.npmjs.com/package/markdown-to-jsx)|Parsing engine.|
 |[marked-it](https://ibm.github.io/marked-it)|Transform markdown into HTML.|
 |[PyMdown](https://facelessuser.github.io/PyMdown/)|Transform markdown into HTML|
-
-
-
-
-

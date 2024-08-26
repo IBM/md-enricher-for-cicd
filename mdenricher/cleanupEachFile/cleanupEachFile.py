@@ -20,7 +20,176 @@ def cleanupEachFile(self, details):
         from mdenricher.errorHandling.errorHandling import addToErrors
         from mdenricher.cleanupEachFile.featureFlagMigration import featureFlagMigration
         from mdenricher.cleanupEachFile.writeResult import writeResult
+        from mdenricher.sitemap.sitemapOLD import sitemapOLD
+        from mdenricher.sitemap.sitemapYML import sitemapYML
+        from mdenricher.sitemap.sitemapSUMMARY import sitemapSUMMARY
         # from mdenricher.setup.exitBuild import exitBuild
+
+        def fileHandlingDecisions(source_file, source_files):
+            if self.all_files_dict[source_file]['locationHandling'] == 'remove':
+                if os.path.isfile(self.location_dir + source_files[source_file]['folderPath'] + source_files[source_file]['file_name']):
+                    os.remove(self.location_dir + source_files[source_file]['folderPath'] + source_files[source_file]['file_name'])
+                    self.log.debug('Removing ' + source_file + ' from the ' +
+                                   self.location_name + ' location.')
+                else:
+                    self.log.debug(source_file + ' is set to be removed from the ' +
+                                   self.location_name + ' location, but it already did not exist downstream.')
+            else:
+                try:
+
+                    if details['debug'] is True:
+                        startTimeFile = time.time()
+
+                    folderAndFile = source_files[source_file]['folderAndFile']
+                    file_name = source_files[source_file]['file_name']
+                    folderPath = source_files[source_file]['folderPath']
+                    fileStatus = source_files[source_file]['fileStatus']
+                    fileNamePrevious = source_files[source_file]['fileNamePrevious']
+                    locationHandling = source_files[source_file]['locationHandling']
+                    try:
+                        topicContents = self.all_files_dict[source_file]['fileContents']
+                    except Exception:
+                        try:
+                            topicContents = source_files[source_file]['fileContents']
+                        except Exception:
+                            topicContents = ''
+                            self.log.debug('No topic contents.')
+
+                    if ((details['unprocessed'] is True) and
+                            (not file_name.endswith(tuple(details["img_output_filetypes"]))) and
+                            (details['featureFlagFile'] not in folderAndFile)):
+
+                        if not os.path.isdir(self.location_dir + folderPath):
+                            os.makedirs(self.location_dir + folderPath)
+
+                        self.log.debug('\n\n')
+                        self.log.debug('----------------------------------')
+                        self.log.debug(folderAndFile)
+                        self.log.debug('(' + self.location_name + ')')
+                        self.log.debug('----------------------------------')
+                        self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
+                                       ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious +
+                                       ',locationHandling=' + locationHandling + ')')
+                        if os.path.isfile(self.location_dir + folderPath + file_name):
+                            os.remove(self.location_dir + folderPath + file_name)
+                        if os.path.isfile(details['source_dir'] + folderAndFile):
+                            shutil.copyfile(details['source_dir'] + folderAndFile, self.location_dir + folderPath + file_name)
+                            self.log.debug('Copied downstream without processing.')
+                        else:
+                            self.log.debug('Upstream version was deleted, so downstream version was deleted.')
+
+                    elif file_name.endswith(tuple(details["img_output_filetypes"])):
+                        self.log.debug('\n\n')
+                        self.log.debug('----------------------------------')
+                        self.log.debug(folderAndFile)
+                        self.log.debug('(' + self.location_name + ')')
+                        self.log.debug('----------------------------------')
+                        self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
+                                       ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious + ')')
+
+                        if any(ext in str(self.all_files_dict) for ext in details["filetypes"]):
+                            self.log.debug('Images handled at the end of the build.')
+                        else:
+                            # Icons repo
+                            if os.path.isfile(details['source_dir'] + folderAndFile):
+                                shutil.copyfile(details['source_dir'] + folderAndFile, self.location_dir + folderPath + file_name)
+                                self.log.debug('Copied.')
+
+                    elif folderAndFile == details['featureFlagFile'] and details['feature_flag_migration'] is True:
+                        try:
+
+                            topicContents = featureFlagMigration(self, details)
+
+                            writeResult(self, details, file_name, folderAndFile, folderPath, topicContents)
+
+                        except Exception as e:
+                            print(e)
+                            print('Option not available outside of IBM.')
+                            sys.exit(1)
+
+                    elif file_name.endswith(tuple(details["filetypes"])):
+
+                        self.log.debug('\n\n')
+                        self.log.debug('----------------------------------')
+                        self.log.debug(folderAndFile)
+                        self.log.debug('(' + self.location_name + ')')
+                        self.log.debug('----------------------------------')
+                        self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
+                                       ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious + ')')
+
+                        if not details["reuse_snippets_folder"] in folderAndFile:
+
+                            # Check the file status for 'renamed' and if so, use the fileNamePrevious to remove the old version of
+                            # the file from the downstream repo. This can't be a part of the following if/elif because the new
+                            # file still should be handled.
+                            if 'renamed' in fileStatus:
+                                self.log.debug('Rename detected in the file status for ' + source_file + '.')
+                                if fileNamePrevious == 'None':
+                                    addToWarnings(source_file + ' was renamed, but the previous file name could not be found, so the ' +
+                                                  'previous version of the file could not be removed from the downstream repo.',
+                                                  folderAndFile, folderPath + file_name, details, self.log, self.location_name, '', '')
+                                else:
+                                    try:
+                                        if os.path.isfile(self.location_dir + '/' + fileNamePrevious):
+                                            os.remove(self.location_dir + '/' + fileNamePrevious)
+                                            self.log.debug(source_file + ' was renamed in the upstream repo. Deleting ' +
+                                                           fileNamePrevious + ' from ' + self.location_name + ' as well.')
+                                    except Exception:
+                                        addToWarnings(fileNamePrevious + ' could not be found, so the previous version of the file ' +
+                                                      'could not be removed from the downstream repo.', folderAndFile,
+                                                      folderPath + file_name, details, self.log,
+                                                      self.location_name, '', '')
+
+                            # Check the file status for 'removed'.
+                            # If the file was removed from upsteam or set to be removed by the locations file, remove it from this location too
+                            if 'removed' in fileStatus:
+                                if os.path.isfile(self.location_dir + folderPath + file_name):
+                                    os.remove(self.location_dir + folderPath + file_name)
+                                    self.log.debug('Removing ' + source_file + ' from the ' +
+                                                   self.location_name + ' location.')
+                                else:
+                                    self.log.debug(source_file + ' is set to be removed from the ' +
+                                                   self.location_name + ' location, but it already did not exist downstream.')
+
+                            # If the file is a text file in the supported text file list, then run the filecleanup loop at the top of the file over it
+                            elif file_name.endswith(tuple(details["filetypes"])):
+
+                                # If the subdirectory, doesn't exist in the downstream repo, create it
+                                if not os.path.isdir(self.location_dir + folderPath):
+                                    try:
+                                        os.makedirs(self.location_dir + folderPath)
+                                    except Exception:
+                                        if os.path.isfile(self.location_dir + folderPath):
+                                            os.remove(self.location_dir + folderPath)
+                                            os.makedirs(self.location_dir + folderPath)
+                                        if not os.path.isdir(self.location_dir + folderPath):
+                                            addToErrors('Could not create directory: ' + self.location_dir + folderPath,
+                                                        folderAndFile, folderPath + file_name, details, self.log, self.location_name,
+                                                        '', '')
+
+                                # The filepaths are the differences between these two sections
+                                if not os.path.isdir(self.location_dir + folderPath):
+                                    self.log.debug('Folder does not exist in working dir: ' + self.location_dir + folderPath)
+                                else:
+                                    try:
+                                        fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath, topicContents)
+                                    except Exception as e:
+                                        self.log.debug(str(e))
+                                        self.log.debug('folderAndFile = ' + folderAndFile)
+                                        self.log.debug('file_name = ' + file_name)
+                                        self.log.debug('folderPath = ' + folderPath)
+                                        self.log.debug('fileNamePrevious = ' + fileNamePrevious)
+
+                    if details['debug'] is True:
+                        endTime = time.time()
+                        totalTime = endTime - startTimeFile
+                        wholeFileTime = str(round(totalTime, 2))
+                        self.log.info(source_file + ': ' + wholeFileTime)
+
+                except Exception as e:
+                    addToErrors('Could not complete processing for ' + folderAndFile + ': ' + str(e),
+                                folderAndFile, folderPath + file_name, details, self.log, self.location_name,
+                                '', '')
 
         def fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath, topicContents):
 
@@ -61,6 +230,17 @@ def cleanupEachFile(self, details):
             if details['debug'] is True:
                 startTime = time.time()
 
+            from mdenricher.tags.tagRemoval import tagRemoval
+            topicContents = tagRemoval(self, details, folderAndFile, topicContents)
+
+            if details['debug'] is True:
+                endTime = time.time()
+                totalTime = endTime - startTime
+                tagRemovalTime = str(round(totalTime, 2))
+
+            if details['debug'] is True:
+                startTime = time.time()
+
             if (('{{' in topicContents) and (details["ibm_cloud_docs_keyref_check"] is True)):
                 from mdenricher.errorHandling.keyrefCheck import keyrefCheck
                 keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicContents)
@@ -69,17 +249,6 @@ def cleanupEachFile(self, details):
                 endTime = time.time()
                 totalTime = endTime - startTime
                 keyrefCheckTime = str(round(totalTime, 2))
-
-            if details['debug'] is True:
-                startTime = time.time()
-
-            from mdenricher.tags.tagRemoval import tagRemoval
-            topicContents = tagRemoval(self, details, folderAndFile, topicContents)
-
-            if details['debug'] is True:
-                endTime = time.time()
-                totalTime = endTime - startTime
-                tagRemovalTime = str(round(totalTime, 2))
 
             if details['debug'] is True:
                 startTime = time.time()
@@ -122,9 +291,36 @@ def cleanupEachFile(self, details):
                         topicContentsList.remove(line)
                 topicContents = "\n".join(topicContentsList)
 
+            if folderPath + file_name == self.sitemap_file:
+
+                if details['debug'] is True:
+                    startTime = time.time()
+
+                # If there is a sitemap.md, populate it with links
+                # This needs to happen after comments are handled
+                if (not details["ibm_cloud_docs_sitemap_depth"] == 'off'):
+                    if 'toc.yaml' in str(self.all_files_dict) and self.location_ibm_cloud_docs is True:
+                        topicContents = sitemapYML(self, details, topicContents)
+
+                    elif 'SUMMARY.md' in str(self.all_files_dict):
+                        topicContents = sitemapSUMMARY(self, details, topicContents)
+
+                    elif (('toc' in str(self.all_files_dict)) and ('toc.yaml' not in str(self.all_files_dict))):
+                        topicContents = sitemapOLD(self, details, topicContents)
+
+                    else:
+                        addToWarnings('A toc.yaml file does not exist, so the sitemap could not be built.',
+                                      'toc.yaml', '', details, self.log, 'pre-build', '', '')
+
+                if details['debug'] is True:
+                    endTime = time.time()
+                    totalTime = endTime - startTime
+                    sectionTime = str(round(totalTime, 2))
+                    self.log.info(self.location_name + ' sitemap: ' + sectionTime)
+
             if details['debug'] is True:
                 startTime = time.time()
-            writeResult(self, details, file_name, folderAndFile, folderPath, topicContents, False)
+            writeResult(self, details, file_name, folderAndFile, folderPath, topicContents)
 
             if details['debug'] is True:
                 endTime = time.time()
@@ -178,174 +374,23 @@ def cleanupEachFile(self, details):
             sortedList = sorted(self.source_files.items())
             source_files = dict(sortedList)
 
-            # Do removals first in case a keep file outputs to the same location
+            # Handle things like keyref and files to remove first
+            for first_file in self.location_build_first:
+                if first_file in source_files:
+                    fileHandlingDecisions(self.all_files_dict[first_file]['folderAndFile'], source_files)
+
+            # Handle the majority of files
             for source_file, source_file_info in source_files.items():
-                if source_files[source_file]['locationHandling'] == 'remove':
-                    if os.path.isfile(self.location_dir + source_files[source_file]['folderPath'] + source_files[source_file]['file_name']):
-                        os.remove(self.location_dir + source_files[source_file]['folderPath'] + source_files[source_file]['file_name'])
-                        self.log.debug('Removing ' + source_file + ' from the ' +
-                                       self.location_name + ' location.')
-                    else:
-                        self.log.debug(source_file + ' is set to be removed from the ' +
-                                       self.location_name + ' location, but it already did not exist downstream.')
+                if (not self.all_files_dict[source_file]['folderAndFile'] in self.location_build_first and
+                        not self.all_files_dict[source_file]['folderAndFile'] in self.location_build_last):
+                    fileHandlingDecisions(self.all_files_dict[source_file]['folderAndFile'], source_files)
 
-            for source_file, source_file_info in source_files.items():
-                if not source_files[source_file]['locationHandling'] == 'remove':
-                    try:
+            # Handle things like the sitemap last
+            for last_file in self.location_build_last:
+                if last_file in source_files:
+                    fileHandlingDecisions(self.all_files_dict[last_file]['folderAndFile'], source_files)
 
-                        if details['debug'] is True:
-                            startTimeFile = time.time()
-
-                        folderAndFile = source_files[source_file]['folderAndFile']
-                        file_name = source_files[source_file]['file_name']
-                        folderPath = source_files[source_file]['folderPath']
-                        fileStatus = source_files[source_file]['fileStatus']
-                        fileNamePrevious = source_files[source_file]['fileNamePrevious']
-                        locationHandling = source_files[source_file]['locationHandling']
-                        try:
-                            topicContents = self.all_files_dict[source_file]['fileContents']
-                        except Exception:
-                            try:
-                                topicContents = source_files[source_file]['fileContents']
-                            except Exception:
-                                topicContents = ''
-                                self.log.debug('No topic contents.')
-
-                        if ((details['unprocessed'] is True) and
-                                (not file_name.endswith(tuple(details["img_output_filetypes"]))) and
-                                (details['featureFlagFile'] not in folderAndFile)):
-
-                            if not os.path.isdir(self.location_dir + folderPath):
-                                os.makedirs(self.location_dir + folderPath)
-
-                            self.log.debug('\n\n')
-                            self.log.debug('----------------------------------')
-                            self.log.debug(folderAndFile)
-                            self.log.debug('(' + self.location_name + ')')
-                            self.log.debug('----------------------------------')
-                            self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
-                                           ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious +
-                                           ',locationHandling=' + locationHandling + ')')
-                            if os.path.isfile(self.location_dir + folderPath + file_name):
-                                os.remove(self.location_dir + folderPath + file_name)
-                            if os.path.isfile(details['source_dir'] + folderAndFile):
-                                shutil.copyfile(details['source_dir'] + folderAndFile, self.location_dir + folderPath + file_name)
-                                self.log.debug('Copied downstream without processing.')
-                            else:
-                                self.log.debug('Upstream version was deleted, so downstream version was deleted.')
-
-                        elif file_name.endswith(tuple(details["img_output_filetypes"])):
-                            self.log.debug('\n\n')
-                            self.log.debug('----------------------------------')
-                            self.log.debug(folderAndFile)
-                            self.log.debug('(' + self.location_name + ')')
-                            self.log.debug('----------------------------------')
-                            self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
-                                           ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious + ')')
-
-                            if any(ext in str(self.all_files_dict) for ext in details["filetypes"]):
-                                self.log.debug('Images handled at the end of the build.')
-                            else:
-                                # Icons repo
-                                if os.path.isfile(details['source_dir'] + folderAndFile):
-                                    shutil.copyfile(details['source_dir'] + folderAndFile, self.location_dir + folderPath + file_name)
-                                    self.log.debug('Copied.')
-
-                        elif folderAndFile == details['featureFlagFile'] and details['feature_flag_migration'] is True:
-                            try:
-
-                                topicContents = featureFlagMigration(self, details)
-
-                                writeResult(self, details, file_name, folderAndFile, folderPath, topicContents, False)
-
-                            except Exception as e:
-                                print(e)
-                                print('Option not available outside of IBM.')
-                                sys.exit(1)
-
-                        elif file_name.endswith(tuple(details["filetypes"])):
-
-                            self.log.debug('\n\n')
-                            self.log.debug('----------------------------------')
-                            self.log.debug(folderAndFile)
-                            self.log.debug('(' + self.location_name + ')')
-                            self.log.debug('----------------------------------')
-                            self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
-                                           ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious + ')')
-
-                            if not details["reuse_snippets_folder"] in folderAndFile:
-
-                                # Check the file status for 'renamed' and if so, use the fileNamePrevious to remove the old version of
-                                # the file from the downstream repo. This can't be a part of the following if/elif because the new
-                                # file still should be handled.
-                                if 'renamed' in fileStatus:
-                                    self.log.debug('Rename detected in the file status for ' + source_file + '.')
-                                    if fileNamePrevious == 'None':
-                                        addToWarnings(source_file + ' was renamed, but the previous file name could not be found, so the ' +
-                                                      'previous version of the file could not be removed from the downstream repo.',
-                                                      folderAndFile, folderPath + file_name, details, self.log, self.location_name, '', '')
-                                    else:
-                                        try:
-                                            if os.path.isfile(self.location_dir + '/' + fileNamePrevious):
-                                                os.remove(self.location_dir + '/' + fileNamePrevious)
-                                                self.log.debug(source_file + ' was renamed in the upstream repo. Deleting ' +
-                                                               fileNamePrevious + ' from ' + self.location_name + ' as well.')
-                                        except Exception:
-                                            addToWarnings(fileNamePrevious + ' could not be found, so the previous version of the file ' +
-                                                          'could not be removed from the downstream repo.', folderAndFile,
-                                                          folderPath + file_name, details, self.log,
-                                                          self.location_name, '', '')
-
-                                # Check the file status for 'removed'.
-                                # If the file was removed from upsteam or set to be removed by the locations file, remove it from this location too
-                                if 'removed' in fileStatus:
-                                    if os.path.isfile(self.location_dir + folderPath + file_name):
-                                        os.remove(self.location_dir + folderPath + file_name)
-                                        self.log.debug('Removing ' + source_file + ' from the ' +
-                                                       self.location_name + ' location.')
-                                    else:
-                                        self.log.debug(source_file + ' is set to be removed from the ' +
-                                                       self.location_name + ' location, but it already did not exist downstream.')
-
-                                # If the file is a text file in the supported text file list, then run the filecleanup loop at the top of the file over it
-                                elif file_name.endswith(tuple(details["filetypes"])):
-
-                                    # If the subdirectory, doesn't exist in the downstream repo, create it
-                                    if not os.path.isdir(self.location_dir + folderPath):
-                                        try:
-                                            os.makedirs(self.location_dir + folderPath)
-                                        except Exception:
-                                            if os.path.isfile(self.location_dir + folderPath):
-                                                os.remove(self.location_dir + folderPath)
-                                                os.makedirs(self.location_dir + folderPath)
-                                            if not os.path.isdir(self.location_dir + folderPath):
-                                                addToErrors('Could not create directory: ' + self.location_dir + folderPath,
-                                                            folderAndFile, folderPath + file_name, details, self.log, self.location_name,
-                                                            '', '')
-
-                                    # The filepaths are the differences between these two sections
-                                    if not os.path.isdir(self.location_dir + folderPath):
-                                        self.log.debug('Folder does not exist in working dir: ' + self.location_dir + folderPath)
-                                    else:
-                                        try:
-                                            fileCleanUpLoop(self, details, conrefJSON, file_name, folderAndFile, folderPath, topicContents)
-                                        except Exception as e:
-                                            self.log.debug(str(e))
-                                            self.log.debug('folderAndFile = ' + folderAndFile)
-                                            self.log.debug('file_name = ' + file_name)
-                                            self.log.debug('folderPath = ' + folderPath)
-                                            self.log.debug('fileNamePrevious = ' + fileNamePrevious)
-
-                        if details['debug'] is True:
-                            endTime = time.time()
-                            totalTime = endTime - startTimeFile
-                            wholeFileTime = str(round(totalTime, 2))
-                            self.log.info(source_file + ': ' + wholeFileTime)
-
-                    except Exception as e:
-                        addToErrors('Could not complete processing for ' + folderAndFile + ': ' + str(e),
-                                    folderAndFile, folderPath + file_name, details, self.log, self.location_name,
-                                    '', '')
     except Exception as e:
         addToErrors('Could not complete the file cleanup steps for ' + self.location_name + ': ' + str(e),
                     '', '', details, self.log, self.location_name, '', '')
+        self.log.debug(e)

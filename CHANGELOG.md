@@ -2,6 +2,32 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.7.0.20240826
+<dl>
+<dt>First build behavior changes</dt>
+<dd>If the Jenkins or Travis build number environment variable is <code>1</code>:
+<ul>
+<li><code>--rebuild_all_files</code> is automatically set to <code>True</code>.</li>
+<li>The Git commit SHA is stored in the logs branch in the <code>.source_commit.txt</code> file whether content errors exist or not. For subsequent builds, the Git commit SHAs are not stored when content errors exist.</li>
+<li>If content errors exist in the first build and subsequent builds, the changes that were made between the first build and the next error free build are included in push downstream.</li>
+</ul></dd>
+<dt>Bug fixes:</dt>
+<dd><ul>
+<li>Empty image name causes a confusing missing image warning because it seems like the image name was omitted.</li>
+<li>Phrase-level snippets used in alt text affects image check warnings.</li>
+<li>Downstream commit user displays as last commit author instead of the functional ID used to make the commit.</li>
+<li>Sitemap date updates with every build.</li>
+</ul></dd></dl>
+
+## Version 1.2.6.1.20240812
+<dl>
+<dt>Added <code>UpdateAndDate</code> as a valid option for <code>location_commit_summary_style</code> in the locations file.</dt>
+<dd></dd>
+<dt>Bug fixes:</dt>
+<dd><ul>
+<li>When output paths are changed through the locations file, some images get removed that shouldn't.</li>
+</ul></dd></dl>
+
 ## Version 1.2.6.0.20240808
 <dl>
 <dt>Added <code>@here</code> mention in Slack posts that include errors</dt>

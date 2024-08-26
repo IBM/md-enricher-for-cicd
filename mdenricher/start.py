@@ -5,7 +5,7 @@
 
 def start():
 
-    versionNumber = '1.2.6.0.20240808'
+    versionNumber = '1.2.7.0.20240826'
 
     # Process the command-line options
 

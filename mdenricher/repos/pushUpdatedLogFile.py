@@ -141,7 +141,8 @@ def pushUpdatedLogFile(details, log):
             # UPDATE THE COMMIT ID FILE
             if ((not details["builder"] == 'local') and
                     (not details["test_only"] is True) and
-                    (not os.path.exists(details["error_file"]))):
+                    ((str(details['build_number']) == '1' and os.path.exists(details["error_file"])) or
+                     (not os.path.exists(details["error_file"])))):
 
                 # Read the previous version of the file and set the contents to a max number of lines
                 maxLines = 5
@@ -165,6 +166,9 @@ def pushUpdatedLogFile(details, log):
                     with open(details["output_dir"] + '/' + details["log_branch"] + '/' + details["last_commit_id_file"], "w+") as commitFileOpen:
                         if details["build_number"] is None:
                             commitFileOpen.write('\n' + details["previous_commit_id"] + ',' +
+                                                 details["current_commit_id"] + commitFilePrior)
+                        elif str(details["build_number"]) == '1':
+                            commitFileOpen.write('\n' + str(details["build_number"]) + ':' + details["current_commit_id"] + ',' +
                                                  details["current_commit_id"] + commitFilePrior)
                         else:
                             commitFileOpen.write('\n' + str(details["build_number"]) + ':' + details["previous_commit_id"] + ',' +
@@ -208,7 +212,7 @@ def pushUpdatedLogFile(details, log):
                     subprocessOutput = subprocess.Popen('git push --set-upstream origin ' + details["log_branch"] +
                                                         ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
                     exitCode = parseSubprocessOutput(subprocessOutput, log)
-                    log.info('Completed upstream origin')
+                    log.info('Completed upstream origin.')
                 except Exception as e:
                     pushErrors(details, e, log)
             if exitCode > 0:

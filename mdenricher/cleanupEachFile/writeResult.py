@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def writeResult(self, details, file_name, folderAndFile, folderPath, topicContents, compareSitemapContents):
+def writeResult(self, details, file_name, folderAndFile, folderPath, topicContents):
 
     # Write the revised contents to a file
 
@@ -11,18 +11,7 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
     import re
     # import difflib as dl
     from mdenricher.cleanupEachFile.comments import comments
-    from datetime import datetime
-
-    def getTodaysDate():
-        now = datetime.now()
-        currentYear = str(now.year)
-        currentMonth = str(now.month)
-        currentDay = str(now.day)
-        if len(currentMonth) == 1:
-            currentMonth = '0' + currentMonth
-        if len(currentDay) == 1:
-            currentDay = '0' + currentDay
-        return (currentYear, currentMonth, currentDay)
+    from mdenricher.cleanupEachFile.getTodaysDate import getTodaysDate
 
     # If the file doesn't have anything in it, don't write it or remove existing file unless it's a hidden file
     if ((topicContents == '') or ((topicContents.isspace()) is True)) and (not file_name.startswith('.')):
@@ -38,9 +27,7 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
     # Otherwise, write it
     else:
         topicContents = comments(self, details, folderAndFile, topicContents)
-        if (folderAndFile in self.all_files_dict) or (folderAndFile == self.sitemap_file) or (self.sitemap_file.endswith(folderPath + file_name)):
-            # sitemap is folderAndFile on first writing after handling the potential snippets or tags in it,
-            # but then when the sitemap content is generated, the folderPath and file_name is used
+        if folderAndFile in self.all_files_dict:
             # Open the file for writing
             write = False
 
@@ -52,21 +39,22 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                 self.log.debug('Rebuilding because the file is in the rebuild_files_list.')
             elif os.path.isfile(self.location_dir + folderPath + file_name):
 
-                # For the sitemap, grab the version before it was replaced with the empty stub
-                if ((folderAndFile == self.sitemap_file) or (self.sitemap_file.endswith(folderPath + file_name))) and (compareSitemapContents is True):
-                    try:
-                        topicContentsDownstream = self.source_files[self.sitemap_file]['downstream_sitemap_contents']
-                    except Exception:
-                        if os.path.isfile(self.location_dir + folderPath + file_name):
-                            with open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore") as fileName_read:
-                                topicContentsDownstream = fileName_read.read()
-                else:
-                    with open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore") as fileName_read:
-                        topicContentsDownstream = fileName_read.read()
+                with open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore") as fileName_read:
+                    topicContentsDownstream = fileName_read.read()
+
+                # Remove new lines from the end
+                while topicContentsDownstream.endswith('\n'):
+                    topicContentsDownstream = topicContentsDownstream[:-1]
+                while topicContents.endswith('\n'):
+                    topicContents = topicContents[:-1]
 
                 if '[{LAST_UPDATED_DATE}]' not in topicContents and '[{CURRENT_YEAR}]' in topicContents:
                     self.log.debug('Always updating topics with copyright variable.')
                     write = True
+
+                elif topicContentsDownstream == topicContents:
+                    write = False
+                    self.log.debug('No changes found to write.')
 
                 elif '[{LAST_UPDATED_DATE}]' in topicContents or '[{CURRENT_YEAR}]' in topicContents:
                     topicContentsMeat = topicContents
@@ -95,28 +83,27 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                             topicContentsMeat = topicContentsMeat.replace('years: ' + copyrightDate, '', 1)
 
                         if topicContentsDownstreamMeat == topicContentsMeat:
-                            if ((folderAndFile == self.sitemap_file) or
-                                    (self.sitemap_file.endswith(folderPath + file_name))) and (compareSitemapContents is True):
-                                # Write the old version of the sitemap again and undo the writing of the sub file again
-                                topicContents = topicContentsDownstream
-                                write = True
-                                self.log.debug('Changes found in IBM Cloud Docs sitemap.')
-                            else:
-                                write = False
-                                self.log.debug('No changes found in IBM Cloud Docs file.')
+                            write = False
+                            self.log.debug('No changes found in IBM Cloud Docs file.')
                         else:
                             self.log.debug('Changes found in IBM Cloud Docs content.')
                             write = True
+
+                            # Split on new lines
+                            topicContentsDownstreamMeatLines = topicContentsDownstreamMeat.split('\n')
+                            topicContentsMeatLines = topicContentsMeat.split('\n')
+
+                            if len(topicContentsMeatLines) == len(topicContentsDownstreamMeatLines):
+                                lineNumber = 0
+                                for line in topicContentsMeatLines:
+                                    if line != topicContentsDownstreamMeatLines[lineNumber]:
+                                        self.log.debug('First changed line: "' + line[0:100] + '..."')
+                                        break
+                                    lineNumber = lineNumber + 1
+
                     else:
                         self.log.debug('Changes found. Date variables are used.')
                         write = True
-                elif ((folderAndFile == self.sitemap_file) or
-                        (self.sitemap_file.endswith(folderPath + file_name))) and (compareSitemapContents is True):
-                    write = True
-                    self.log.debug('Changes found in sitemap.')
-                elif topicContentsDownstream == topicContents:
-                    write = False
-                    self.log.debug('No changes found to write.')
                 else:
                     self.log.debug('Changes found. No date variables used.')
                     write = True

@@ -23,14 +23,22 @@ def checkUsedImages(self, details):
         for (path, dirs, files) in os.walk(self.location_dir):
             for entry in files:
                 if entry.endswith(tuple(details["filetypes"])) and os.path.isfile(path + '/' + entry) and ('.git' not in path):
+                    if '/reuse-snippets' in path:
+                        pathRevised = path.split('/reuse-snippets')[0]
+                    else:
+                        pathRevised = path
                     with open(path + '/' + entry, 'r', encoding="utf8", errors="ignore") as fileName_open:
                         topicContentsCheckImages = fileName_open.read()
-                    self.imagesUsedInThisBuild = gatherUsedImages(self, details, path, path + '/' + entry, topicContentsCheckImages)
+                    self.imagesUsedInThisBuild = gatherUsedImages(self, details, pathRevised, path + '/' + entry, topicContentsCheckImages)
                     filesChecked.append(path + '/' + entry)
+
+        # import json
+        # self.log.info('Used images:')
+        # self.log.info(json.dumps(self.imagesUsedInThisBuild, indent=2))
 
         if not filesChecked == [] and not filesChecked == [self.location_dir + '/README.md']:
             # Go through the original list of images in the source directory and compare it against the used images list
-            usedInThisLocation = []
+            self.usedInThisLocation = []
             for upstreamImage in self.image_files_list:
                 upstreamShortName = upstreamImage.replace(details["source_dir"], '')
                 try:
@@ -40,7 +48,8 @@ def checkUsedImages(self, details):
                 else:
                     downstreamImage = self.location_dir + downstreamShortName
 
-                    if ((downstreamImage in str(self.imagesUsedInThisBuild) and self.all_files_dict[upstreamShortName]['locationHandling'] == 'keep-if-used') or
+                    if ((downstreamImage in str(self.imagesUsedInThisBuild) and
+                            self.all_files_dict[upstreamShortName]['locationHandling'] == 'keep-if-used') or
                             (self.all_files_dict[upstreamShortName]['locationHandling'] == 'keep')):
                         if not os.path.isdir(self.location_dir + self.all_files_dict[upstreamShortName]['folderPath']):
                             try:
@@ -58,7 +67,7 @@ def checkUsedImages(self, details):
                             self.log.debug(upstreamShortName + ': Copied downstream because it is used in a downstream content file.')
                         elif self.all_files_dict[upstreamShortName]['locationHandling'] == 'keep':
                             self.log.debug(upstreamShortName + ': Copied downstream because it is defined in the locations file.')
-                        usedInThisLocation.append(downstreamImage)
+                        self.usedInThisLocation.append(downstreamImage)
 
                     elif os.path.isfile(downstreamImage):
                         self.log.debug(upstreamShortName + ': Removed from ' + self.location_name + ' because it is not used in a downstream content file.')
@@ -70,13 +79,13 @@ def checkUsedImages(self, details):
 
             # Check which downstream images were not found upstream
             for downstreamImage in self.imagesUsedInThisBuild:
-                if (downstreamImage not in usedInThisLocation and
+                if (downstreamImage not in self.usedInThisLocation and
                         ((details['ibm_cloud_docs'] is False) or (details['ibm_cloud_docs'] is True and '/icons/' not in downstreamImage))):
 
                     for originalFileName in self.imagesUsedInThisBuild[downstreamImage]:
                         try:
                             if ('reuse-snippets' not in ','.join(self.imagesUsedInThisBuild[downstreamImage][originalFileName]['files'])):
-                                addToWarnings(originalFileName + ' does not exist as referenced in downstream ' + self.location_name + ': ' +
+                                addToWarnings(originalFileName + ' image does not exist as referenced in downstream ' + self.location_name + ' file: ' +
                                               ','.join(self.imagesUsedInThisBuild[downstreamImage][originalFileName]['files']),
                                               originalFileName, originalFileName, details, self.log, self.location_name, '', '')
                         except Exception:

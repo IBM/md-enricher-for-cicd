@@ -69,18 +69,21 @@ def checkLocationsPaths(details, folderAndFile, location_contents_files, locatio
 
     if (locationFileMatch is False) and (locationHandling == 'keep') and (folderAndFile.endswith(tuple(details['img_output_filetypes']))):
         locationHandling = 'keep-if-used'
+        locationFileMatch = True
 
     if locationFileMatch is False and remove_all_other_files_folders is True:
         locationHandling = 'remove'
+        locationFileMatch = True
 
     # See if any of these files should be automatically set to remove
     ignoreFileNames = ['cloudoekeyrefs.yml', 'toc_schema.json', 'user-mapping.json']
     ignoreWholePaths = [details["locations_file"], details["slack_user_mapping"]]
-    if ((locationFileMatch is False and
-        ((folderAndFile in ignoreFileNames) or
-         (folderAndFile.endswith(tuple(details["img_src_filetypes"])) and details['unprocessed'] is False) or
-         (details["source_dir"] + folderAndFile in ignoreWholePaths))) or
-       (folderAndFile == details['featureFlagFile'] and details['unprocessed'] is False)):
+    if (locationFileMatch is False and
+            ((folderAndFile in ignoreFileNames) or
+             (folderAndFile.endswith(tuple(details["img_src_filetypes"])) and details['unprocessed'] is False) or
+             (details["source_dir"] + folderAndFile in ignoreWholePaths) or
+             (folderAndFile == details['featureFlagFile'] and details['unprocessed'] is False))):
         locationHandling = 'remove'
+        locationFileMatch = True
 
     return (locationHandling, returnedFileName, returnedFolderName)

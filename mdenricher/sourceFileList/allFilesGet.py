@@ -14,7 +14,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
     # Like if a conref file changes, this list will be used to look inside each file to see if that conref is used in it
 
     def allFileCheck(details, path, file, folder_name, all_files_dict, conref_files_list,
-                     expected_output_files, filesForOtherLocations, image_files_list, sitemap_file):
+                     expected_output_files, filesForOtherLocations, image_files_list):
 
         try:
             userMapping = str(details["slack_user_mapping"].rsplit('/', 1)[1])
@@ -81,12 +81,6 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                                            folder_name + file, all_files_dict, location_contents_files,
                                            location_contents_folders, remove_all_other_files_folders)
 
-        # If this is a sitemap file and it does exist in the all files list,
-        # then set it as the sitemap file
-        if (sitemap_file == 'None') and (file == 'sitemap.md') and (folder_name + file in all_files_dict):
-            sitemap_file = folder_name + file
-            log.debug('Setting sitemap_file as ' + sitemap_file)
-
         try:
             if all_files_dict[folder_name + file]['folderPath'] not in expected_output_files:
                 expected_output_files.append(all_files_dict[folder_name + file]['folderPath'])
@@ -95,7 +89,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
         except Exception:
             pass
 
-        return (all_files_dict, conref_files_list, expected_output_files, filesForOtherLocations, image_files_list, sitemap_file)
+        return (all_files_dict, conref_files_list, expected_output_files, filesForOtherLocations, image_files_list)
 
     # All of these list entries always start with a slash
 
@@ -137,20 +131,22 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
             if not folder_name.startswith('/'):
                 folder_name = '/' + folder_name
             allFiles = allFiles + files
-            for filesToScanFirst in details['filesToScanFirst']:
-                if filesToScanFirst in allFiles:
-                    allFiles.remove(filesToScanFirst)
-                    allFiles.insert(0, filesToScanFirst)
+
+            # If this is a sitemap file and it does exist in the all files list,
+            # then set it as the sitemap file
+            if (sitemap_file == 'None') and ('sitemap.md' in allFiles):
+                sitemap_file = '/sitemap.md'
+                log.debug('Setting sitemap_file as ' + sitemap_file)
+
             for file in sorted(allFiles):
                 (all_files_dict,
                  conref_files_list, expected_output_files,
                  filesForOtherLocations,
-                 image_files_list,
-                 sitemap_file) = allFileCheck(details, path, file, folder_name,
-                                              all_files_dict,
-                                              conref_files_list, expected_output_files,
-                                              filesForOtherLocations,
-                                              image_files_list, sitemap_file)
+                 image_files_list) = allFileCheck(details, path, file, folder_name,
+                                                  all_files_dict,
+                                                  conref_files_list, expected_output_files,
+                                                  filesForOtherLocations,
+                                                  image_files_list)
 
     # Add things that might have been deleted
     for source_file in source_files_original_list:
@@ -167,12 +163,10 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
             (all_files_dict,
              conref_files_list, expected_output_files,
              filesForOtherLocations,
-             image_files_list,
-             sitemap_file) = (allFileCheck(details, details["source_dir"],
-                                           file, folder_name, all_files_dict,
-                                           conref_files_list, expected_output_files, filesForOtherLocations,
-                                           image_files_list,
-                                           sitemap_file))
+             image_files_list) = (allFileCheck(details, details["source_dir"],
+                                               file, folder_name, all_files_dict,
+                                               conref_files_list, expected_output_files, filesForOtherLocations,
+                                               image_files_list))
 
     # Check TOC files for tagging to apply to the content files
     if ('/toc.yaml' in all_files_dict) and (details['ibm_cloud_docs'] is True) and ('<' in all_files_dict['/toc.yaml']['fileContents']):  # type: ignore
@@ -202,6 +196,8 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
 
     conref_files_list.sort()
     image_files_list.sort()
+    # import json
+    # log.info(json.dumps(all_files_dict, indent=2))
     # if not all_files_dict == {}:
     # log.debug('All files gathered.')
     # if not conref_files_list == []:

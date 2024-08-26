@@ -219,6 +219,9 @@ def previousCommitInfo(details, log):
         current_commit_email = current_commit_email.split('\n', 1)[0]
     if '"' in current_commit_summary:
         current_commit_summary = current_commit_summary.replace('"', '')
+    # Workaround for alchemy-containers/documentation
+    if ('Travis CI User: ' in current_commit_summary) or ((current_commit_author + ': ') in current_commit_summary):
+        current_commit_summary = current_commit_summary.split(': ', 1)[1]
 
     source_files_original_list = {}
     if str(previous_commit_id) == 'None':

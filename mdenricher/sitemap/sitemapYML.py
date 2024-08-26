@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def sitemapYML(self, details):
+def sitemapYML(self, details, topicContents):
 
     def conrefMDReplacement(conrefMDFilepath, topicContents, srcFile):
         if '/' in srcFile:
@@ -213,7 +213,6 @@ def sitemapYML(self, details):
         from mdenricher.errorHandling.errorHandling import addToErrors
         from mdenricher.errorHandling.parseSubprocessOutput import parseSubprocessOutput
         # from mdenricher.setup.exitBuild import exitBuild
-        from mdenricher.cleanupEachFile.writeResult import writeResult
 
         input_file = '/toc.yaml'
         relativeLinks = ['/apidocs', '/catalog', '/docs/faqs', '/observe', '/status', '/unifiedsupport']
@@ -223,11 +222,6 @@ def sitemapYML(self, details):
             self.log.debug('Locally, the sitemap might be incomplete.' +
                            'Credentials are not configured locally to go to Github and retrieve the content ' +
                            'defined in the TOC that is reused from other services.')
-
-        self.log.debug("\n\n")
-        self.log.debug("-------------------------------------------------------------")
-        self.log.debug("UPDATE SITEMAP")
-        self.log.debug("-------------------------------------------------------------\n")
 
         # Break down one variable into 3
         if (details["ibm_cloud_docs_sitemap_depth"]).lower() == 'h1':
@@ -260,7 +254,6 @@ def sitemapYML(self, details):
         location_sitemap_folderPath = self.source_files[self.sitemap_file]['folderPath']
         location_sitemap_file = location_sitemap_folderPath + location_sitemap_file_name
 
-        self.log.debug("\n")
         self.log.debug('Creating ' + location_sitemap_file + ' from ' + self.sitemap_file + ' and ' + input_file + ".")
 
         # self.log.debug('Working directory: ' + self.location_dir)
@@ -1018,8 +1011,7 @@ def sitemapYML(self, details):
                 linkIntro = '/docs/' + path + '?topic=' + subcollection + '-'
                 entries = tocContent['toc']['entries']
 
-                with open(self.location_dir + location_sitemap_file, "r", encoding="utf8", errors="ignore") as h:
-                    sitemapList = [h.read()]
+                sitemapList = [topicContents]
 
                 # self.log.debug(entries)
 
@@ -1028,8 +1020,6 @@ def sitemapYML(self, details):
                 sitemapList.append('\n')
 
                 completeSitemap = "\n".join(sitemapList)
-                writeResult(self, details, location_sitemap_file_name, self.sitemap_file,
-                            location_sitemap_folderPath, completeSitemap, True)
 
                 self.log.debug('Sitemap complete.')
 
@@ -1046,3 +1036,5 @@ def sitemapYML(self, details):
 
     if os.path.isdir(self.location_dir + '/includes'):
         shutil.rmtree(self.location_dir + '/includes')
+
+    return (completeSitemap)

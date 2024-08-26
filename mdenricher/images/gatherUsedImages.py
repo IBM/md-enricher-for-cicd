@@ -15,6 +15,8 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
             if (details['ibm_cloud_docs'] is True) and ('../icons' in imageName):
                 self.log.debug('Not processing IBM Cloud Docs icons: ' + imageName)
             else:
+                if imageName == '':
+                    imageName = '[]'
                 originalImageName = imageName
                 if '../' in imageName:
                     # ../images in the conref.md file can go outside of the repo
@@ -26,6 +28,8 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
                         imagePathUnique = imagePathUnique.rsplit('/', 1)[0]
                 if imageName.startswith('./'):
                     imageName = imageName[1:]
+                if imagePathUnique.startswith('./'):
+                    imagePathUnique = imagePathUnique[1:]
                 if '?raw=true' in imageName:
                     imageName = imageName.replace('?raw=true', '')
                 if imageName.startswith('/'):
@@ -82,6 +86,8 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
     jsonImages = re.findall(r'"thumbnail": ".*?"', topicContents)
     jsonImages = list(dict.fromkeys(jsonImages))
 
+    # Remove the end of any snippets that might be used in the alt text first
+    topicContents = topicContents.replace(']}', '')
     # Replace all markdown alt text with nothing just in case there are parens in the alt text before getting images in markdown format
     markdownAltTexts = re.findall(r'\!\[.*?\]', topicContents)
     for markdownAltText in markdownAltTexts:

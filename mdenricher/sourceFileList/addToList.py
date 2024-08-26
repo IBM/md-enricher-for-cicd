@@ -23,6 +23,8 @@ def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folde
 
         if folderAndFile in dictionary:
             del dictionary[folderAndFile]
+        if (returnedFolderName + returnedFileName) in dictionary:
+            del dictionary[returnedFolderName + returnedFileName]
         dictionary[folderAndFile] = {}
         dictionary[folderAndFile]['folderAndFile'] = folderAndFile
         dictionary[folderAndFile]['file_name'] = returnedFileName
@@ -39,6 +41,17 @@ def addToList(self, details, log, fileNamePrevious, filePatch, fileStatus, folde
                 dictionary[folderAndFile]['fileContents'] = fileContents
         else:
             dictionary[folderAndFile]['fileContents'] = ''
+
+        if (not folderAndFile == (returnedFolderName + returnedFileName)) and (os.path.isfile(details['source_dir'] + returnedFolderName + returnedFileName)):
+            dictionary[returnedFolderName + returnedFileName] = {}
+            dictionary[returnedFolderName + returnedFileName]['folderAndFile'] = returnedFolderName + returnedFileName
+            dictionary[returnedFolderName + returnedFileName]['file_name'] = returnedFileName
+            dictionary[returnedFolderName + returnedFileName]['folderPath'] = returnedFolderName
+            dictionary[returnedFolderName + returnedFileName]['fileStatus'] = fileStatus
+            dictionary[returnedFolderName + returnedFileName]['filePatch'] = filePatch
+            dictionary[returnedFolderName + returnedFileName]['fileNamePrevious'] = fileNamePrevious
+            dictionary[returnedFolderName + returnedFileName]['locationHandling'] = locationHandling
+            dictionary[returnedFolderName + returnedFileName]['fileContents'] = dictionary[folderAndFile]['fileContents']
 
         return (dictionary)
 

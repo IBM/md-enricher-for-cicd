@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def sitemapOLD(self, details):
+def sitemapOLD(self, details, topicContents):
 
     # Create a sitemap from a marked-it version 1 toc file
 
@@ -467,387 +467,390 @@ def sitemapOLD(self, details):
         self.log.debug('-------------')
         self.log.debug('-------------')
 
-        with open(file2, "a", encoding="utf8", errors="ignore") as g:
+        def reuseLoop(tocFilename, topicGroup, topicContents):
+            tocFilenameNoSpaces = tocFilename.replace(' ', '').replace('\n', '')
+            tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
+            # self.log.debug(tocFilenameNoStartingSlash)
+            repoName, backhalf = tocFilenameNoStartingSlash.split('/', 1)
+            topicID = backhalf.split(repoName + '-', 1)[1]
+            # self.log.debug('topicID: ' + topicID)
+            topicContents = loop(topicID, topicGroup, topicContents)
+            return (topicContents)
 
-            def reuseLoop(tocFilename, topicGroup):
-                tocFilenameNoSpaces = tocFilename.replace(' ', '').replace('\n', '')
-                tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
-                # self.log.debug(tocFilenameNoStartingSlash)
-                repoName, backhalf = tocFilenameNoStartingSlash.split('/', 1)
-                topicID = backhalf.split(repoName + '-', 1)[1]
-                # self.log.debug('topicID: ' + topicID)
-                loop(topicID, topicGroup)
+        def tocLoop(tocFilename, topicGroup, topicContents):
+            self.log.debug('Still need to handle nested toc files.')
+            # This goes and gets the toc, but if there's content reuse in there, it's not handled yet
+            repoName = tocFilename.split('/')[1]
+            # self.log.debug('sitemap-temp dir:')
+            # self.log.debug(os.listdir(workingDir + '/sitemap-temp/'))
+            # self.log.debug('sitemap-temp repo dir:')
+            # self.log.debug(os.listdir(workingDir + '/sitemap-temp/' + repoName))
+            with open(workingDir + '/sitemap-temp/' + repoName + '/toc', 'r', encoding="utf8", errors="ignore") as file_open:
+                reusedTOC = file_open.readlines()
+                for line in reusedTOC:
+                    if (('[' in line) or ('.md' in line)):
+                        tocFilename = line.replace(' ', '')
+                        # self.log.debug('Handling from toc: ' + tocFilename)
+                        topicContents = loop(tocFilename, topicGroup, topicContents)
+                    elif (line.startswith('/') or
+                            line.startswith('    /') or
+                            line.startswith('        /') or
+                            line.startswith('            /') and
+                            (not details["builder"] == 'local')):
+                        tocFilenameNoSpaces = line.replace(' ', '').replace('\n', '')
+                        tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
+                        repoName, backhalf = tocFilenameNoStartingSlash.split('/', 1)
+                        topicID = backhalf.split(repoName + '-', 1)[1]
+                        # self.log.debug('Handling from toc: ' + topicID + '.md')
+                        topicContents = loop(topicID + '.md', topicGroup, topicContents)
+            return (topicContents)
 
-            def tocLoop(tocFilename, topicGroup):
-                self.log.debug('Still need to handle nested toc files.')
-                # This goes and gets the toc, but if there's content reuse in there, it's not handled yet
-                repoName = tocFilename.split('/')[1]
-                # self.log.debug('sitemap-temp dir:')
-                # self.log.debug(os.listdir(workingDir + '/sitemap-temp/'))
-                # self.log.debug('sitemap-temp repo dir:')
-                # self.log.debug(os.listdir(workingDir + '/sitemap-temp/' + repoName))
-                with open(workingDir + '/sitemap-temp/' + repoName + '/toc', 'r', encoding="utf8", errors="ignore") as file_open:
-                    reusedTOC = file_open.readlines()
-                    for line in reusedTOC:
-                        if (('[' in line) or ('.md' in line)):
-                            tocFilename = line.replace(' ', '')
-                            # self.log.debug('Handling from toc: ' + tocFilename)
-                            loop(tocFilename, topicGroup)
-                        elif (line.startswith('/') or
-                              line.startswith('    /') or
-                              line.startswith('        /') or
-                              line.startswith('            /') and
-                              (not details["builder"] == 'local')):
-                            tocFilenameNoSpaces = line.replace(' ', '').replace('\n', '')
-                            tocFilenameNoStartingSlash = tocFilenameNoSpaces[1:]
-                            repoName, backhalf = tocFilenameNoStartingSlash.split('/', 1)
-                            topicID = backhalf.split(repoName + '-', 1)[1]
-                            # self.log.debug('Handling from toc: ' + topicID + '.md')
-                            loop(topicID + '.md', topicGroup)
-
-            def loop(tocFilename, topicGroup):
-                # In case the link in the toc just uses the topic id without the .md file name,
-                # go get the file name from the dictionary first
-                if ('.md' not in tocFilename) and ('{' in tocFilename) and (not tocFilename == ''):
-                    for filename, info in list(source.items()):
-                        # self.log.debug(info)
-                        if ('\'topicID\': \'' + tocFilename) in str(info):
-                            filenameShort = str(filename).rsplit('/', 1)[1]
-                            tocFilename = filenameShort
-                            break
-                if (('.md' in tocFilename) and (not tocFilename.endswith('sitemap.md'))):
-
-                    # Compare the repo name and file name from the toc file with the repo name and file name
-                    # that's stored in the source list to make sure you're getting the right one.
-                    # There might be similarly named files in different folders or repos.
-
-                    # Start with getting the repo and the file name of what's in the toc
-                    tempTocFilename = tocFilename.replace(' ', '').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '').replace('\n', '')
-                    try:
-                        tocFileNameBaseRepo = source[workingDir + '/' + tempTocFilename]['baseRepo']
-                    except Exception:
-                        # self.log.debug('\n\ntocFilename:' + tocFilename)
-                        self.log.debug('1. File listed in the toc does not exist in this location: ' + workingDir + '/' + tempTocFilename)
-                        tocFileNameBaseRepo = 'nomatch1'
-                        # Check the temp directory for the other cloned repos for content reuse
-                        try:
-                            if '/' in tempTocFilename:
-                                tocFileNameBaseRepo = tempTocFilename.rsplit('/', 1)[0]
-                            tocFileNameBaseRepo = source[workingDir + '/sitemap-temp/' + tocFileNameBaseRepo + '/' + tempTocFilename]['baseRepo']
-                            # self.log.debug('1. Found! tocFileNameBaseRepo: ' + tocFileNameBaseRepo)
-                        except Exception:
-                            self.log.debug('2. File listed in the toc does not exist in this location: ' +
-                                           workingDir + '/sitemap-temp/' + tocFileNameBaseRepo + '/' + tempTocFilename)
-                            matchFound = True
-                            for root, dirs, files in os.walk(workingDir + '/sitemap-temp/'):
-                                for directory in dirs:
-                                    if '.git' not in root:
-                                        try:
-                                            tocFileNameBaseRepo = source[workingDir + '/sitemap-temp/' + directory + '/' + tempTocFilename]['baseRepo']
-                                            # self.log.debug('2. Found! tocFileNameBaseRepo: ' + tocFileNameBaseRepo)
-                                            # self.log.debug('baseRepo: ' + tocFileNameBaseRepo)
-                                            matchFound = True
-                                            break
-                                        except Exception:
-                                            self.log.debug('3. File listed in the toc does not exist in this location: ' +
-                                                           workingDir + '/sitemap-temp/' + directory + '/' + tempTocFilename)
-                                if matchFound is True:
-                                    break
-                    if '/' in tempTocFilename:
-                        tempTocFilename = tempTocFilename.rsplit('/', 1)[1]
-
-                    # Next get the repo name and the file name of what's stored in the source list
-                    for filename, info in list(source.items()):
-                        sourceFileNameBaseRepo = source[filename]['baseRepo']
+        def loop(tocFilename, topicGroup, topicContents):
+            # In case the link in the toc just uses the topic id without the .md file name,
+            # go get the file name from the dictionary first
+            if ('.md' not in tocFilename) and ('{' in tocFilename) and (not tocFilename == ''):
+                for filename, info in list(source.items()):
+                    # self.log.debug(info)
+                    if ('\'topicID\': \'' + tocFilename) in str(info):
                         filenameShort = str(filename).rsplit('/', 1)[1]
-                        filenameShort = filenameShort.replace(' ', '').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '').replace('\n', '')
+                        tocFilename = filenameShort
+                        break
+            if (('.md' in tocFilename) and (not tocFilename.endswith('sitemap.md'))):
 
-                        # Now compare the repo names and file names of the two and if they match, then continue
-                        if ((sourceFileNameBaseRepo + '/' + str(filenameShort)) == (tocFileNameBaseRepo + '/' + str(tempTocFilename))):
-                            # self.log.debug(filenameShort + ' is in ' + tocFilename)
-                            self.log.debug('\n')
-                            debugFilename = str(source[filename])
-                            self.log.debug('Working with: ' + str(debugFilename.encode('utf-8', errors='ignore')))
-                            try:
-                                self.log.debug('H1: ' + str(source[filename]['h1']) + ', topicGroup value: ' + str(topicGroup))
-                            except Exception:
-                                self.log.error('Check for missing anchors.')
-                            if topicGroup is True:
-                                g.write('\n\n' + source[filename]['h1'])
-                            else:
-                                topicTitle = source[filename]['h1']
-                                topicTitle = topicTitle.split(']')[0]
-                                topicTitle = topicTitle.split('[')[1]
-                                # Write once without a link
-                                g.write('\n\n\n## ' + topicTitle)
-                                topicTitleNoSpaces = topicTitle.lower()
-                                # Not sure why blockchain has these extra tabs in their headings - must be how the toc is configured with tabs?
-                                topicTitleNoSpaces = topicTitleNoSpaces.replace(' ', '_').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '')
-                                if '{{' in topicTitleNoSpaces:
-                                    firstpart, ignore = topicTitleNoSpaces.split('{{', 1)
-                                    secondpart = ignore.split('}}', 1)[1]
-                                    topicTitleNoSpaces = firstpart + secondpart
-                                while '{: #sitemap_' + topicTitleNoSpaces + '}' in sitemapAnchorList:
-                                    topicTitleNoSpaces = topicTitleNoSpaces + '_'
-                                g.write('\n{: #sitemap_' + topicTitleNoSpaces + '}\n')
-                                sitemapAnchorList.append('{: #sitemap_' + topicTitleNoSpaces + '}')
-                                # Write once with the link
-                                g.write('\n\n' + source[filename]['h1'])
+                # Compare the repo name and file name from the toc file with the repo name and file name
+                # that's stored in the source list to make sure you're getting the right one.
+                # There might be similarly named files in different folders or repos.
 
-                            if H2_ENABLED is True:
-                                h2ListLOCATION_NAMEed = []
-                                try:
-                                    h2s = source[filename]['goodh2']
-                                except Exception:
-                                    self.log.debug('    No h2s in this MD topic.')
-
-                                else:
-                                    h2List = h2s.split(';')
-                                    h2ListEncoded = str(h2List).encode('utf-8', errors='ignore')
+                # Start with getting the repo and the file name of what's in the toc
+                tempTocFilename = tocFilename.replace(' ', '').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '').replace('\n', '')
+                try:
+                    tocFileNameBaseRepo = source[workingDir + '/' + tempTocFilename]['baseRepo']
+                except Exception:
+                    # self.log.debug('\n\ntocFilename:' + tocFilename)
+                    self.log.debug('1. File listed in the toc does not exist in this location: ' + workingDir + '/' + tempTocFilename)
+                    tocFileNameBaseRepo = 'nomatch1'
+                    # Check the temp directory for the other cloned repos for content reuse
+                    try:
+                        if '/' in tempTocFilename:
+                            tocFileNameBaseRepo = tempTocFilename.rsplit('/', 1)[0]
+                        tocFileNameBaseRepo = source[workingDir + '/sitemap-temp/' + tocFileNameBaseRepo + '/' + tempTocFilename]['baseRepo']
+                        # self.log.debug('1. Found! tocFileNameBaseRepo: ' + tocFileNameBaseRepo)
+                    except Exception:
+                        self.log.debug('2. File listed in the toc does not exist in this location: ' +
+                                       workingDir + '/sitemap-temp/' + tocFileNameBaseRepo + '/' + tempTocFilename)
+                        matchFound = True
+                        for root, dirs, files in os.walk(workingDir + '/sitemap-temp/'):
+                            for directory in dirs:
+                                if '.git' not in root:
                                     try:
-                                        self.log.debug('h2List:' + str(h2ListEncoded))
+                                        tocFileNameBaseRepo = source[workingDir + '/sitemap-temp/' + directory + '/' + tempTocFilename]['baseRepo']
+                                        # self.log.debug('2. Found! tocFileNameBaseRepo: ' + tocFileNameBaseRepo)
+                                        # self.log.debug('baseRepo: ' + tocFileNameBaseRepo)
+                                        matchFound = True
+                                        break
                                     except Exception:
-                                        self.log.debug('h2List: ASCII error. Could not log.')
-                                    for h2 in h2List:
-                                        h2LOCATION_NAMEed = h2.replace('$', '$H2$')
-                                        h2ListLOCATION_NAMEed.append(h2LOCATION_NAMEed)
+                                        self.log.debug('3. File listed in the toc does not exist in this location: ' +
+                                                       workingDir + '/sitemap-temp/' + directory + '/' + tempTocFilename)
+                            if matchFound is True:
+                                break
+                if '/' in tempTocFilename:
+                    tempTocFilename = tempTocFilename.rsplit('/', 1)[1]
 
-                                    self.log.debug('h2ListLOCATION_NAMEed:' + str(str(h2ListLOCATION_NAMEed).encode('utf-8', errors='ignore')))
+                # Next get the repo name and the file name of what's stored in the source list
+                for filename, info in list(source.items()):
+                    sourceFileNameBaseRepo = source[filename]['baseRepo']
+                    filenameShort = str(filename).rsplit('/', 1)[1]
+                    filenameShort = filenameShort.replace(' ', '').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '').replace('\n', '')
 
-                            if H3_ENABLED is True:
-                                h3ListLOCATION_NAMEed = []
+                    # Now compare the repo names and file names of the two and if they match, then continue
+                    if ((sourceFileNameBaseRepo + '/' + str(filenameShort)) == (tocFileNameBaseRepo + '/' + str(tempTocFilename))):
+                        # self.log.debug(filenameShort + ' is in ' + tocFilename)
+                        self.log.debug('\n')
+                        debugFilename = str(source[filename])
+                        self.log.debug('Working with: ' + str(debugFilename.encode('utf-8', errors='ignore')))
+                        try:
+                            self.log.debug('H1: ' + str(source[filename]['h1']) + ', topicGroup value: ' + str(topicGroup))
+                        except Exception:
+                            self.log.error('Check for missing anchors.')
+                        if topicGroup is True:
+                            topicContents = topicContents + '\n\n' + source[filename]['h1']
+                        else:
+                            topicTitle = source[filename]['h1']
+                            topicTitle = topicTitle.split(']')[0]
+                            topicTitle = topicTitle.split('[')[1]
+                            # Write once without a link
+                            topicContents = topicContents + '\n\n\n## ' + topicTitle
+                            topicTitleNoSpaces = topicTitle.lower()
+                            # Not sure why blockchain has these extra tabs in their headings - must be how the toc is configured with tabs?
+                            topicTitleNoSpaces = topicTitleNoSpaces.replace(' ', '_').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '')
+                            if '{{' in topicTitleNoSpaces:
+                                firstpart, ignore = topicTitleNoSpaces.split('{{', 1)
+                                secondpart = ignore.split('}}', 1)[1]
+                                topicTitleNoSpaces = firstpart + secondpart
+                            while '{: #sitemap_' + topicTitleNoSpaces + '}' in sitemapAnchorList:
+                                topicTitleNoSpaces = topicTitleNoSpaces + '_'
+                            topicContents = topicContents + '\n{: #sitemap_' + topicTitleNoSpaces + '}\n'
+                            sitemapAnchorList.append('{: #sitemap_' + topicTitleNoSpaces + '}')
+                            # Write once with the link
+                            topicContents = topicContents + '\n\n' + source[filename]['h1']
+
+                        if H2_ENABLED is True:
+                            h2ListLOCATION_NAMEed = []
+                            try:
+                                h2s = source[filename]['goodh2']
+                            except Exception:
+                                self.log.debug('    No h2s in this MD topic.')
+
+                            else:
+                                h2List = h2s.split(';')
+                                h2ListEncoded = str(h2List).encode('utf-8', errors='ignore')
                                 try:
-                                    h3s = source[filename]['goodh3']
+                                    self.log.debug('h2List:' + str(h2ListEncoded))
                                 except Exception:
-                                    self.log.debug('        No h3s in this MD topic.')
+                                    self.log.debug('h2List: ASCII error. Could not log.')
+                                for h2 in h2List:
+                                    h2LOCATION_NAMEed = h2.replace('$', '$H2$')
+                                    h2ListLOCATION_NAMEed.append(h2LOCATION_NAMEed)
+
+                                self.log.debug('h2ListLOCATION_NAMEed:' + str(str(h2ListLOCATION_NAMEed).encode('utf-8', errors='ignore')))
+
+                        if H3_ENABLED is True:
+                            h3ListLOCATION_NAMEed = []
+                            try:
+                                h3s = source[filename]['goodh3']
+                            except Exception:
+                                self.log.debug('        No h3s in this MD topic.')
+                            else:
+                                h3List = h3s.split(';')
+                                self.log.debug('h3List:' + str(str(h3List).encode('utf-8', errors='ignore')))
+                                for h3 in h3List:
+                                    h3LOCATION_NAMEed = h3.replace('$', '$H3$')
+                                    h3ListLOCATION_NAMEed.append(h3LOCATION_NAMEed)
+                                self.log.debug('h3ListLOCATION_NAMEed:' + str(str(h3ListLOCATION_NAMEed).encode('utf-8', errors='ignore')))
+
+                        combinedListLOCATION_NAMEed: list[str] = []  # type: ignore[misc]
+                        if H2_ENABLED is True:
+                            combinedListLOCATION_NAMEed = combinedListLOCATION_NAMEed + h2ListLOCATION_NAMEed
+                        if H3_ENABLED is True:
+                            combinedListLOCATION_NAMEed = combinedListLOCATION_NAMEed + h3ListLOCATION_NAMEed
+
+                        sortedListLOCATION_NAMEed = sorted(combinedListLOCATION_NAMEed)
+
+                        sortedListLOCATION_NAMEedEncoded = str(sortedListLOCATION_NAMEed).encode('utf-8', errors='ignore')
+                        self.log.debug('sortedListLOCATION_NAMEed: ' + str(sortedListLOCATION_NAMEedEncoded))
+
+                        for listItem in sortedListLOCATION_NAMEed:
+                            dollarCount = listItem.count('$')
+                            if dollarCount == 2:
+
+                                location_name = listItem.split('$')[1]
+                                link = listItem.split('$')[2]
+                                # self.log.debug('lineNumber: ' + lineNumber)
+                                # self.log.debug('location_name: ' + location_name)
+                                # self.log.debug('link: ' + link)
+                                if location_name == 'H2':
+                                    if not link == '':
+                                        linkEncoded = str(link.rstrip()).encode('utf-8', errors='ignore')
+                                        self.log.debug('    H2: ' + str(linkEncoded))
+
+                                        if topicGroup is True:
+                                            topicContents = topicContents + '\n* ' + link.rstrip()
+                                            # self.log.debug('Writing H2: ' + str(linkEncoded))
+                                        else:
+                                            topicContents = topicContents + '\n\n* ' + link.rstrip()
+                                            # self.log.debug('Writing H2: ' + str(linkEncoded))
+                                elif location_name == 'H3':
+                                    if not link == '':
+                                        linkEncoded = str(link.rstrip()).encode('utf-8', errors='ignore')
+                                        self.log.debug('        H3: ' + str(linkEncoded))
+                                        if topicGroup is True:
+                                            topicContents = topicContents + '\n    * ' + link.rstrip()
+                                            # self.log.debug('Writing H3: ' + str(linkEncoded))
+                                        else:
+                                            topicContents = topicContents + '\n    * ' + link.rstrip()
+                                            # self.log.debug('Writing H3: ' + str(linkEncoded))
+                            # else:
+                                # self.log.debug('Not enough dollar signs to split: ' + listItem)
+                        break
+                    # elif str(filenameShort) in str(tempTocFilename):
+                    # self.log.debug('Did not find: ' + filenameShort + ' in ' + tempTocFilename)
+                    # self.log.debug('"' + filenameShort + '"')
+                    # self.log.debug('"' + tempTocFilename + '"')
+
+            elif '[' in tocFilename:
+                # self.log.debug('working with []: '+ tocFilename)
+
+                if (('                ' in tocFilename) and (topicGroup is True)):
+                    tocFilename = tocFilename.replace('    ', '')
+                    self.log.debug('            H4 True: ' + tocFilename)
+                    topicContents = topicContents + '\n * ' + tocFilename + '{: external}'
+
+                elif (('            ' in tocFilename) and (topicGroup is True)):
+                    tocFilename = tocFilename.replace('    ', '')
+                    self.log.debug('        H3 True: ' + tocFilename)
+                    topicContents = topicContents + '\n* ' + tocFilename + '{: external}'
+
+                elif (('        ' in tocFilename) and (topicGroup is True)):
+                    tocFilename = tocFilename.replace('    ', '')
+                    self.log.debug('    H2 True: ' + tocFilename)
+                    topicContents = topicContents + '\n\n' + tocFilename + '{: external}'
+
+                elif (('        ' in tocFilename) and (topicGroup is False)):
+                    tocFilename = tocFilename.replace('    ', '')
+                    self.log.debug('    H2 False: ' + tocFilename)
+                    topicContents = topicContents + '\n' + tocFilename + '{: external}'
+
+                elif (('    ' in tocFilename) and (topicGroup is True)):
+                    tocFilename = tocFilename.replace('    ', '')
+                    self.log.debug('    H1 True: ' + tocFilename)
+                    topicContents = topicContents + '\n' + tocFilename + '{: external}'
+
+                elif (('    ' in tocFilename) and (topicGroup is False)):
+                    tocFilename = tocFilename.replace('    ', '')
+                    self.log.debug('H1 False: ' + tocFilename)
+                    if '[' in tocFilename:
+                        firstHalf = tocFilename.split('[')[1]
+                        titleH2 = firstHalf.split(']')[0]
+                    else:
+                        titleH2 = tocFilename
+                    topicContents = topicContents + '\n\n\n## ' + titleH2
+                    if '[' in tocFilename:
+                        topicContents = topicContents + '\n\n' + tocFilename + '{: external}'
+                    else:
+                        topicTitleNoSpaces = tocFilename.replace(' ', '')
+                        topicTitleNoSpaces = topicTitleNoSpaces.lower()
+                        topicContents = topicContents + '\n{: #sitemap_' + topicTitleNoSpaces + '}\n'
+                else:
+                    self.log.debug('Didn\'t know what to do with: ' + tocFilename)
+            return (topicContents)
+
+        with open(workingDir + '/toc', "r+", encoding="utf8", errors="ignore") as file_open_toc:
+            file_read_toc = file_open_toc.read()
+            # subcollectionList = re.findall(r'subcollection\=\".*?\"',f)
+
+            file_read_toc_nonewlines = file_read_toc.replace('\n    \n', '\n\n')
+
+            navgroupList = re.findall(r"\{\: \.navgroup(.*?)\{\: \.navgroup\-end", file_read_toc_nonewlines, re.DOTALL)
+            # navgroupList = re.findall(r"\.*?\}",fString, re.DOTALL)
+
+            checkForUnclosedNavGroups = file_read_toc_nonewlines
+            for navgroup in navgroupList:
+                checkForUnclosedNavGroups = checkForUnclosedNavGroups.replace(navgroup, '')
+            if '{: .navgroup ' in checkForUnclosedNavGroups:
+                self.log.warning('Warning: Unclosed navgroup in this toc')
+
+            for navgroup in navgroupList:
+                navgroup = navgroup.split('}', 1)[1]
+                navgroup = navgroup.split('{: .navgroup-end', 1)[0]
+                self.log.debug('navgroup: ' + str(str(navgroup).encode('utf-8', errors='ignore')))
+                topicGroup = False
+                if '{: .topicgroup' in navgroup:
+
+                    if '\n\n' in navgroup:
+                        listDividedByTopicGroups = navgroup.split('\n\n')
+                    else:
+                        listDividedByTopicGroups = [navgroup]
+
+                    self.log.debug('listDividedByTopicGroups: ')
+                    for group in listDividedByTopicGroups:
+                        self.log.debug(str(group.encode('utf-8', errors='ignore')))
+                    # listDividedByTopicGroups = list(dict.fromkeys(listDividedByTopicGroups))
+                    for listDividedByTopicGroup in listDividedByTopicGroups:
+                        # if '\t' in listDividedByTopicGroup:
+                        # listDividedByTopicGroup = listDividedByTopicGroup.replace('\t', '    ')
+                        if '\n    \n' in listDividedByTopicGroup:
+                            try:
+                                goodstuff = listDividedByTopicGroup.split('\n    \n')[1]
+                                if isinstance(goodstuff, list):
+                                    self.log.debug('goodstuff is a list 1!')
+                                if goodstuff not in listDividedByTopicGroups:
+                                    # self.log.debug('Appending 1: ' + goodstuff)
+                                    listDividedByTopicGroups.append(goodstuff)
+                            except Exception:
+                                goodstuff = listDividedByTopicGroup.split('\n    \n')
+                                self.log.debug(goodstuff)
+                                listDividedByTopicGroups.remove(listDividedByTopicGroup)
+                                for section in goodstuff:
+                                    if section not in listDividedByTopicGroups:
+                                        listDividedByTopicGroups.append(section)
+                                        # self.log.debug('Appending 2: ' + section)
+                        else:
+                            if listDividedByTopicGroup not in listDividedByTopicGroups:
+                                listDividedByTopicGroups.append(listDividedByTopicGroup)
+                                # self.log.debug('Appending 3: ' + listDividedByTopicGroup)
+
+                    # self.log.debug('\nlistDividedByTopicGroups: ' + str(listDividedByTopicGroups))
+                    # listDividedByTopicGroups = list(dict.fromkeys(listDividedByTopicGroups))
+                    for listDividedByTopicGroup in listDividedByTopicGroups:
+                        # self.log.debug('\n\nlistDividedByTopicGroup 2: ' + str(listDividedByTopicGroup))
+                        if '{: .topicgroup' in listDividedByTopicGroup:
+                            topicGroup = True
+                            if '\t' in listDividedByTopicGroup:
+                                listDividedByTopicGroup = listDividedByTopicGroup.replace('\t', '    ')
+                            listDividedSingleTopics = listDividedByTopicGroup.split('\n')
+                            # listDividedSingleTopics = list(dict.fromkeys(listDividedSingleTopics))
+                            for listDividedSingleTopic in listDividedSingleTopics:
+                                if '' == listDividedSingleTopic:
+                                    listDividedSingleTopics.remove(listDividedSingleTopic)
+                                elif '{: .topicgroup}' in str(listDividedSingleTopic):
+                                    listDividedSingleTopics.remove(listDividedSingleTopic)
+
+                            self.log.debug('listDividedSingleTopics: ' + str(listDividedSingleTopics))
+                            topicGroupTitle = listDividedSingleTopics[0]
+                            if (('topicgroup' in topicGroupTitle) or ('.md' in topicGroupTitle)):
+                                topicGroupTitle = listDividedSingleTopics[1]
+                            if (('topicgroup' in topicGroupTitle) or ('.md' in topicGroupTitle)):
+                                topicGroupTitle = listDividedSingleTopics[2]
+                            topicGroupTitle = topicGroupTitle.replace('    ', '')
+                            self.log.debug('H1: ' + str(topicGroupTitle.encode('utf-8', errors='ignore')))
+                            topicContents = topicContents + '\n\n\n## ' + topicGroupTitle
+                            topicGroupTitleNoSpaces = topicGroupTitle.lower()
+                            topicGroupTitleNoSpaces = topicGroupTitleNoSpaces.replace(' ', '_').replace('	', '')
+                            topicGroupTitleNoSpaces = topicGroupTitleNoSpaces.replace('	', '').replace('  ', ' ')
+                            topicGroupTitleNoSpaces = topicGroupTitleNoSpaces.replace('\t', '')
+                            while '{: #sitemap_' + topicGroupTitleNoSpaces + '}' in sitemapAnchorList:
+                                topicGroupTitleNoSpaces = topicGroupTitleNoSpaces + '_'
+                            sitemapAnchorList.append('{: #sitemap_' + topicGroupTitleNoSpaces + '}')
+                            topicContents = topicContents + '\n{: #sitemap_' + topicGroupTitleNoSpaces + '}\n'
+                            for tocFilename in listDividedSingleTopics:
+                                if (('[' in tocFilename) or ('.md' in tocFilename)):
+                                    topicContents = loop(tocFilename, topicGroup, topicContents)
+                                elif 'toc' in tocFilename and not details["builder"] == 'local':
+                                    topicContents = tocLoop(tocFilename, topicGroup, topicContents)
+                                elif tocFilename.startswith(tuple(indentations)) and not details["builder"] == 'local':
+                                    topicContents = reuseLoop(tocFilename, topicGroup, topicContents)
                                 else:
-                                    h3List = h3s.split(';')
-                                    self.log.debug('h3List:' + str(str(h3List).encode('utf-8', errors='ignore')))
-                                    for h3 in h3List:
-                                        h3LOCATION_NAMEed = h3.replace('$', '$H3$')
-                                        h3ListLOCATION_NAMEed.append(h3LOCATION_NAMEed)
-                                    self.log.debug('h3ListLOCATION_NAMEed:' + str(str(h3ListLOCATION_NAMEed).encode('utf-8', errors='ignore')))
+                                    self.log.debug('Not handled: ' + str(tocFilename.encode('utf-8', errors='ignore')))
 
-                            combinedListLOCATION_NAMEed: list[str] = []  # type: ignore[misc]
-                            if H2_ENABLED is True:
-                                combinedListLOCATION_NAMEed = combinedListLOCATION_NAMEed + h2ListLOCATION_NAMEed
-                            if H3_ENABLED is True:
-                                combinedListLOCATION_NAMEed = combinedListLOCATION_NAMEed + h3ListLOCATION_NAMEed
-
-                            sortedListLOCATION_NAMEed = sorted(combinedListLOCATION_NAMEed)
-
-                            sortedListLOCATION_NAMEedEncoded = str(sortedListLOCATION_NAMEed).encode('utf-8', errors='ignore')
-                            self.log.debug('sortedListLOCATION_NAMEed: ' + str(sortedListLOCATION_NAMEedEncoded))
-
-                            for listItem in sortedListLOCATION_NAMEed:
-                                dollarCount = listItem.count('$')
-                                if dollarCount == 2:
-
-                                    location_name = listItem.split('$')[1]
-                                    link = listItem.split('$')[2]
-                                    # self.log.debug('lineNumber: ' + lineNumber)
-                                    # self.log.debug('location_name: ' + location_name)
-                                    # self.log.debug('link: ' + link)
-                                    if location_name == 'H2':
-                                        if not link == '':
-                                            linkEncoded = str(link.rstrip()).encode('utf-8', errors='ignore')
-                                            self.log.debug('    H2: ' + str(linkEncoded))
-
-                                            if topicGroup is True:
-                                                g.write('\n* ' + link.rstrip())
-                                                # self.log.debug('Writing H2: ' + str(linkEncoded))
-                                            else:
-                                                g.write('\n\n* ' + link.rstrip())
-                                                # self.log.debug('Writing H2: ' + str(linkEncoded))
-                                    elif location_name == 'H3':
-                                        if not link == '':
-                                            linkEncoded = str(link.rstrip()).encode('utf-8', errors='ignore')
-                                            self.log.debug('        H3: ' + str(linkEncoded))
-                                            if topicGroup is True:
-                                                g.write('\n    * ' + link.rstrip())
-                                                # self.log.debug('Writing H3: ' + str(linkEncoded))
-                                            else:
-                                                g.write('\n    * ' + link.rstrip())
-                                                # self.log.debug('Writing H3: ' + str(linkEncoded))
-                                # else:
-                                    # self.log.debug('Not enough dollar signs to split: ' + listItem)
-                            break
-                        # elif str(filenameShort) in str(tempTocFilename):
-                        # self.log.debug('Did not find: ' + filenameShort + ' in ' + tempTocFilename)
-                        # self.log.debug('"' + filenameShort + '"')
-                        # self.log.debug('"' + tempTocFilename + '"')
-
-                elif '[' in tocFilename:
-                    # self.log.debug('working with []: '+ tocFilename)
-
-                    if (('                ' in tocFilename) and (topicGroup is True)):
-                        tocFilename = tocFilename.replace('    ', '')
-                        self.log.debug('            H4 True: ' + tocFilename)
-                        g.write('\n * ' + tocFilename + '{: external}')
-
-                    elif (('            ' in tocFilename) and (topicGroup is True)):
-                        tocFilename = tocFilename.replace('    ', '')
-                        self.log.debug('        H3 True: ' + tocFilename)
-                        g.write('\n* ' + tocFilename + '{: external}')
-
-                    elif (('        ' in tocFilename) and (topicGroup is True)):
-                        tocFilename = tocFilename.replace('    ', '')
-                        self.log.debug('    H2 True: ' + tocFilename)
-                        g.write('\n\n' + tocFilename + '{: external}')
-
-                    elif (('        ' in tocFilename) and (topicGroup is False)):
-                        tocFilename = tocFilename.replace('    ', '')
-                        self.log.debug('    H2 False: ' + tocFilename)
-                        g.write('\n' + tocFilename + '{: external}')
-
-                    elif (('    ' in tocFilename) and (topicGroup is True)):
-                        tocFilename = tocFilename.replace('    ', '')
-                        self.log.debug('    H1 True: ' + tocFilename)
-                        g.write('\n' + tocFilename + '{: external}')
-
-                    elif (('    ' in tocFilename) and (topicGroup is False)):
-                        tocFilename = tocFilename.replace('    ', '')
-                        self.log.debug('H1 False: ' + tocFilename)
-                        if '[' in tocFilename:
-                            firstHalf = tocFilename.split('[')[1]
-                            titleH2 = firstHalf.split(']')[0]
                         else:
-                            titleH2 = tocFilename
-                        g.write('\n\n\n## ' + titleH2)
-                        if '[' in tocFilename:
-                            g.write('\n\n' + tocFilename + '{: external}')
-                        else:
-                            topicTitleNoSpaces = tocFilename.replace(' ', '')
-                            topicTitleNoSpaces = topicTitleNoSpaces.lower()
-                            g.write('\n{: #sitemap_' + topicTitleNoSpaces + '}\n')
-                    else:
-                        self.log.debug('Didn\'t know what to do with: ' + tocFilename)
-
-            with open(workingDir + '/toc', "r+", encoding="utf8", errors="ignore") as file_open_toc:
-                file_read_toc = file_open_toc.read()
-                # subcollectionList = re.findall(r'subcollection\=\".*?\"',f)
-
-                file_read_toc_nonewlines = file_read_toc.replace('\n    \n', '\n\n')
-
-                navgroupList = re.findall(r"\{\: \.navgroup(.*?)\{\: \.navgroup\-end", file_read_toc_nonewlines, re.DOTALL)
-                # navgroupList = re.findall(r"\.*?\}",fString, re.DOTALL)
-
-                checkForUnclosedNavGroups = file_read_toc_nonewlines
-                for navgroup in navgroupList:
-                    checkForUnclosedNavGroups = checkForUnclosedNavGroups.replace(navgroup, '')
-                if '{: .navgroup ' in checkForUnclosedNavGroups:
-                    self.log.warning('Warning: Unclosed navgroup in this toc')
-
-                for navgroup in navgroupList:
-                    navgroup = navgroup.split('}', 1)[1]
-                    navgroup = navgroup.split('{: .navgroup-end', 1)[0]
-                    self.log.debug('navgroup: ' + str(str(navgroup).encode('utf-8', errors='ignore')))
-                    topicGroup = False
-                    if '{: .topicgroup' in navgroup:
-
-                        if '\n\n' in navgroup:
-                            listDividedByTopicGroups = navgroup.split('\n\n')
-                        else:
-                            listDividedByTopicGroups = [navgroup]
-
-                        self.log.debug('listDividedByTopicGroups: ')
-                        for group in listDividedByTopicGroups:
-                            self.log.debug(str(group.encode('utf-8', errors='ignore')))
-                        # listDividedByTopicGroups = list(dict.fromkeys(listDividedByTopicGroups))
-                        for listDividedByTopicGroup in listDividedByTopicGroups:
-                            # if '\t' in listDividedByTopicGroup:
-                            # listDividedByTopicGroup = listDividedByTopicGroup.replace('\t', '    ')
-                            if '\n    \n' in listDividedByTopicGroup:
-                                try:
-                                    goodstuff = listDividedByTopicGroup.split('\n    \n')[1]
-                                    if isinstance(goodstuff, list):
-                                        self.log.debug('goodstuff is a list 1!')
-                                    if goodstuff not in listDividedByTopicGroups:
-                                        # self.log.debug('Appending 1: ' + goodstuff)
-                                        listDividedByTopicGroups.append(goodstuff)
-                                except Exception:
-                                    goodstuff = listDividedByTopicGroup.split('\n    \n')
-                                    self.log.debug(goodstuff)
-                                    listDividedByTopicGroups.remove(listDividedByTopicGroup)
-                                    for section in goodstuff:
-                                        if section not in listDividedByTopicGroups:
-                                            listDividedByTopicGroups.append(section)
-                                            # self.log.debug('Appending 2: ' + section)
-                            else:
-                                if listDividedByTopicGroup not in listDividedByTopicGroups:
-                                    listDividedByTopicGroups.append(listDividedByTopicGroup)
-                                    # self.log.debug('Appending 3: ' + listDividedByTopicGroup)
-
-                        # self.log.debug('\nlistDividedByTopicGroups: ' + str(listDividedByTopicGroups))
-                        # listDividedByTopicGroups = list(dict.fromkeys(listDividedByTopicGroups))
-                        for listDividedByTopicGroup in listDividedByTopicGroups:
-                            # self.log.debug('\n\nlistDividedByTopicGroup 2: ' + str(listDividedByTopicGroup))
-                            if '{: .topicgroup' in listDividedByTopicGroup:
-                                topicGroup = True
-                                if '\t' in listDividedByTopicGroup:
-                                    listDividedByTopicGroup = listDividedByTopicGroup.replace('\t', '    ')
+                            if not isinstance(listDividedByTopicGroup, list):
                                 listDividedSingleTopics = listDividedByTopicGroup.split('\n')
-                                # listDividedSingleTopics = list(dict.fromkeys(listDividedSingleTopics))
-                                for listDividedSingleTopic in listDividedSingleTopics:
-                                    if '' == listDividedSingleTopic:
-                                        listDividedSingleTopics.remove(listDividedSingleTopic)
-                                    elif '{: .topicgroup}' in str(listDividedSingleTopic):
-                                        listDividedSingleTopics.remove(listDividedSingleTopic)
+                            topicGroup = False
+                            for tocFilename in listDividedSingleTopics:
+                                if '\t' in tocFilename:
+                                    tocFilename = tocFilename.replace('\t', '    ')
+                                if ('toc' in tocFilename) and (not details["builder"] == 'local'):
+                                    topicContents = tocLoop(tocFilename, topicGroup, topicContents)
+                                elif tocFilename.startswith(tuple(indentations)) and not details["builder"] == 'local':
+                                    # self.log.debug('reuseloop for: ' + tocFilename)
+                                    topicContents = reuseLoop(tocFilename, topicGroup, topicContents)
+                                else:
+                                    topicContents = loop(tocFilename, topicGroup, topicContents)
 
-                                self.log.debug('listDividedSingleTopics: ' + str(listDividedSingleTopics))
-                                topicGroupTitle = listDividedSingleTopics[0]
-                                if (('topicgroup' in topicGroupTitle) or ('.md' in topicGroupTitle)):
-                                    topicGroupTitle = listDividedSingleTopics[1]
-                                if (('topicgroup' in topicGroupTitle) or ('.md' in topicGroupTitle)):
-                                    topicGroupTitle = listDividedSingleTopics[2]
-                                topicGroupTitle = topicGroupTitle.replace('    ', '')
-                                self.log.debug('H1: ' + str(topicGroupTitle.encode('utf-8', errors='ignore')))
-                                g.write('\n\n\n## ' + topicGroupTitle)
-                                topicGroupTitleNoSpaces = topicGroupTitle.lower()
-                                topicGroupTitleNoSpaces = topicGroupTitleNoSpaces.replace(' ', '_').replace('	', '')
-                                topicGroupTitleNoSpaces = topicGroupTitleNoSpaces.replace('	', '').replace('  ', ' ')
-                                topicGroupTitleNoSpaces = topicGroupTitleNoSpaces.replace('\t', '')
-                                while '{: #sitemap_' + topicGroupTitleNoSpaces + '}' in sitemapAnchorList:
-                                    topicGroupTitleNoSpaces = topicGroupTitleNoSpaces + '_'
-                                sitemapAnchorList.append('{: #sitemap_' + topicGroupTitleNoSpaces + '}')
-                                g.write('\n{: #sitemap_' + topicGroupTitleNoSpaces + '}\n')
-                                for tocFilename in listDividedSingleTopics:
-                                    if (('[' in tocFilename) or ('.md' in tocFilename)):
-                                        loop(tocFilename, topicGroup)
-                                    elif 'toc' in tocFilename and not details["builder"] == 'local':
-                                        tocLoop(tocFilename, topicGroup)
-                                    elif tocFilename.startswith(tuple(indentations)) and not details["builder"] == 'local':
-                                        reuseLoop(tocFilename, topicGroup)
-                                    else:
-                                        self.log.debug('Not handled: ' + str(tocFilename.encode('utf-8', errors='ignore')))
-
-                            else:
-                                if not isinstance(listDividedByTopicGroup, list):
-                                    listDividedSingleTopics = listDividedByTopicGroup.split('\n')
-                                topicGroup = False
-                                for tocFilename in listDividedSingleTopics:
-                                    if '\t' in tocFilename:
-                                        tocFilename = tocFilename.replace('\t', '    ')
-                                    if ('toc' in tocFilename) and (not details["builder"] == 'local'):
-                                        tocLoop(tocFilename, topicGroup)
-                                    elif tocFilename.startswith(tuple(indentations)) and not details["builder"] == 'local':
-                                        # self.log.debug('reuseloop for: ' + tocFilename)
-                                        reuseLoop(tocFilename, topicGroup)
-                                    else:
-                                        loop(tocFilename, topicGroup)
-
-                    else:
-                        navGroupSplit = navgroup.split('\n')
-                        topicGroup = False
-                        for tocFilename in navGroupSplit:
-                            if 'toc' in tocFilename and not details["builder"] == 'local':
-                                tocLoop(tocFilename, topicGroup)
-                            elif tocFilename.startswith(tuple(indentations)) and not details["builder"] == 'local':
-                                reuseLoop(tocFilename, topicGroup)
-                            else:
-                                loop(tocFilename, topicGroup)
+                else:
+                    navGroupSplit = navgroup.split('\n')
+                    topicGroup = False
+                    for tocFilename in navGroupSplit:
+                        if 'toc' in tocFilename and not details["builder"] == 'local':
+                            topicContents = tocLoop(tocFilename, topicGroup, topicContents)
+                        elif tocFilename.startswith(tuple(indentations)) and not details["builder"] == 'local':
+                            topicContents = reuseLoop(tocFilename, topicGroup, topicContents)
+                        else:
+                            topicContents = loop(tocFilename, topicGroup, topicContents)
         self.log.debug('Success!')
 
     if os.path.isdir(workingDir + '/sitemap-temp/'):
         shutil.rmtree(workingDir + '/sitemap-temp/')
         self.log.debug('Removing: ' + '/sitemap-temp/')
+
+    return (topicContents)
