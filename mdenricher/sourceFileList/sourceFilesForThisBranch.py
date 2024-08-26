@@ -46,9 +46,14 @@ def sourceFilesForThisBranch(self, details):
         filePatch = source_files[source_file]['filePatch']
         fileNamePrevious = source_files[source_file]['fileNamePrevious']
 
+        if source_files[source_file]['locationHandling'] == 'remove':
+            self.location_build_first.append(source_file)
+
         # Create a location-specific list of files to iterate over
         # If there is a heading changed, sitemap rebuild always, release notes for IBM Cloud, always add the sitemap to the source file list
         if not self.sitemap_file == 'None':
+            if self.sitemap_file not in self.location_build_last:
+                self.location_build_last.append(self.sitemap_file)
             if (((details["ibm_cloud_docs_sitemap_rebuild_always"] is True) or
                  ((self.location_ibm_cloud_docs is True) and
                   (potentialSitemapImpact is False) and
@@ -101,6 +106,20 @@ def sourceFilesForThisBranch(self, details):
 
         # Adding all images to verify that they are used somewhere
         elif ((file_name.endswith(tuple(details["img_output_filetypes"])))):
+            source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
+                                     folderAndFile, source_files, self.location_contents_files,
+                                     self.location_contents_folders, self.remove_all_other_files_folders)
+
+        elif (file_name == '.build.yaml' and
+              details['ibm_cloud_docs'] is True):
+            self.location_build_first.append(folderAndFile)
+            source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
+                                     folderAndFile, source_files, self.location_contents_files,
+                                     self.location_contents_folders, self.remove_all_other_files_folders)
+
+        elif (file_name == 'keyref.yaml' and
+              details['ibm_cloud_docs'] is True):
+            self.location_build_first.append(folderAndFile)
             source_files = addToList(self, details, self.log, fileNamePrevious, filePatch, fileStatus,
                                      folderAndFile, source_files, self.location_contents_files,
                                      self.location_contents_folders, self.remove_all_other_files_folders)
@@ -320,4 +339,4 @@ def sourceFilesForThisBranch(self, details):
     for source_file, source_file_info in sorted(source_files.items()):
         self.log.debug(source_file)
 
-    return (source_files)
+    return (self.location_build_first, self.location_build_last, source_files)

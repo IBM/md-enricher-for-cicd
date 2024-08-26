@@ -32,9 +32,6 @@ from mdenricher.repos.pushUpdatedFiles import pushUpdatedFiles
 from mdenricher.setup.config import config
 from mdenricher.setup.exitBuild import exitBuild
 from mdenricher.setup.locations import locations
-from mdenricher.sitemap.sitemapOLD import sitemapOLD
-from mdenricher.sitemap.sitemapYML import sitemapYML
-from mdenricher.sitemap.sitemapSUMMARY import sitemapSUMMARY
 from mdenricher.setup.postToSlack import postToSlack
 from mdenricher.sourceFileList.allFilesGet import allFilesGet
 from mdenricher.sourceFileList.locationContentList import locationContentList
@@ -154,6 +151,8 @@ def main(
             if str(location_github_url).endswith('/'):
                 location_github_url = location_github_url[:-1]
             self.location_github_url = location_github_url
+            self.location_build_first = []  # type: ignore
+            self.location_build_last = []  # type: ignore
             self.location_ibm_cloud_docs = location_ibm_cloud_docs
             self.location_internal_framework = location_internal_framework
             # location_name set in init
@@ -320,6 +319,8 @@ def main(
 
                 self.log.debug('\n\n')
                 self.log.debug('Location details:')
+                self.log.debug('location_build_first: %s', str(self.location_build_first))
+                self.log.debug('location_build_last: %s', str(self.location_build_last))
                 self.log.debug('location_dir: %s', str(self.location_dir))
                 self.log.debug('location_contents: ' + str(self.location_contents))
                 self.log.debug('location_github_api_prefix: %s', str(self.location_github_api_prefix))
@@ -395,7 +396,7 @@ def main(
                             # Revise the source list based on the branch.
                             # For example, the original commit might only contain a conref file.
                             # We need to get a list of all of the files that use that conref to work with.
-                            self.source_files = sourceFilesForThisBranch(self, details)
+                            self.location_build_first, self.location_build_last, self.source_files = sourceFilesForThisBranch(self, details)
 
                             if details['debug'] is True:
                                 endTime = time.time()
@@ -403,21 +404,8 @@ def main(
                                 sectionTime = str(round(totalTime, 2))
                                 self.log.info(self.location_name + ' sourceFilesForThisBranch: ' + sectionTime)
 
-                            if self.source_files == {}:
-                                self.log.debug('No changes to process for this location.')
-                            else:
-                                self.log.debug('\n')
-                                self.log.debug('Handling files for ' + self.location_name + '.')
-
-                                # For the sitemap, grab the version before it was replaced with the empty stub
-                                if ((self.sitemap_file in self.source_files) and
-                                        (not details["ibm_cloud_docs_sitemap_depth"] == 'off') and
-                                        (os.path.isfile(self.location_dir + '/sitemap.md'))):
-                                    with open(self.location_dir + '/sitemap.md', 'r', encoding="utf8", errors="ignore") as fileName_read:
-                                        topicContentsDownstream = fileName_read.read()
-                                    self.source_files[self.sitemap_file]['downstream_sitemap_contents'] = topicContentsDownstream
                     else:
-                        self.source_files = sourceFilesForThisBranch(self, details)
+                        self.location_build_first, self.location_build_last, self.source_files = sourceFilesForThisBranch(self, details)
 
                     if details['debug'] is True:
                         startTimeSection = time.time()
@@ -429,18 +417,6 @@ def main(
                         totalTime = endTime - startTimeSection
                         sectionTime = str(round(totalTime, 2))
                         self.log.info(self.location_name + ' source cleanup: ' + sectionTime)
-
-                    if details['debug'] is True:
-                        startTimeSection = time.time()
-
-                    # After all of the content files are updated, update the images
-                    self.unusedInThisLocation = checkUsedImages(self, details)
-
-                    if details['debug'] is True:
-                        endTime = time.time()
-                        totalTime = endTime - startTimeSection
-                        sectionTime = str(round(totalTime, 2))
-                        self.log.info(self.location_name + ' images cleanup: ' + sectionTime)
 
                     if details['debug'] is True:
                         startTimeSection = time.time()
@@ -470,7 +446,7 @@ def main(
                     except Exception:
                         testExistenceInTOC = False
                     ignoredFileList = ['/.build.yaml', '/conref.md', '/ignoreLinks.txt', '/keyref.yaml',
-                                       '/landing.json', '/README.md', '/toc.yaml', '/user-mapping.json',
+                                       '/landing.json', '/readme.md', '/README.md', '/toc.yaml', '/user-mapping.json',
                                        '/utterances.json']
                     ignoredFolderList = ['/.github/', '/_include-segments/', '/images/']
                     for (path, dirs, files) in os.walk(self.location_dir):
@@ -496,17 +472,23 @@ def main(
                                 log.info('Removing old file from ' + self.location_name + ': ' + folder + file)
 
                             elif ((testExistenceInTOC is True) and
+                                  (not (path + '/' + file) == details['locations_file']) and
                                   file.endswith(tuple(details["filetypes"])) and
                                   (not (' ' + folder + file) in self.all_files_dict['/toc.yaml']['fileContents']) and
                                   (not (' ' + folder[1:] + file) in self.all_files_dict['/toc.yaml']['fileContents']) and
                                   ('reuse-snippets' not in folder) and
+                                  (not '/' + file in ignoredFileList) and
                                   (not folder + file in ignoredFileList) and
                                   (not (folder.startswith(tuple(ignoredFolderList))))):
                                 try:
+                                    originalFileNameFound = False
                                     for item in self.all_files_dict:
                                         if self.all_files_dict[item]['folderPath'] == folder and self.all_files_dict[item]['file_name'] == file:
                                             folderAndFile = item
+                                            originalFileNameFound = True
                                             break
+                                    if originalFileNameFound is False:
+                                        folderAndFile = folder + file
                                     addToWarnings('File is not used in the ' + self.location_name + ' toc.yaml: ' + folder + file,
                                                   folderAndFile, folder + file, details, log, self.location_name, '', '')
                                 except Exception as e:
@@ -530,30 +512,17 @@ def main(
                     if details['debug'] is True:
                         startTimeSection = time.time()
 
-                    if details['unprocessed'] is False:
+                    # After all of the content files are updated, update the images
+                    self.unusedInThisLocation = checkUsedImages(self, details)
 
-                        # If there is a sitemap.md, populate it with links
-                        # This needs to happen after comments are handled
-                        if ((self.sitemap_file in self.source_files) and
-                                (not details["ibm_cloud_docs_sitemap_depth"] == 'off')):
-                            if 'toc.yaml' in str(self.all_files_dict) and self.location_ibm_cloud_docs is True:
-                                sitemapYML(self, details)
+                    if details['debug'] is True:
+                        endTime = time.time()
+                        totalTime = endTime - startTimeSection
+                        sectionTime = str(round(totalTime, 2))
+                        self.log.info(self.location_name + ' images cleanup: ' + sectionTime)
 
-                            elif 'SUMMARY.md' in str(self.all_files_dict) and details["ibm_docs"] is True:
-                                sitemapSUMMARY(self, details)
-
-                            elif (('toc' in str(self.all_files_dict)) and ('toc.yaml' not in str(self.all_files_dict))):
-                                sitemapOLD(self, details)
-
-                            else:
-                                addToWarnings('A toc.yaml file does not exist, so the sitemap could not be built.',
-                                              'toc.yaml', '', details, log, 'pre-build', '', '')
-
-                        if details['debug'] is True:
-                            endTime = time.time()
-                            totalTime = endTime - startTimeSection
-                            sectionTime = str(round(totalTime, 2))
-                            self.log.info(self.location_name + ' sitemap: ' + sectionTime)
+                    if details['debug'] is True:
+                        startTimeSection = time.time()
 
                     # Don't actually push the updated files if any of these ifs are met
                     # self.log.info(json.dumps(self.source_files, indent=2))
@@ -621,7 +590,6 @@ def main(
         details.update({"ibm_cloud_docs_sitemap_depth": ibm_cloud_docs_sitemap_depth})
         details.update({"ibm_cloud_docs_sitemap_rebuild_always": ibm_cloud_docs_sitemap_rebuild_always})
         details.update({"ibm_docs": ibm_docs})
-        details.update({"rebuild_all_files": rebuild_all_files})
         details.update({"slack_bot_token": slack_bot_token})
         details.update({"slack_channel": slack_channel})
         details.update({"slack_post_start": slack_post_start})
@@ -740,6 +708,11 @@ def main(
         details.update({"build_number": build_number})
         details.update({"workspace": workspace})
 
+        if (build_number == '1') and (rebuild_all_files is False):
+            rebuild_all_files = True
+
+        details.update({"rebuild_all_files": rebuild_all_files})
+
         # Create a list out of the rebuild_files values and make sure each entry starts with a slash
         if rebuild_files is None:
             rebuild_files_list: list[str] = []  # type: ignore[misc]
@@ -800,9 +773,6 @@ def main(
             addToErrors('The current branch name could not be found.', 'start.py-command', '', details, log, 'pre-build', '', '')
             log.info(str(e))
         validateArguments(details, log)
-
-        filesToScanFirst = ['.build.yaml', 'keyref.yaml']
-        details.update({"filesToScanFirst": filesToScanFirst})
 
         # This has to come before the allfilesget
         log.debug('Getting values from: %s', details["locations_file"])

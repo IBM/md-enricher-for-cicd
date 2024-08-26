@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache2.0
 #
 
-def sitemapSUMMARY(self, details):
+def sitemapSUMMARY(self, details, topicContents):
 
     # Create a sitemap from an IBM Docs SUMMARY.md file
 
@@ -13,17 +13,11 @@ def sitemapSUMMARY(self, details):
     import re
     import shutil
 
-    self.log.debug("\n")
     self.log.debug("Creating the sitemap from the SUMMARY.md file.")
     if details["builder"] == 'local':
         self.log.debug('Locally, the sitemap might be incomplete.' +
                        'Credentials are not configured locally to go to Github and retrieve the' +
                        'content defined in the TOC that is reused from other services.')
-
-    self.log.debug("\n\n")
-    self.log.debug("-------------------------------------------------------------")
-    self.log.debug("UPDATE SITEMAP")
-    self.log.debug("-------------------------------------------------------------\n")
 
     self.CONTENT_REUSE_PAGES_FOLDER = 'reuse-pages'
     self.CONTENT_REUSE_SNIPPETS_FOLDER = 'reuse-snippets'
@@ -343,142 +337,141 @@ def sitemapSUMMARY(self, details):
                         self.log.debug(source[filename])
                         traceback.print_exc()
 
-        self.log.debug('-------------')
-        self.log.debug('-------------')
-        self.log.debug('-------------')
+        def loop(tocFilename, topicContents):
+            if (('.md' in tocFilename) and (not tocFilename.endswith('sitemap.md'))):
 
-        with open(file2, "a", encoding="utf8", errors="ignore") as g:
+                # Next get the repo name and the file name of what's stored in the source list
+                for filename in source:
 
-            def loop(tocFilename):
-                if (('.md' in tocFilename) and (not tocFilename.endswith('sitemap.md'))):
+                    filenameShort = str(filename).replace(' ', '').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '').replace('\n', '')
+                    if filenameShort.startswith(self.location_dir + '/'):
+                        filenameShort = filenameShort.split(self.location_dir + '/')[1]
+                    # self.log.debug('Comparing: ' + filenameShort + ' and ' + tocFilename)
 
-                    # Next get the repo name and the file name of what's stored in the source list
-                    for filename in source:
+                    if str(filenameShort) == str(tocFilename):
+                        # Now compare the repo names and file names of the two and if they match, then continue
+                        self.log.debug(filenameShort + ' is in ' + tocFilename)
+                        self.log.debug('\n')
+                        debugFilename = str(source[filename])
+                        self.log.debug('Working with: ' + str(debugFilename.encode('utf-8', errors='ignore')))
+                        try:
+                            self.log.debug('H1: ' + str(source[filename]['h1']))
+                        except Exception:
+                            self.log.error('Check for missing anchors: ' + filenameShort)
 
-                        filenameShort = str(filename).replace(' ', '').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '').replace('\n', '')
-                        # self.log.debug('Comparing: ' + filenameShort + ' and ' + tocFilename)
+                        topicTitle = source[filename]['h1']
+                        topicTitle = topicTitle.split(']')[0]
+                        if '[' in topicTitle:
+                            topicTitle = topicTitle.split('[')[1]
+                        # Write once without a link
+                        topicContents = topicContents + '\n\n\n## ' + topicTitle
+                        topicTitleNoSpaces = topicTitle.lower()
+                        # Not sure why blockchain has these extra tabs in their headings - must be how the toc is configured with tabs?
+                        topicTitleNoSpaces = topicTitleNoSpaces.replace(' ', '_').replace('	', '')
+                        topicTitleNoSpaces = topicTitleNoSpaces.replace('	', '').replace('  ', ' ')
+                        topicTitleNoSpaces = topicTitleNoSpaces.replace('\t', '').replace('(', '').replace(')', '')
+                        topicTitleNoSpaces = topicTitleNoSpaces.replace('.', '').replace('  ', ' ')
+                        while '{{' in topicTitleNoSpaces:
+                            firstpart, ignore = topicTitleNoSpaces.split('{{', 1)
+                            secondpart = ignore.split('}}', 1)[1]
+                            topicTitleNoSpaces = firstpart + secondpart
+                        while '{: #sitemap_' + topicTitleNoSpaces + '}' in sitemapAnchorList:
+                            topicTitleNoSpaces = topicTitleNoSpaces + '_'
+                        topicContents = topicContents + '\n{: #sitemap_' + topicTitleNoSpaces + '}\n'
+                        sitemapAnchorList.append('{: #sitemap_' + topicTitleNoSpaces + '}')
+                        # Write once with the link
+                        topicContents = topicContents + '\n\n' + source[filename]['h1']
 
-                        if str(filenameShort) == str(tocFilename):
-                            # Now compare the repo names and file names of the two and if they match, then continue
-                            # self.log.debug(filenameShort + ' is in ' + tocFilename)
-                            self.log.debug('\n')
-                            debugFilename = str(source[filename])
-                            self.log.debug('Working with: ' + str(debugFilename.encode('utf-8', errors='ignore')))
+                        if H2_ENABLED is True:
+                            h2Listed = []
                             try:
-                                self.log.debug('H1: ' + str(source[filename]['h1']))
+                                h2s = source[filename]['goodh2']
                             except Exception:
-                                self.log.error('Check for missing anchors.')
+                                self.log.debug('    No h2s in this MD topic.')
 
-                            topicTitle = source[filename]['h1']
-                            topicTitle = topicTitle.split(']')[0]
-                            if '[' in topicTitle:
-                                topicTitle = topicTitle.split('[')[1]
-                            # Write once without a link
-                            g.write('\n\n\n## ' + topicTitle)
-                            topicTitleNoSpaces = topicTitle.lower()
-                            # Not sure why blockchain has these extra tabs in their headings - must be how the toc is configured with tabs?
-                            topicTitleNoSpaces = topicTitleNoSpaces.replace(' ', '_').replace('	', '')
-                            topicTitleNoSpaces = topicTitleNoSpaces.replace('	', '').replace('  ', ' ')
-                            topicTitleNoSpaces = topicTitleNoSpaces.replace('\t', '').replace('(', '').replace(')', '')
-                            topicTitleNoSpaces = topicTitleNoSpaces.replace('.', '').replace('  ', ' ')
-                            while '{{' in topicTitleNoSpaces:
-                                firstpart, ignore = topicTitleNoSpaces.split('{{', 1)
-                                secondpart = ignore.split('}}', 1)[1]
-                                topicTitleNoSpaces = firstpart + secondpart
-                            while '{: #sitemap_' + topicTitleNoSpaces + '}' in sitemapAnchorList:
-                                topicTitleNoSpaces = topicTitleNoSpaces + '_'
-                            g.write('\n{: #sitemap_' + topicTitleNoSpaces + '}\n')
-                            sitemapAnchorList.append('{: #sitemap_' + topicTitleNoSpaces + '}')
-                            # Write once with the link
-                            g.write('\n\n' + source[filename]['h1'])
+                            else:
+                                h2List = h2s.split(';')
+                                h2ListEncoded = str(h2List).encode('utf-8', errors='ignore')
+                                try:
+                                    self.log.debug('h2List:' + str(h2ListEncoded))
+                                except Exception:
+                                    self.log.debug('h2List: ASCII error. Could not log.')
+                                for h2 in h2List:
+                                    h2ed = h2.replace('$', '$H2$')
+                                    h2Listed.append(h2ed)
 
+                                self.log.debug('h2Listed:' + str(str(h2Listed).encode('utf-8', errors='ignore')))
+
+                        if H3_ENABLED is True:
+                            h3Listed = []
+                            try:
+                                h3s = source[filename]['goodh3']
+                            except Exception:
+                                self.log.debug('        No h3s in this MD topic.')
+                            else:
+                                h3List = h3s.split(';')
+                                self.log.debug('h3List:' + str(str(h3List).encode('utf-8', errors='ignore')))
+                                for h3 in h3List:
+                                    h3ed = h3.replace('$', '$H3$')
+                                    h3Listed.append(h3ed)
+                                self.log.debug('h3Listed:' + str(str(h3Listed).encode('utf-8', errors='ignore')))
+
+                            combinedListed: list[str] = []  # type: ignore[misc]
                             if H2_ENABLED is True:
-                                h2Listed = []
-                                try:
-                                    h2s = source[filename]['goodh2']
-                                except Exception:
-                                    self.log.debug('    No h2s in this MD topic.')
-
-                                else:
-                                    h2List = h2s.split(';')
-                                    h2ListEncoded = str(h2List).encode('utf-8', errors='ignore')
-                                    try:
-                                        self.log.debug('h2List:' + str(h2ListEncoded))
-                                    except Exception:
-                                        self.log.debug('h2List: ASCII error. Could not log.')
-                                    for h2 in h2List:
-                                        h2ed = h2.replace('$', '$H2$')
-                                        h2Listed.append(h2ed)
-
-                                    self.log.debug('h2Listed:' + str(str(h2Listed).encode('utf-8', errors='ignore')))
-
+                                combinedListed = combinedListed + h2Listed
                             if H3_ENABLED is True:
-                                h3Listed = []
-                                try:
-                                    h3s = source[filename]['goodh3']
-                                except Exception:
-                                    self.log.debug('        No h3s in this MD topic.')
-                                else:
-                                    h3List = h3s.split(';')
-                                    self.log.debug('h3List:' + str(str(h3List).encode('utf-8', errors='ignore')))
-                                    for h3 in h3List:
-                                        h3ed = h3.replace('$', '$H3$')
-                                        h3Listed.append(h3ed)
-                                    self.log.debug('h3Listed:' + str(str(h3Listed).encode('utf-8', errors='ignore')))
+                                combinedListed = combinedListed + h3Listed
 
-                                combinedListed: list[str] = []  # type: ignore[misc]
-                                if H2_ENABLED is True:
-                                    combinedListed = combinedListed + h2Listed
-                                if H3_ENABLED is True:
-                                    combinedListed = combinedListed + h3Listed
+                            sortedListed = sorted(combinedListed)
 
-                                sortedListed = sorted(combinedListed)
+                            sortedListedEncoded = str(sortedListed).encode('utf-8', errors='ignore')
+                            self.log.debug('sortedListed: ' + str(sortedListedEncoded))
 
-                                sortedListedEncoded = str(sortedListed).encode('utf-8', errors='ignore')
-                                self.log.debug('sortedListed: ' + str(sortedListedEncoded))
+                            for listItem in sortedListed:
+                                dollarCount = listItem.count('$')
+                                if dollarCount == 2:
 
-                                for listItem in sortedListed:
-                                    dollarCount = listItem.count('$')
-                                    if dollarCount == 2:
+                                    level = listItem.split('$')[1]
+                                    link = listItem.split('$')[2]
+                                    # self.log.debug('lineNumber: ' + lineNumber)
+                                    # self.log.debug('level: ' + level)
+                                    # self.log.debug('link: ' + link)
+                                    if level == 'H2':
+                                        if not link == '':
+                                            linkEncoded = str(link.rstrip()).encode('utf-8', errors='ignore')
+                                            self.log.debug('    H2: ' + str(linkEncoded))
+                                            topicContents = topicContents + '\n\n* ' + link.rstrip()
+                                            # self.log.debug('Writing H2: ' + str(linkEncoded))
+                                    elif level == 'H3':
+                                        if not link == '':
+                                            linkEncoded = str(link.rstrip()).encode('utf-8', errors='ignore')
+                                            self.log.debug('        H3: ' + str(linkEncoded))
+                                            topicContents = topicContents + '\n    * ' + link.rstrip()
+                                            # self.log.debug('Writing H3: ' + str(linkEncoded))
+                            # else:
+                                    # self.log.debug('Not enough dollar signs to split: ' + listItem)
+                        break
+                    # elif str(filenameShort) in str(tempTocFilename):
+                        # self.log.debug('Did not find: ' + filenameShort + ' in ' + tempTocFilename)
+                        # self.log.debug('"' + filenameShort + '"')
+                        # self.log.debug('"' + tempTocFilename + '"')
+            return (topicContents)
 
-                                        level = listItem.split('$')[1]
-                                        link = listItem.split('$')[2]
-                                        # self.log.debug('lineNumber: ' + lineNumber)
-                                        # self.log.debug('level: ' + level)
-                                        # self.log.debug('link: ' + link)
-                                        if level == 'H2':
-                                            if not link == '':
-                                                linkEncoded = str(link.rstrip()).encode('utf-8', errors='ignore')
-                                                self.log.debug('    H2: ' + str(linkEncoded))
-                                                g.write('\n\n* ' + link.rstrip())
-                                                # self.log.debug('Writing H2: ' + str(linkEncoded))
-                                        elif level == 'H3':
-                                            if not link == '':
-                                                linkEncoded = str(link.rstrip()).encode('utf-8', errors='ignore')
-                                                self.log.debug('        H3: ' + str(linkEncoded))
-                                                g.write('\n    * ' + link.rstrip())
-                                                # self.log.debug('Writing H3: ' + str(linkEncoded))
-                                # else:
-                                        # self.log.debug('Not enough dollar signs to split: ' + listItem)
-                            break
-                        # elif str(filenameShort) in str(tempTocFilename):
-                            # self.log.debug('Did not find: ' + filenameShort + ' in ' + tempTocFilename)
-                            # self.log.debug('"' + filenameShort + '"')
-                            # self.log.debug('"' + tempTocFilename + '"')
-
-            with open(workingDir + '/SUMMARY.md', "r+", encoding="utf8", errors="ignore") as file_open_summary:
-                file_read_summary = file_open_summary.readlines()
-                # subcollectionList = re.findall(r'subcollection\=\".*?\"',f)
-                for line in file_read_summary:
-                    if '.md' in line:
-                        tocFilename = line.split('](')[1]
-                        tocFilename = tocFilename.replace(')', '')
-                        tocFilename = tocFilename.replace(' ', '').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '').replace('\n', '')
-                        # self.log.debug('Running on ' + tocFilename)
-                        loop(tocFilename)
+        with open(workingDir + '/SUMMARY.md', "r+", encoding="utf8", errors="ignore") as file_open_summary:
+            file_read_summary = file_open_summary.readlines()
+            # subcollectionList = re.findall(r'subcollection\=\".*?\"',f)
+            for line in file_read_summary:
+                if '.md' in line:
+                    tocFilename = line.split('](')[1]
+                    tocFilename = tocFilename.replace(')', '')
+                    tocFilename = tocFilename.replace(' ', '').replace('	', '').replace('	', '').replace('  ', ' ').replace('\t', '').replace('\n', '')
+                    # self.log.debug('Running on ' + tocFilename)
+                    topicContents = loop(tocFilename, topicContents)
 
         self.log.debug('Success!')
 
     if os.path.isdir(workingDir + '/sitemap-temp/'):
         shutil.rmtree(workingDir + '/sitemap-temp/')
         self.log.debug('Removing: ' + '/sitemap-temp/')
+
+    return (topicContents)

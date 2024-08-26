@@ -11,23 +11,28 @@ def locationCommitSummary(self, details):
         LOCATION_COMMIT_SUMMARY = details["current_commit_author"]
 
     elif self.location_commit_summary_style == 'AuthorAndSummary':
-        # Workaround for alchemy-containers/documentation
-        if (details["current_commit_author"] + ': ') in details["current_commit_summary"]:
-            LOCATION_COMMIT_SUMMARY = details["current_commit_summary"]
-        else:
-            LOCATION_COMMIT_SUMMARY = details["current_commit_author"] + ': ' + details["current_commit_summary"]
+        LOCATION_COMMIT_SUMMARY = details["current_commit_author"] + ': ' + details["current_commit_summary"]
+
+    elif self.location_commit_summary_style == 'UpdateAndDate':
+        from mdenricher.cleanupEachFile.getTodaysDate import getTodaysDate
+        currentYear, currentMonth, currentDay = getTodaysDate()
+        LOCATION_COMMIT_SUMMARY = 'Update: ' + currentDay + '-' + currentMonth + '-' + currentYear
 
     elif self.location_commit_summary_style == 'AuthorAndUpdate':
         LOCATION_COMMIT_SUMMARY = details["current_commit_author"] + ' update'
+
     elif self.location_commit_summary_style == 'BuildNumber':
         LOCATION_COMMIT_SUMMARY = 'Build ' + details["build_number"]
+
     elif self.location_commit_summary_style == 'BuildNumberAndSummary':
         LOCATION_COMMIT_SUMMARY = 'Build ' + details["build_number"] + ': ' + details["current_commit_summary"]
 
     elif self.location_commit_summary_style == 'CommitID':
         LOCATION_COMMIT_SUMMARY = details["current_commit_id"]
+
     elif self.location_commit_summary_style == 'CommitIDAndSummary':
         LOCATION_COMMIT_SUMMARY = details["current_commit_id"] + ': ' + details["current_commit_summary"]
+
     elif self.location_commit_summary_style == 'CommitIDAndAuthor':
         LOCATION_COMMIT_SUMMARY = details["current_commit_id"] + ': ' + details["current_commit_author"]
 

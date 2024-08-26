@@ -192,9 +192,6 @@ def pushUpdatedFiles(self, details):
                 if ('nothing to commit' in status.lower()) or (status == '\n') or (status == ''):
                     self.log.debug('Nothing to commit to ' + self.location_name + '.')
                 else:
-                    # When this line is set, then the user displays as Travis CI User
-                    os.system("git config --global user.name \"" + details["current_commit_author"] + "\"")
-                    os.system("git config --global user.email \"" + details["current_commit_email"] + "\"")
                     try:
                         self.log.debug('Committing the changes.')
                         subprocessOutput = subprocess.Popen('git -C ' + self.location_dir + ' commit -m "' +
