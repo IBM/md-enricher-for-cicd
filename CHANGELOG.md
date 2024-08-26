@@ -2,6 +2,32 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.6.0.20240808
+<dl>
+<dt>Added <code>@here</code> mention in Slack posts that include errors</dt>
+<dd></dd>
+<dt>Bug fixes:</dt>
+<dd><ul>
+<li>A pull request is not created until the second push to a downstream branch for locations with <code>location_output_action</code> set to <code>create-pr</code>.</li>
+<li>Original file remains downstream after it is renamed upstream.</li>
+<li><code>--unprocessed</code> files are not cleaned up downstream to remove old files.</li>
+</ul></dd></dl>
+
+## Version 1.2.5.6.20240801
+
+<dl>
+<dt>Bug fixes:</dt>
+<dd><ul>
+<li><code>rebuild_all_files</code> not removing image directories.</li>
+<li><code>.drawio.svg</code> considered image source files instead of output.</li>
+</ul></dd></dl>
+
+
+## Version 1.2.5.5.20240724
+<dl>
+<dt>Automatically add a new line to the end of markdown output if one does not exist</dt>
+<dd></dd>
+</dl>
 
 ## Version 1.2.5.4, released 23 July 2024
 <dl>
