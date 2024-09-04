@@ -17,12 +17,13 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
 
     if "a ibm" in topicContents.lower():
         aIBMCount = (topicContents.lower()).count(" a ibm")
-        if aIBMCount == 1:
-            instance = 'instance'
-        else:
-            instance = 'instances'
-        addToWarnings(str(aIBMCount) + ' ' + instance + ' of "a IBM" in the topic. ', folderAndFile, folderPath + file_name,
-                      details, self.log, self.location_name, "a IBM", topicContents)
+        if aIBMCount > 0:
+            if aIBMCount == 1:
+                instance = 'instance'
+            else:
+                instance = 'instances'
+            addToWarnings(str(aIBMCount) + ' ' + instance + ' of "a IBM" in the topic. ', folderAndFile, folderPath + file_name,
+                          details, self.log, self.location_name, "a IBM", topicContents)
 
     elif details['ibm_cloud_docs_keyref_check'] is True:
 

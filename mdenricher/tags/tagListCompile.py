@@ -96,7 +96,7 @@ def tagListCompile(self, details):
                         tags_hide.append(featureFlagName)
 
     else:
-        self.log.debug('No feature flag to work with: ' + details["source_dir"] + details["featureFlagFile"])
+        self.log.debug('No feature flag to work with: ' + details["featureFlagFile"])
 
     for location_tag in details['location_tags']:
         if (location_tag not in tags_show) and (location_tag not in tags_hide) and (location_tag != self.location_name):
