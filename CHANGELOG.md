@@ -2,6 +2,23 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.7.4.20240902
+<dl><dt>Added image check for YAML and YML files</dt>
+<dt>Bug fixes:</dt>
+<dd><ul>
+<li>In markdown content, 2 or more spaces between an image file name and alt text created a warning about a missing image.</li>
+</ul><dd></dd></dl>
+
+## Version 1.2.7.3.20240826
+<dl><dt>Bug fixes:</dt>
+<dd><ul>
+<li><code>error: could not lock config file /home/jenkins/.gitconfig: File exists</code> error.</li>
+</ul></dd></dl>
+
+## Version 1.2.7.2.20240826
+<dl><dt>Expanded image identification in JSON content files to any value that ends with a supported image file type.</dt>
+<dd></dd></dl>
+
 ## Version 1.2.7.1.20240826
 <dl><dt>Bug fixes:</dt>
 <dd><ul>

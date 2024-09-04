@@ -57,6 +57,13 @@ def pushUpdatedFiles(self, details):
             self.log.debug(statusException)
             status = 'None'
 
+        try:
+            os.system("git config --global user.name \"" + details["username"] + "\"")
+            if '@' in details["username"]:
+                os.system("git config --global user.email \"" + details["username"] + "\"")
+        except Exception:
+            pass
+
         if ('nothing to commit' in status.lower()) or (status == '\n') or (status == '') and (self.location_github_branch_push is not None):
 
             # Check if the branch has been pushed before or not

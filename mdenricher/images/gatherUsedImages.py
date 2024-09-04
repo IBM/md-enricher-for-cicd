@@ -74,27 +74,41 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
         self.log.debug(sourceFile + ' contains HTML code errors, so code cannot be removed before checking images.')
 
     # Get images in HTML format
-    htmlImages = re.findall(r'<img.*?/>', topicContents)
-    htmlImages = list(dict.fromkeys(htmlImages))
-
-    htmlImagesNoEndSlash = re.findall(r'<img.*?>', topicContents)
-    htmlImagesNoEndSlash = list(dict.fromkeys(htmlImagesNoEndSlash))
-
-    htmlImages = htmlImages + htmlImagesNoEndSlash
+    htmlImages: list[str] = []
+    if sourceFile.endswith('.html') or sourceFile.endswith('.htm') or sourceFile.endswith('.md'):
+        htmlImages = re.findall(r'<img.*?/>', topicContents)
+        htmlImages = list(dict.fromkeys(htmlImages))
+        htmlImagesNoEndSlash = re.findall(r'<img.*?>', topicContents)
+        htmlImagesNoEndSlash = list(dict.fromkeys(htmlImagesNoEndSlash))
+        htmlImages = htmlImages + htmlImagesNoEndSlash
 
     # Get images from JSON
-    jsonImages = re.findall(r'"thumbnail": ".*?"', topicContents)
-    jsonImages = list(dict.fromkeys(jsonImages))
+    jsonImages: list[str] = []
+    if sourceFile.endswith('.json'):
+        for extension in details['img_output_filetypes']:
+            imagesFound = re.findall(r'": "(.*?' + extension + r')"', str(topicContents))
+            jsonImages = jsonImages + imagesFound
+        jsonImages = list(dict.fromkeys(jsonImages))
 
-    # Remove the end of any snippets that might be used in the alt text first
-    topicContents = topicContents.replace(']}', '')
-    # Replace all markdown alt text with nothing just in case there are parens in the alt text before getting images in markdown format
-    markdownAltTexts = re.findall(r'\!\[.*?\]', topicContents)
-    for markdownAltText in markdownAltTexts:
-        topicContents = topicContents.replace(markdownAltText, '!')
-    # Get images in markdown format
-    markdownImages = re.findall(r'\!\(.*?\)', topicContents)
-    markdownImages = list(dict.fromkeys(markdownImages))
+    # Get images from YAML
+    yamlImages: list[str] = []
+    if sourceFile.endswith('.yaml') or sourceFile.endswith('.yml'):
+        for extension in details['img_output_filetypes']:
+            imagesFound = re.findall(r': (.*?.' + extension + ')', str(topicContents))
+            yamlImages = yamlImages + imagesFound
+        yamlImages = list(dict.fromkeys(yamlImages))
+
+    markdownImages: list[str] = []
+    if sourceFile.endswith('.md'):
+        # Remove the end of any snippets that might be used in the alt text first
+        topicContents = topicContents.replace(']}', '')
+        # Replace all markdown alt text with nothing just in case there are parens in the alt text before getting images in markdown format
+        markdownAltTexts = re.findall(r'\!\[.*?\]', topicContents)
+        for markdownAltText in markdownAltTexts:
+            topicContents = topicContents.replace(markdownAltText, '!')
+        # Get images in markdown format
+        markdownImages = re.findall(r'\!\(.*?\)', topicContents)
+        markdownImages = list(dict.fromkeys(markdownImages))
 
     # If the image name is used in the content, then copy the image over
     for htmlImage in htmlImages:
@@ -111,14 +125,18 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
         if not markdownImage + '{: video output="iframe"' in topicContents:
             imageName = markdownImage.split('(', 1)[1]
             if ' "' in imageName:
-                imageName = imageName.split(' "', 1)[0]
+                imageName = imageName.split(' ', 1)[0]
             else:
                 imageName = imageName.split(')', 1)[0]
             self.imagesUsedInThisBuild = processImageName(self, imageName, imagePath)
 
     for jsonImage in jsonImages:
-        imageName = jsonImage.split('"',)[3]
-        self.imagesUsedInThisBuild = processImageName(self, imageName, imagePath)
+        if 'img_src_filetypes' not in jsonImage and 'img_output_filetypes' not in jsonImage:
+            self.imagesUsedInThisBuild = processImageName(self, jsonImage, imagePath)
+
+    for yamlImage in yamlImages:
+        if 'img_src_filetypes' not in yamlImage and 'img_output_filetypes' not in yamlImage:
+            self.imagesUsedInThisBuild = processImageName(self, yamlImage, imagePath)
 
     # If images are not all stored in the /images directory, issue a warning
     # if ((not os.path.isdir(self.location_dir + '/images')) and

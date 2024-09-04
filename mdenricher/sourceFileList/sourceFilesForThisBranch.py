@@ -14,7 +14,7 @@ def sourceFilesForThisBranch(self, details):
     # import re
 
     # from mdenricher.errorHandling.errorHandling import addToWarnings
-    # from mdenricher.errorHandling.errorHandling import addToErrors
+    from mdenricher.errorHandling.errorHandling import addToErrors
     # from mdenricher.setup.exitBuild import exitBuild
 
     # Tweak the source file list depending on where stuff is running and where
@@ -33,10 +33,15 @@ def sourceFilesForThisBranch(self, details):
     # Adding selected rebuild_files
     if not details["rebuild_files_list"] == []:
         for rebuild_file in details["rebuild_files_list"]:
-            self.log.debug('Adding ' + rebuild_file)
-            source_files = addToList(self, details, self.log, '', '', 'rebuild',
-                                     rebuild_file, source_files, self.location_contents_files,
-                                     self.location_contents_folders, self.remove_all_other_files_folders)
+            if os.path.isfile(details["source_dir"] + rebuild_file):
+                self.log.debug('Adding ' + rebuild_file)
+                source_files = addToList(self, details, self.log, '', '', 'rebuild',
+                                         rebuild_file, source_files, self.location_contents_files,
+                                         self.location_contents_folders, self.remove_all_other_files_folders)
+            else:
+                addToErrors('File specfied with --rebuild_files does not exist in the upstream source: ' +
+                            details["source_dir"] + rebuild_file, rebuild_file, rebuild_file,
+                            details, self.log, self.location_name, '', '')
 
     for source_file, source_file_info in list(source_files.items()):
 
