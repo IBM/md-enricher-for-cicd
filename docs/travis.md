@@ -1,13 +1,13 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-09-04
+# Last updated: 2024-10-04
 -->
 
 # Running in Travis
 
 
-1. Configure [Travis](https://docs.travis-ci.com/user/tutorial/#to-get-started-with-travis-ci-using-github) for your Github repository.
+
 1. Configure the settings for Travis.
     a. Click **More options** > **Settings**. If the Settings option does not display, wait a minute and refresh the page. If the problem persists, verify you are an admin of the upstream repo, then in Travis, click your username > **Profile** > **Sync Account** to refresh your Github permissions in Travis.
     

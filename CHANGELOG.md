@@ -2,6 +2,19 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.7.6.20241004
+<dt>Bug fixes:</dt>
+<dd><ul>
+<li>Downstream clone attempted even without Git information specified in the locations file.</li>
+</ul></dl>
+
+## Version 1.2.7.5.20241002
+<dl>
+<dt>Bug fixes:</dt>
+<dd><ul>
+<li>On downstream clone failure, output and log files pushed to upstream branch.</li>
+</ul></dl>
+
 ## Version 1.2.7.4.20240902
 <dl><dt>Added image check for YAML and YML files</dt>
 <dt>Bug fixes:</dt>

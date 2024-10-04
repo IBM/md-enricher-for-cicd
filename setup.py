@@ -9,7 +9,7 @@ if __name__ == "__main__":
     setup(
     name='doctopus-markdown-enricher',
     python_requires='>3.8.0',
-    version='1.2.7.4.20240902',
+    version='1.2.7.6.20241004',
     description='Single source your markdown documentation.',
     author='Kristin Brown',
     author_email='kakronst@us.ibm.com',
