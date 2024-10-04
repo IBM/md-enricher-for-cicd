@@ -5,14 +5,14 @@
 
 def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
 
-    # import os
+    import os
 
     # from mdenricher.errorHandling.errorHandling import addToWarnings
     from mdenricher.cleanupEachFile.createTestTopicContents import createTestTopicContents
 
     def processImageName(self, imageName, imagePathUnique):
         if not imageName.startswith('http'):
-            if (details['ibm_cloud_docs'] is True) and ('../icons' in imageName):
+            if (details['ibm_cloud_docs'] is True) and ('../icons' in imageName) and (not os.path.isdir(details["source_dir"] + '/icons')):
                 self.log.debug('Not processing IBM Cloud Docs icons: ' + imageName)
             else:
                 if imageName == '':
@@ -84,7 +84,8 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
 
     # Get images from JSON
     jsonImages: list[str] = []
-    if sourceFile.endswith('.json'):
+    # Do not gather images from locations files
+    if sourceFile.endswith('.json') and '"markdown-enricher"' not in str(topicContents):
         for extension in details['img_output_filetypes']:
             imagesFound = re.findall(r'": "(.*?' + extension + r')"', str(topicContents))
             jsonImages = jsonImages + imagesFound
@@ -94,7 +95,7 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
     yamlImages: list[str] = []
     if sourceFile.endswith('.yaml') or sourceFile.endswith('.yml'):
         for extension in details['img_output_filetypes']:
-            imagesFound = re.findall(r': (.*?.' + extension + ')', str(topicContents))
+            imagesFound = re.findall(r': (.*?' + extension + ')', str(topicContents))
             yamlImages = yamlImages + imagesFound
         yamlImages = list(dict.fromkeys(yamlImages))
 
@@ -131,11 +132,11 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
             self.imagesUsedInThisBuild = processImageName(self, imageName, imagePath)
 
     for jsonImage in jsonImages:
-        if 'img_src_filetypes' not in jsonImage and 'img_output_filetypes' not in jsonImage:
+        if ('img_src_filetypes' not in jsonImage) and ('img_output_filetypes' not in jsonImage) and ('.' in jsonImage):
             self.imagesUsedInThisBuild = processImageName(self, jsonImage, imagePath)
 
     for yamlImage in yamlImages:
-        if 'img_src_filetypes' not in yamlImage and 'img_output_filetypes' not in yamlImage:
+        if ('img_src_filetypes' not in yamlImage) and ('img_output_filetypes' not in yamlImage) and ('.' in yamlImage):
             self.imagesUsedInThisBuild = processImageName(self, yamlImage, imagePath)
 
     # If images are not all stored in the /images directory, issue a warning

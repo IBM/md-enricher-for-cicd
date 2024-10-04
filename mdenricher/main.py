@@ -351,22 +351,29 @@ def main(
                         startTimeSection = time.time()
 
                     try:
-                        self.location_github_branch_push, self.changeToRebuildAll = clone(self, details)
-                        if self.changeToRebuildAll is True:
-                            self.log.debug('Running on all files because the location branch did not exist yet.')
+                        if self.location_github_url is None:
+                            self.changeToRebuildAll = True
+                        else:
+                            self.location_github_branch_push, self.changeToRebuildAll = clone(self, details)
+                        if self.changeToRebuildAll is True or not os.path.isdir(self.location_dir):
+                            # For local builds, copy over everything to the working directory
+                            self.log.debug('Running on all files because the location branch did not exist yet or was not specified.')
                             self.source_files_location_list = self.all_files_dict
+                            if not os.path.isdir(self.location_dir):
+                                os.mkdir(self.location_dir)
                     except Exception as e:
+                        # If the branch fails don't continue. It ends up pushing output files back up to the source branch.
                         self.log.debug(e)
+                        addToErrors('The branch could not be cloned: ' + str(self.location_github_org) + '/' +
+                                    str(self.location_github_repo) + ', ' + str(self.location_github_branch), 'main.py-command',
+                                    '', details, log, self.location_name, '', '')
+                        exitBuild(details, log)
 
                     if details['debug'] is True:
                         endTime = time.time()
                         totalTime = endTime - startTimeSection
                         sectionTime = str(round(totalTime, 2))
                         self.log.info(self.location_name + ' clone: ' + sectionTime)
-
-                    # For local builds, copy over everything to the working directory
-                    if not os.path.isdir(self.location_dir):
-                        os.mkdir(self.location_dir)
 
                     if details['unprocessed'] is False:
 
@@ -489,8 +496,12 @@ def main(
                                         if self.all_files_dict[item]['folderPath'] == folder and self.all_files_dict[item]['file_name'] == file:
                                             folderAndFile = item
                                             break
-                                    addToWarnings('File is not used in the ' + self.location_name + ' toc.yaml: ' + folder + file,
+                                    addToWarnings('The file is not used in the ' + self.location_name +
+                                                  ' toc.yaml so it is not included downstream: ' + folder + file,
                                                   folderAndFile, folder + file, details, log, self.location_name, '', '')
+                                    if os.path.isfile(path + '/' + file):
+                                        os.remove(path + '/' + file)
+                                        log.debug('Removing undefined file from ' + self.location_name + ': ' + folder + file)
                             except Exception as e:
                                 log.error('Traceback')
                                 log.error('Could not issue warning for or remove: ' + folder + file)
@@ -993,7 +1004,7 @@ def main(
                                 details["featureFlagFile"], '', details, log, 'pre-build', '', '')
                 else:
                     if details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in str(details['source_github_org']):
-                        if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in details['source_github_org'] and 'draft' in all_tags:
+                        if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in str(details['source_github_org']) and 'draft' in all_tags:
                             featureFlags.append(jsonStagingAllowlist)
                         elif '\'staging\'' not in str(featureFlags) and 'draft' in all_tags and 'review' in all_tags:
                             featureFlags.append(jsonStaging)
