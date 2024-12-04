@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-10-04
+# Last updated: 2024-12-04
 -->
 
 # Default tags
@@ -53,8 +53,8 @@ Example metadata for marked-it:
 <staging>---
 
 copyright:
-  years: 2014, 2024
-lastupdated: "2024-10-04"
+  years: 2014, [{CURRENT_YEAR}]
+lastupdated: "[{LAST_UPDATED_DATE}]"
 
 keywords: keyword1, keyword 2
 

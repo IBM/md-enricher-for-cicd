@@ -361,6 +361,11 @@ def sitemapYML(self, details, topicContents):
                     except Exception:
                         topicLabel = topicOrGroup['label']
 
+                    while topicLabel.startswith(' '):
+                        topicLabel = topicLabel[1:]
+                    while topicLabel.endswith(' '):
+                        topicLabel = topicLabel[:-1]
+
                     # self.log.debug(topicOrGroup)
                     try:
                         topicLink = topicOrGroup['link']['href']

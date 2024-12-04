@@ -308,6 +308,7 @@ def pushUpdatedFiles(self, details):
             listPRs = requests.get(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
                                    auth=(details["username"], details["token"]))
             try:
+                PRs = []
                 PRs = listPRs.json()
                 PRstring = str(PRs)
             except Exception:

@@ -2,6 +2,30 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.8.1.20241204
+<dl>
+<dt>Automatic removal of beginning and ending spaces in headings from corresponding link titles in sitemap.</dt>
+<dt>Show push failure output in the console in addition to the logs.</dt>
+<dt>Bug fixes:</dt>
+<dd><ul>
+<li>Traceback error on improperly formatted HTML image.</li>
+<li><code>Could not complete the file cleanup steps</code> error on update to locations file.</li>
+</ul></dd></dl>
+
+## Version 1.2.8.0.20241021
+<dl>
+<dt>Changed <code>ME_ignore</code> to a string rather than a comment.</dt>
+<dt>Removed numbering from table caption in example files.</dt>
+<dt>Added the <code>--unprocessed_update</code>.</dt><dd>
+<ul>
+<li>If you are pushing changes from upstream to downstream locations with the <code>--unprocessed</code> option so that formatting and tags are not processed, you can use the <code>--unprocessed_update</code> option to take changes that were made to the downstream files and push them upstream again.</li>
+</ul></dd>
+<dt>Bug fixes:</dt>
+<dd><ul>
+<li>Exception for undefined variable <code>PRs</code>.</li>
+</ul></dd></dl>
+
+
 ## Version 1.2.7.6.20241004
 <dt>Bug fixes:</dt>
 <dd><ul>

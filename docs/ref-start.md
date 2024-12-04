@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2024 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-10-04
+# Last updated: 2024-12-04
 -->
 
 # `mdenricher` command options reference
@@ -27,7 +27,8 @@
 |`--slack_webhook ${SLACK_WEBHOOK}`|Optional. One or more comma-separated webhooks for Slack channels to post error messages to. This value can be an environment variable.|
 |`--source_dir <path_to_source_directory>`|Required. The path to a content directory or a cloned Github repo.|
 |`--test_only`|Optional. Performs a check without pushing the results anywhere.|
-|`--unprocessed`|Optional. Pushes files to downstream locations without processing any tags or formatting. This option is helpful when you are single-sourcing content in a unique way, but want to use an already established system of builds with a standard locations file.|
+|`--unprocessed`|Optional. Pushes files from upstream to downstream locations without processing any tags or formatting. This option is helpful when you are single-sourcing content in a unique way, but want to use an already established system of builds with a standard locations file.|
+|`--unprocessed_update`|Optional. If you are using the `--unprocessed` option to generate output without processing tags or formatting, you can push changes from downstream content back to the upstream content as well. This option does not work if the `--unprocessed` option is not used in the original build command and tags and formatting are processed.|
 |`--version`|View the installed version of the Markdown Enricher.|
 
 ## Example

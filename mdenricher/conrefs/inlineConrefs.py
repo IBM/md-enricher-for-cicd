@@ -18,17 +18,15 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
     # Need to run through some topics multiple times because some inline conrefs contain other inline conrefs
     conrefErrors = []
 
-    ignoreText = '***IgnoreSnippetIndicator***'
-    ignoreTextStandard = '<!--ME_ignore-->'
-
-    topicContents = topicContents.replace(ignoreTextStandard, ignoreText)
+    ignoreTextStandard = 'ME_ignore '
 
     # Don't transform snippets in comments
     if '<!--' in topicContents:
         commentList = re.findall('<!--(.*?)-->', topicContents, flags=re.DOTALL)
         for comment in commentList:
-            commentRevised = comment.replace('{[', '{[' + ignoreText)
-            topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + commentRevised + '-->')
+            if 'SPDX-License-Identifier' not in comment:
+                commentRevised = comment.replace('{[', '{[' + ignoreTextStandard).replace('[{', '[{' + ignoreTextStandard)
+                topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + commentRevised + '-->')
 
     while attempts < 20:
 
@@ -42,7 +40,7 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
         minimizedConrefsUsedList = []
 
         for conrefUsed in conrefsUsedList:
-            if (('.md]}' not in conrefUsed) and (ignoreText not in conrefUsed) and
+            if (('.md]}' not in conrefUsed) and (ignoreTextStandard not in conrefUsed) and
                     (ignoreTextStandard not in conrefUsed) and ('site.data' not in conrefUsed) and
                     ('{[FIRST_ANCHOR]}' not in conrefUsed) and (conrefUsed not in minimizedConrefsUsedList)):
                 minimizedConrefsUsedList.append(conrefUsed)
@@ -75,7 +73,7 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
 
     conrefErrors = list(dict.fromkeys(conrefErrors))
     for conrefError in conrefErrors:
-        if 'ME_ignore' in str(conrefError):
+        if 'ME_ignore ' in str(conrefError):
             continue
         if ' ' in str(conrefError):
             continue
@@ -85,7 +83,6 @@ def inlineConrefs(self, details, conrefJSON, file_name, folderAndFile, folderPat
                       '. Check for typos, remove the reference, or add to ' + details["reuse_phrases_file"] +
                       '.', folderAndFile, folderPath + file_name, details, self.log, self.location_name, conrefError, topicContents)
 
-    topicContents = topicContents.replace(ignoreText, ignoreTextStandard)
     for conref in conrefJSON:
         if '_COMMENT' not in conref:
 
