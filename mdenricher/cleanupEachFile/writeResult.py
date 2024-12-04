@@ -12,6 +12,7 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
     # import difflib as dl
     from mdenricher.cleanupEachFile.comments import comments
     from mdenricher.cleanupEachFile.getTodaysDate import getTodaysDate
+    from mdenricher.errorHandling.errorHandling import addToWarnings
 
     # If the file doesn't have anything in it, don't write it or remove existing file unless it's a hidden file
     if ((topicContents == '') or ((topicContents.isspace()) is True)) and (not file_name.startswith('.')):
@@ -72,6 +73,9 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                             currentFileLastUpdatedDate = re.findall('lastupdated: "(.*?)"', topicContentsMeat)[0]
                             topicContentsMeat = topicContentsMeat.replace(currentFileLastUpdatedDate, '', 1)
                             # self.log.debug('Current file date: ' + currentFileLastUpdatedDate)
+                        elif 'lastupdated:' in topicContentsMeat and 'lastupdated:' in topicContentsDownstreamMeat:
+                            addToWarnings('The last updated date is not in the format: lastupdated: "[{LAST_UPDATED_DATE}]"',
+                                          folderAndFile, folderPath + file_name, details, self.log, self.location_name, '', '')
 
                         if 'years: ' in topicContentsMeat and 'years: ' in topicContentsDownstreamMeat:
 
@@ -127,8 +131,8 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                     self.log.debug(r'Replaced [{CURRENT_YEAR}] with current year: ' + lastUpdatedDate.split('-', 1)[0])
 
                 # For running markdown enricher on markdown enricher docs, don't replace the examples
-                if '<!--ME_ignore-->' in topicContents:
-                    topicContents = topicContents.replace('<!--ME_ignore-->', '')
+                if 'ME_ignore ' in topicContents:
+                    topicContents = topicContents.replace('ME_ignore ', '')
 
                 with open(self.location_dir + folderPath + file_name, 'w+', encoding="utf8", errors="ignore") as fileName_write:
                     fileName_write.write(topicContents)

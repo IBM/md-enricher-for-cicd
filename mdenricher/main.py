@@ -18,6 +18,8 @@ from mdenricher.cleanupEachFile.cleanupEachFile import cleanupEachFile
 # from mdenricher.cleanupEachFile.dates import dates
 from mdenricher.errorHandling.errorHandling import addToWarnings
 from mdenricher.errorHandling.errorHandling import addToErrors
+from mdenricher.errorHandling.debugTimer import debugTimerEnd
+from mdenricher.errorHandling.debugTimer import debugTimerStart
 from mdenricher.errorHandling.flagCheck import flagCheck
 from mdenricher.errorHandling.jsonCheck import jsonCheck
 from mdenricher.errorHandling.loggingConfig import loggingConfig
@@ -36,6 +38,7 @@ from mdenricher.setup.postToSlack import postToSlack
 from mdenricher.sourceFileList.allFilesGet import allFilesGet
 from mdenricher.sourceFileList.locationContentList import locationContentList
 from mdenricher.sourceFileList.sourceFilesForThisBranch import sourceFilesForThisBranch
+from mdenricher.sourceFileList.removeUneededFiles import removeUneededFiles
 # from mdenricher.sourceFileList.runThisBuild import runThisBuild
 from mdenricher.tags.tagListCompile import tagListCompile
 
@@ -47,6 +50,7 @@ def main(
          gh_username,
          gh_token,
          ibm_cloud_docs,
+         ibm_cloud_docs_prep,
          ibm_cloud_docs_keyref_check,
          ibm_cloud_docs_sitemap_depth,
          ibm_cloud_docs_sitemap_rebuild_always,
@@ -65,6 +69,7 @@ def main(
          source_dir,
          test_only,
          unprocessed,
+         unprocessed_update,
          validation,
          version):
 
@@ -171,19 +176,13 @@ def main(
                 self.filesForOtherLocations = filesForOtherLocations
             else:
 
-                if details['debug'] is True:
-                    startSectionTime = time.time()
+                startTimeSection = debugTimerStart()
                 (location_contents_files_keep, location_contents_files_remove,
                  location_contents_folders, location_contents_folders_keep, location_contents_folders_remove,
                  location_contents_folders_remove_and_files) = locationContentList(self)
-                if details['debug'] is True:
-                    endTime = time.time()
-                    totalTime = endTime - startSectionTime
-                    sectionTime = str(round(totalTime, 2))
-                    self.log.info(self.location_name + ' locationContentList: ' + sectionTime)
+                debugTimerEnd(self, details, 'locationContentList', startTimeSection)
 
-                if details['debug'] is True:
-                    startSectionTime = time.time()
+                startTimeSection = debugTimerStart()
                 self.location_contents_files_keep = location_contents_files_keep
                 self.location_contents_files_remove = location_contents_files_remove
                 self.location_contents_folders_keep = location_contents_folders_keep
@@ -205,11 +204,7 @@ def main(
                 self.filesForOtherLocations = all_files_get_result[5]
                 allSourceFiles.update(self.all_files_dict)
 
-                if details['debug'] is True:
-                    endTime = time.time()
-                    totalTime = endTime - startSectionTime
-                    sectionTime = str(round(totalTime, 2))
-                    self.log.info(self.location_name + ' allFilesGet: ' + sectionTime)
+                debugTimerEnd(self, details, 'allFilesGet', startTimeSection)
 
                 # Use the name of the properties file to identify this location in the build
 
@@ -239,8 +234,7 @@ def main(
                 self.location_github_org = location_github_org
                 self.location_github_repo = location_github_repo
 
-                if details['debug'] is True:
-                    startSectionTime = time.time()
+                startTimeSection = debugTimerStart()
                 if self.source_files_original_list == {}:
                     source_files_location_list = self.all_files_dict
                 elif details['featureFlagFile'] in self.source_files_original_list or '/toc.yaml' in self.source_files_original_list:
@@ -311,11 +305,7 @@ def main(
 
                 self.source_files_location_list = source_files_location_list
 
-                if details['debug'] is True:
-                    endTime = time.time()
-                    totalTime = endTime - startSectionTime
-                    sectionTime = str(round(totalTime, 2))
-                    self.log.info(self.location_name + ' source_files_location_list: ' + sectionTime)
+                debugTimerEnd(self, details, 'source_files_location_list', startTimeSection)
 
                 self.log.debug('\n\n')
                 self.log.debug('Location details:')
@@ -345,11 +335,29 @@ def main(
 
                 if runThisLocation is False:
                     self.log.info('Not running on %s.', self.location_name)
+
+                elif (((isinstance(details['unprocessed_update'], list)) and (self.location_name in details['unprocessed_update'])) or
+                      ((isinstance(details['unprocessed_update'], str)) and self.location_name == details['unprocessed_update'])):
+                    self.changeToRebuildAll = True
+                    self.location_github_branch_push, self.changeToRebuildAll = clone(self, details)
+
+                    self.location_build_first, self.location_build_last, self.source_files = sourceFilesForThisBranch(self, details)
+
+                    for source_file, source_file_info in self.source_files.items():
+                        folderAndFile = self.source_files[source_file]['folderAndFile']
+                        if not folderAndFile == details['featureFlagFile']:
+                            file_name = self.source_files[source_file]['file_name']
+                            folderPath = self.source_files[source_file]['folderPath']
+                            if os.path.isfile(self.location_dir + folderPath + file_name):
+                                if os.path.isfile(details['source_dir'] + folderAndFile):
+                                    shutil.copyfile(self.location_dir + folderPath + file_name, details['source_dir'] + folderAndFile)
+                                    self.log.info('Unprocessed update for ' + self.location_name + ': ' + folderPath + file_name + ' to ' + folderAndFile)
+
+                elif ((isinstance(details['unprocessed_update'], str)) and (self.location_name not in details['unprocessed_update'])):
+                    self.log.info('Not running on %s.', self.location_name)
+
                 else:
-
-                    if details['debug'] is True:
-                        startTimeSection = time.time()
-
+                    startTimeSection = debugTimerStart()
                     try:
                         if self.location_github_url is None:
                             self.changeToRebuildAll = True
@@ -369,11 +377,7 @@ def main(
                                     '', details, log, self.location_name, '', '')
                         exitBuild(details, log)
 
-                    if details['debug'] is True:
-                        endTime = time.time()
-                        totalTime = endTime - startTimeSection
-                        sectionTime = str(round(totalTime, 2))
-                        self.log.info(self.location_name + ' clone: ' + sectionTime)
+                    debugTimerEnd(self, details, 'clone', startTimeSection)
 
                     if details['unprocessed'] is False:
 
@@ -383,161 +387,43 @@ def main(
 
                             os.chdir(self.location_dir)
 
-                            if details['debug'] is True:
-                                startTimeSection = time.time()
                             # Create a list of tags with show/hide values for this branch
+                            startTimeSection = debugTimerStart()
                             tags_hide, tags_show = tagListCompile(self, details)
-
-                            if details['debug'] is True:
-                                endTime = time.time()
-                                totalTime = endTime - startTimeSection
-                                sectionTime = str(round(totalTime, 2))
-                                self.log.info(self.location_name + ' tagListCompile: ' + sectionTime)
+                            debugTimerEnd(self, details, 'tagListCompile', startTimeSection)
 
                             self.tags_hide = tags_hide
                             self.tags_show = tags_show
 
-                            if details['debug'] is True:
-                                startTimeSection = time.time()
-
                             # Revise the source list based on the branch.
                             # For example, the original commit might only contain a conref file.
                             # We need to get a list of all of the files that use that conref to work with.
+                            startTimeSection = debugTimerStart()
                             self.location_build_first, self.location_build_last, self.source_files = sourceFilesForThisBranch(self, details)
-
-                            if details['debug'] is True:
-                                endTime = time.time()
-                                totalTime = endTime - startTimeSection
-                                sectionTime = str(round(totalTime, 2))
-                                self.log.info(self.location_name + ' sourceFilesForThisBranch: ' + sectionTime)
+                            debugTimerEnd(self, details, 'sourceFilesForThisBranch', startTimeSection)
 
                     else:
                         self.location_build_first, self.location_build_last, self.source_files = sourceFilesForThisBranch(self, details)
 
-                    if details['debug'] is True:
-                        startTimeSection = time.time()
-
                     # Actually do the conref and tag replacements in the new source file list
+                    startTimeSection = debugTimerStart()
                     cleanupEachFile(self, details)
-                    if details['debug'] is True:
-                        endTime = time.time()
-                        totalTime = endTime - startTimeSection
-                        sectionTime = str(round(totalTime, 2))
-                        self.log.info(self.location_name + ' source cleanup: ' + sectionTime)
+                    debugTimerEnd(self, details, 'source cleanup', startTimeSection)
 
-                    if details['debug'] is True:
-                        startTimeSection = time.time()
-
-                    # Check for these directories and delete them to avoid accidental pushes
-                    directories_to_delete = ['/source']
-                    for folder in self.location_contents_folders_remove:
-                        directories_to_delete.append(folder)
-
-                    # Should these be within the location_dir or the output_dir
-                    for directory_to_delete in directories_to_delete:
-                        if not directory_to_delete.startswith('/') and not directory_to_delete.startswith('includes'):
-                            directory_to_delete = '/' + directory_to_delete
-                        if os.path.isdir(self.location_dir + directory_to_delete):
-                            self.log.debug('Deleted: ' + self.location_dir + directory_to_delete)
-                            shutil.rmtree(self.location_dir + directory_to_delete)
-
-                    if os.path.isdir(self.location_dir + '/doctopus-common'):
-                        shutil.rmtree(self.location_dir + '/doctopus-common')
-                        self.log.debug('Removing: ' + self.location_dir + '/doctopus-common')
-
-                    # Remove all old files
+                    # Remove unneeded files
                     # Also verify that every topic is used in the toc
-                    try:
-                        self.all_files_dict['/toc.yaml']['fileContents']
-                        testExistenceInTOC = True
-                    except Exception:
-                        testExistenceInTOC = False
-                    ignoredFileList = ['/.build.yaml', '/conref.md', '/ignoreLinks.txt', '/keyref.yaml',
-                                       '/landing.json', '/readme.md', '/README.md', '/toc.yaml', '/user-mapping.json',
-                                       '/utterances.json']
-                    ignoredFolderList = ['/.github/', '/_include-segments/', '/images/']
-                    for (path, dirs, files) in os.walk(self.location_dir):
-                        if self.location_dir == path:
-                            folder = '/'
-                        else:
-                            folder = path.split(self.location_dir)[1]
-                            if not folder.endswith('/'):
-                                folder = folder + '/'
-                            if not folder.startswith('/'):
-                                folder = '/' + folder
-                        for file in files:
-                            folderAndFile = folder + file
-                            try:
-                                if (('.git' not in path) and
-                                        ('.git' not in file) and
-                                        ((file) not in self.expected_output_files) and
-                                        ((folder + file) not in self.expected_output_files) and
-                                        ((folder[1:] + file) not in self.expected_output_files) and
-                                        (file.endswith(tuple(details["filetypes"]))) and
-                                        (os.path.isfile(path + '/' + file)) and
-                                        (not folder + file in ignoredFileList) and
-                                        (not (folder.startswith(tuple(ignoredFolderList)))) and
-                                        (details['rebuild_all_files'] is True or details['builder'] == 'local')):
-                                    os.remove(path + '/' + file)
-                                    log.info('Removing old file from ' + self.location_name + ': ' + folder + file)
-
-                                elif ((testExistenceInTOC is True) and
-                                        ('.git' not in path) and
-                                        ('.git' not in file) and
-                                        (not (path + '/' + file) == details['locations_file']) and
-                                        file.endswith(tuple(details["filetypes"])) and
-                                        (not (' ' + folder + file) in self.all_files_dict['/toc.yaml']['fileContents']) and
-                                        (not (' ' + folder[1:] + file) in self.all_files_dict['/toc.yaml']['fileContents']) and
-                                        ('reuse-snippets' not in folder) and
-                                        (not '/' + file in ignoredFileList) and
-                                        (not folder + file in ignoredFileList) and
-                                        (not (folder.startswith(tuple(ignoredFolderList))))):
-                                    for item in self.all_files_dict:
-                                        if self.all_files_dict[item]['folderPath'] == folder and self.all_files_dict[item]['file_name'] == file:
-                                            folderAndFile = item
-                                            break
-                                    addToWarnings('The file is not used in the ' + self.location_name +
-                                                  ' toc.yaml so it is not included downstream: ' + folder + file,
-                                                  folderAndFile, folder + file, details, log, self.location_name, '', '')
-                                    if os.path.isfile(path + '/' + file):
-                                        os.remove(path + '/' + file)
-                                        log.debug('Removing undefined file from ' + self.location_name + ': ' + folder + file)
-                            except Exception as e:
-                                log.error('Traceback')
-                                log.error('Could not issue warning for or remove: ' + folder + file)
-                                log.error(e)
-
-                        if details['rebuild_all_files'] is True or details['builder'] == 'local':
-                            if (('.git' not in path) and
-                                    (not folder.startswith(tuple(self.expected_output_files))) and
-                                    (not folder.startswith(tuple(ignoredFolderList)))):
-                                if os.path.isdir(path):
-                                    shutil.rmtree(path)
-                                    log.info('Removing old folder from ' + self.location_name + ': ' + folder)
-
-                    if details['debug'] is True:
-                        endTime = time.time()
-                        totalTime = endTime - startTimeSection
-                        sectionTime = str(round(totalTime, 2))
-                        self.log.info(self.location_name + ' cleanup: ' + sectionTime)
-
-                    if details['debug'] is True:
-                        startTimeSection = time.time()
+                    startTimeSection = debugTimerStart()
+                    removeUneededFiles(self, details)
+                    debugTimerEnd(self, details, 'cleanup', startTimeSection)
 
                     # After all of the content files are updated, update the images
+                    startTimeSection = debugTimerStart()
                     self.unusedInThisLocation = checkUsedImages(self, details)
-
-                    if details['debug'] is True:
-                        endTime = time.time()
-                        totalTime = endTime - startTimeSection
-                        sectionTime = str(round(totalTime, 2))
-                        self.log.info(self.location_name + ' images cleanup: ' + sectionTime)
-
-                    if details['debug'] is True:
-                        startTimeSection = time.time()
+                    debugTimerEnd(self, details, 'images cleanup', startTimeSection)
 
                     # Don't actually push the updated files if any of these ifs are met
                     # self.log.info(json.dumps(self.source_files, indent=2))
+                    startTimeSection = debugTimerStart()
                     if (((details['builder'] == 'local') and (self.location_output_action == 'none')) or
                             (self.location_output_action == 'none') or
                             (details["test_only"] is True)):
@@ -719,6 +605,9 @@ def main(
         details.update({"build_id": build_id})
         details.update({"build_number": build_number})
         details.update({"workspace": workspace})
+
+        if (unprocessed_update is not None) and (rebuild_all_files is False):
+            rebuild_all_files = True
 
         if (build_number == '1') and (rebuild_all_files is False):
             rebuild_all_files = True
@@ -978,6 +867,15 @@ def main(
         log.info('Locations can be used as tags: %s', join_comma.join(all_tags))
         details.update({"location_tags": all_tags})
 
+        if unprocessed_update is not False:
+            if unprocessed_update is True or unprocessed_update is None:
+                unprocessed_update = all_tags
+            elif unprocessed_update not in all_tags:
+                addToErrors('The value for --unprocessed_update must be a location name. ',
+                            details["locations_file"], '', details, log, 'pre-build', '', '')
+                exitBuild(details, log)
+        details.update({"unprocessed_update": unprocessed_update})
+
         log.debug('Gathering feature flags.')
 
         # Get the contents of the feature flags file
@@ -1082,7 +980,10 @@ def main(
                         detailsString = str(details[detail])[0:500] + '...'
                     else:
                         detailsString = str(details[detail])
-                    log.info('%s: %s', detail, detailsString)
+                    if detailsString == 'False' or detailsString == 'None':
+                        log.debug('%s: %s', detail, detailsString)
+                    else:
+                        log.info('%s: %s', detail, detailsString)
         # log.info(details["username"])
 
         # Check if there are any pre-build errors. If so, exit without continuing.
@@ -1162,6 +1063,15 @@ def main(
                 if not conref_files_list == []:
                     snippetCheck(details, log, allSourceFiles, conref_files_list, filesForOtherLocations)
                 flagCheck(details, log, allSourceFiles, filesForOtherLocations)
+
+        if ibm_cloud_docs_prep is True:
+            try:
+                from mdenricher.internal.locations.prepIBMCloudDocs import removeFiles
+                removeFiles(source_dir)
+            except Exception as e:
+                print('Option not available outside of IBM.')
+                print(e)
+                sys.exit(1)
 
         exitBuild(details, log)
 

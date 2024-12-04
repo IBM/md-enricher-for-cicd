@@ -20,15 +20,15 @@ def wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicC
 
     if '.md]}' in topicContents:
 
-        ignoreText = '***IgnoreSnippetIndicator***'
-        ignoreTextStandard = '<!--ME_ignore-->'
+        ignoreTextStandard = 'ME_ignore '
 
         # Don't transform snippets in comments
         if '<!--' in topicContents:
             commentList = re.findall('<!--(.*?)-->', topicContents, flags=re.DOTALL)
             for comment in commentList:
-                commentRevised = comment.replace('{[', '{[' + ignoreText)
-                topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + commentRevised + '-->')
+                if 'SPDX-License-Identifier' not in comment:
+                    commentRevised = comment.replace('{[', '{[' + ignoreTextStandard).replace('[{', '[{' + ignoreTextStandard)
+                    topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + commentRevised + '-->')
 
         while '.md]}' in topicContents:
             snippetsUsedList = re.findall(r"\{\[.*?.md\]\}", topicContents)
@@ -66,7 +66,7 @@ def wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicC
         mdConrefErrors = ''
         mdConrefErrorsSlack = ''
         for errantMDConref in errantMDConrefs:
-            if 'ME_ignore' in errantMDConref:
+            if 'ME_ignore ' in errantMDConref:
                 continue
             if '\n' in errantMDConref:
                 errantMDConrefList = errantMDConref.split('\n')
@@ -99,7 +99,5 @@ def wholeFileConrefs(self, details, file_name, folderAndFile, folderPath, topicC
                                            details["source_github_repo"] + "/edit/" + details["current_github_branch"] + "/"
                                            + folderAndFile + "#L" + lineNumber + "|" + folderAndFile + ' L' + lineNumber +
                                            '>\n')
-
-    topicContents = topicContents.replace(ignoreText, ignoreTextStandard)
 
     return (topicContents)

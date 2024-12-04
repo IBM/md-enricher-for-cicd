@@ -383,7 +383,12 @@ def cleanupEachFile(self, details):
             for source_file, source_file_info in source_files.items():
                 if (not self.all_files_dict[source_file]['folderAndFile'] in self.location_build_first and
                         not self.all_files_dict[source_file]['folderAndFile'] in self.location_build_last):
-                    fileHandlingDecisions(self.all_files_dict[source_file]['folderAndFile'], source_files)
+                    try:
+                        fileToHandle = self.all_files_dict[source_file]['folderAndFile']
+                    except Exception:
+                        self.log.debug('Not cleaning up: ' + source_file)
+                    else:
+                        fileHandlingDecisions(fileToHandle, source_files)
 
             # Handle things like the sitemap last
             for last_file in self.location_build_last:

@@ -5,12 +5,17 @@
 
 def start():
 
-    versionNumber = '1.2.7.6.20241004'
+    versionNumber = '1.2.8.1.20241204'
 
     # Process the command-line options
 
     import argparse
     import sys
+
+    def none_or_str(value):
+        if value == 'None':
+            return None
+        return value
 
     # Create the parser
     my_parser = argparse.ArgumentParser(description='Enrich your markdown content.')
@@ -102,6 +107,10 @@ def start():
     my_parser.add_argument('--unprocessed', action='store_true',
                            help='Use the Markdown Enricher to move files, but do not process content. Tags and styling remain.')
 
+    my_parser.add_argument('--unprocessed_update', action='store',
+                           nargs='?', type=none_or_str, default=False,
+                           help='Use the Markdown Enricher to move unprocessed files from downstream to upstream.')
+
     my_parser.add_argument('--validation', action='store', type=str,
                            help='Check tags and image file paths.', default='off', choices=['on', 'off'])
 
@@ -139,6 +148,7 @@ def start():
     source_dir = args.source_dir
     test_only = args.test_only
     unprocessed = args.unprocessed
+    unprocessed_update = args.unprocessed_update
     validation = args.validation
     version = args.version
 
@@ -184,6 +194,7 @@ def start():
              gh_username,
              gh_token,
              ibm_cloud_docs,
+             ibm_cloud_docs_prep,
              ibm_cloud_docs_keyref_check,
              ibm_cloud_docs_sitemap_depth,
              ibm_cloud_docs_sitemap_rebuild_always,
@@ -202,5 +213,6 @@ def start():
              source_dir,
              test_only,
              unprocessed,
+             unprocessed_update,
              validation,
              versionNumber)

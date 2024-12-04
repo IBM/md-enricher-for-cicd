@@ -15,6 +15,11 @@ def parseSubprocessOutput(subprocessOutput, log):
     if result is not None:
         result = result.decode()
         if not result == '':
-            log.debug(result)
+            # If branch protection or a push failure for other reasons happens
+            # show that in the console, otherwise, include it in the logs
+            if 'remote: error' in result:
+                log.warning(result)
+            else:
+                log.debug(result)
 
     return (exitCode)

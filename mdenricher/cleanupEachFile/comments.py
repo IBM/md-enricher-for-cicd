@@ -17,9 +17,6 @@ def comments(self, details, folderAndFile, topicContents):
         linkCheckerSkipText = 'Link checker skip'
         searchTermList = 'meta name="searchTerms"'
 
-        topicContents = topicContents.replace('{[<!--ME_ignore-->', '{[')
-        topicContents = topicContents.replace('[{<!--ME_ignore-->', '[{')
-
         commentList = re.findall('<!--(.*?)-->', topicContents, flags=re.DOTALL)
 
         for comment in commentList:
@@ -34,6 +31,9 @@ def comments(self, details, folderAndFile, topicContents):
             elif linkCheckerSkipText in comment:
                 self.log.debug('Not removing link checker skip text.')
 
+            elif 'ME_ignore' in comment:
+                self.log.debug('Not removing comment to ignore.')
+
             # Don't remove comments that have style tags around them
             elif '<style><!--' + comment + '--></style>' in topicContents:
                 self.log.debug('Not removing comment because it is within style tags: ' + comment)
@@ -45,13 +45,6 @@ def comments(self, details, folderAndFile, topicContents):
             elif '# ' in comment and not self.sitemap_file == 'None':
                 topicContents = topicContents.replace('<!--' + comment + '-->', '')
                 self.log.debug('Removing comment because a heading is in it. Avoiding including it in the sitemap.')
-
-            # For transforming on the md-enricher-for-cicd docs
-            # Do not remove so that the example code phrases to show the metadata variables won't be replaced
-            elif 'ME_ignore' in comment:
-                comment_noIgnore = comment.replace('ME_ignore', '')
-                self.log.debug('Removing ME_ignore signifier in comment.')
-                topicContents = topicContents.replace('<!--' + comment + '-->', '<!--' + comment_noIgnore + '-->')
 
             elif self.location_comments == 'off':
                 topicContents = topicContents.replace('<!--' + comment + '-->', '')

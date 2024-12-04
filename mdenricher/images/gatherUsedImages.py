@@ -113,12 +113,14 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
 
     # If the image name is used in the content, then copy the image over
     for htmlImage in htmlImages:
-        if 'src=\\"' in htmlImage:
+        if '\\"' in htmlImage:
             htmlImage = htmlImage.replace('\\"', '"')
-        imageName = htmlImage.split('src="', 1)[1]
-        imageName = imageName.split('"', 1)[0]
+        if 'src="' in htmlImage:
+            imageName = htmlImage.split('src="', 1)[1]
+            imageName = imageName.split('"', 1)[0]
 
-        self.imagesUsedInThisBuild = processImageName(self, imageName, imagePath)
+            self.imagesUsedInThisBuild = processImageName(self, imageName, imagePath)
+        # Add else for warning for missing quotation marks?
 
     # "./non-existent-image.png"
     for markdownImage in markdownImages:
