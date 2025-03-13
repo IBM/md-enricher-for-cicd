@@ -343,15 +343,45 @@ def main(
 
                     self.location_build_first, self.location_build_last, self.source_files = sourceFilesForThisBranch(self, details)
 
+                    downstreamHandlesFiles = []
+
                     for source_file, source_file_info in self.source_files.items():
                         folderAndFile = self.source_files[source_file]['folderAndFile']
                         if not folderAndFile == details['featureFlagFile']:
                             file_name = self.source_files[source_file]['file_name']
                             folderPath = self.source_files[source_file]['folderPath']
                             if os.path.isfile(self.location_dir + folderPath + file_name):
+                                downstreamHandlesFiles.append(folderPath + file_name)
                                 if os.path.isfile(details['source_dir'] + folderAndFile):
                                     shutil.copyfile(self.location_dir + folderPath + file_name, details['source_dir'] + folderAndFile)
-                                    self.log.info('Unprocessed update for ' + self.location_name + ': ' + folderPath + file_name + ' to ' + folderAndFile)
+                                    self.log.info('Unprocessed update for existing file in ' +
+                                                  self.location_name + ': ' + folderPath + file_name + ' to ' + folderAndFile)
+
+                    for (path, dirs, files) in os.walk(self.location_dir):
+                        if '.git' not in path:
+                            folderPath = path.split(self.location_dir)[1]
+                            if not folderPath.endswith('/'):
+                                folderPath = folderPath + '/'
+                            if not folderPath.startswith('/'):
+                                folderPath = '/' + folderPath
+                            for file_name in files:
+                                downstreamFile = folderPath + file_name
+                                if ((downstreamFile not in downstreamHandlesFiles) and
+                                        (not details['featureFlagFile'] == folderPath + file_name) and
+                                        ('.git' not in file_name)):
+                                    if os.path.isdir(details['source_dir'] + '/reuse-pages' + folderPath):
+                                        shutil.copyfile(self.location_dir + folderPath + file_name,
+                                                        details['source_dir'] + '/reuse-pages' + folderPath + file_name)
+                                        self.log.info('Unprocessed update for new file in ' +
+                                                      self.location_name + ': ' + folderPath + file_name + ' to ' + '/reuse-pages' + folderPath + file_name)
+                                    else:
+                                        try:
+                                            shutil.copyfile(self.location_dir + folderPath + file_name,
+                                                            details['source_dir'] + folderPath + file_name)
+                                            self.log.info('Unprocessed update for new file in ' +
+                                                          self.location_name + ': ' + folderPath + file_name + ' to ' + folderPath + file_name)
+                                        except Exception:
+                                            self.log.warning('File could not be processed: ' + self.location_dir + folderPath + file_name)
 
                 elif ((isinstance(details['unprocessed_update'], str)) and (self.location_name not in details['unprocessed_update'])):
                     self.log.info('Not running on %s.', self.location_name)
@@ -606,11 +636,13 @@ def main(
         details.update({"build_number": build_number})
         details.update({"workspace": workspace})
 
-        if (unprocessed_update is not None) and (rebuild_all_files is False):
+        if (unprocessed_update is not None) and (unprocessed_update is not False) and (rebuild_all_files is False):
             rebuild_all_files = True
+            log.debug('Rebuilding all files because --unprocessed_update is included.')
 
         if (build_number == '1') and (rebuild_all_files is False):
             rebuild_all_files = True
+            log.debug('Rebuilding all files because this is the first build.')
 
         details.update({"rebuild_all_files": rebuild_all_files})
 
@@ -633,6 +665,8 @@ def main(
         if not os.path.exists(source_dir):
             os.makedirs(source_dir)
         change_dir(details, workspace)
+        if '//' in source_dir:
+            source_dir = source_dir.replace('//', '/')
 
         details.update({"source_dir": source_dir})
 
@@ -662,7 +696,7 @@ def main(
             else:
                 current_github_branch = 'local'
             # Jenkins pipeline
-            if 'HEAD' == current_github_branch:
+            if 'HEAD' == current_github_branch or '' == current_github_branch:
                 current_github_branch_bytes = subprocess.check_output(["git", "branch", "--show-current"])
                 current_github_branch = current_github_branch_bytes.decode("utf-8")
                 current_github_branch = current_github_branch.replace('\n', '')

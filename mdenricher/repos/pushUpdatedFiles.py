@@ -24,6 +24,7 @@ def pushUpdatedFiles(self, details):
         from mdenricher.errorHandling.errorHandling import addToErrors
         from mdenricher.errorHandling.parseSubprocessOutput import parseSubprocessOutput
         from mdenricher.errorHandling.pushErrors import pushErrors
+        from mdenricher.errorHandling.requestValidation import requestValidation
         from mdenricher.setup.exitBuild import exitBuild
 
         startTime = time.time()
@@ -135,6 +136,8 @@ def pushUpdatedFiles(self, details):
                                 # Get the commit ID from the previous commit of this file
                                 t = requests.get(self.location_github_api_prefix + "/contents/" + folderAndFile + '?ref=' +
                                                  self.location_github_branch_push, auth=(details["username"], details["token"]))
+                                tJSON = requestValidation(details, self.log, t, 'error', 'The commit ID for ' + folderAndFile + ' file in the ' +
+                                                          self.location_github_branch_push + ' branch could not be retrieved.', False)
                                 tJSON = t.json()
                                 lastsha = tJSON['sha']
                             except Exception:
@@ -146,6 +149,9 @@ def pushUpdatedFiles(self, details):
                                                      data=json.dumps({"message": self.currentCommitSummary,
                                                                       "content": fileContentsEncoded.decode("utf-8"),
                                                                       "branch": self.location_github_branch_push}))
+                                    requestValidation(details, self.log, r, 'error', 'The file could not be put into Github: ' +
+                                                      self.location_github_api_prefix + "/contents/" + folderAndFile + ', ' +
+                                                      self.location_github_branch_push, False)
                                 except Exception:
                                     self.log.debug('ERROR. Could not add ' + folderAndFile + ' to ' + self.location_name +
                                                    ' via the API. 1 - File does not exist in the repo or authentication ' +
@@ -165,6 +171,9 @@ def pushUpdatedFiles(self, details):
                                                                           "content": fileContentsEncoded.decode("utf-8"),
                                                                           "sha": lastsha,
                                                                           "branch": self.location_github_branch_push}))
+                                        requestValidation(details, self.log, r, 'warning', 'The file could not be put into Github: ' +
+                                                          self.location_github_api_prefix + "/contents/" + folderAndFile + ', ' +
+                                                          self.location_github_branch_push, False)
                                         stringStatusCode = str(r.status_code)
                                     else:
                                         self.log.debug('No changes detected. Not committing this file to ' + self.location_name + '.')
@@ -283,7 +292,10 @@ def pushUpdatedFiles(self, details):
                                     if self.exitCode == 0:
                                         self.pushSuccessful = True
                     if self.pushSuccessful is True:
-                        self.log.info('Pushed files: ' + self.location_name + '\n' + status)
+                        if str(self.location_github_branch_push) == self.location_name:
+                            self.log.info('Pushed files: ' + self.location_name + '\n' + status)
+                        else:
+                            self.log.info('Pushed files: ' + self.location_name + ', ' + str(self.location_github_branch_push) + ' branch\n' + status)
                         self.log.debug('Push successful.')
                         startTime = time.time()
                     else:
@@ -307,6 +319,8 @@ def pushUpdatedFiles(self, details):
             # List PRs
             listPRs = requests.get(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
                                    auth=(details["username"], details["token"]))
+            requestValidation(details, self.log, listPRs, 'warning', 'The pull requests could not be retrieved for the repo: ' +
+                              self.location_github_api_repos + '/pulls?head=' + self.location_github_branch, False)
             try:
                 PRs = []
                 PRs = listPRs.json()
@@ -364,6 +378,7 @@ def pushUpdatedFiles(self, details):
             PRBodyIntro = 'Changed topics:\n'
 
             if self.location_github_branch_pr not in PRstring:
+                self.log.debug('Creating pull request for commit ' + details["current_commit_id"])
                 if self.location_internal_framework is not None:
                     PRBody = PRBodyIntroTip + PRBodyIntro + '\n'.join(linkList)
                 else:
@@ -373,8 +388,16 @@ def pushUpdatedFiles(self, details):
                      "head": self.location_github_branch_push, "base": self.location_github_branch}
                 r = requests.post(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
                                   auth=(details["username"], details["token"]), data=json.dumps(g))
-                self.log.debug('Creating pull request for commit ' + details["current_commit_id"])
+                requestValidation(details, self.log, r, 'error', 'The pull request could not be created for: ' +
+                                  self.location_github_api_repos + '/pulls?head=' + self.location_github_branch, False)
                 if r.status_code == 201:
+                    responseJson = r.json()
+                    prURL = responseJson['html_url']
+                    prTitle = responseJson['title']
+                    prID = responseJson['number']
+                    self.log.info('Created a pull request for the ' + self.location_github_branch_push +
+                                  ' branch to the ' + self.location_github_branch + ' branch:')
+                    self.log.info('#' + str(prID) + ': ' + prTitle + ', ' + prURL)
                     self.log.debug('SUCCESS!')
                 else:
                     if r.status_code == 401:
@@ -406,7 +429,7 @@ def pushUpdatedFiles(self, details):
                     if PRHead == self.location_github_branch_push:
                         PRNumber = PR['number']
                         PRTitle = PR['title']
-                        PRBase = PR['base']['ref']
+                        PRURL = PR['html_url']
                         PRBody = str(PR['body'])
                         if str(PRBodyIntro) in PRBody and self.location_internal_framework is not None:
                             existingLinkListString = PRBody.split(PRBodyIntro, 1)[1]
@@ -421,7 +444,11 @@ def pushUpdatedFiles(self, details):
                                 g = {"body": PRBodyRevised}
                                 r = requests.patch(self.location_github_api_repos + '/pulls/' + str(PRNumber),
                                                    auth=(details["username"], details["token"]), data=json.dumps(g))
-                        self.log.debug('Updating pull request #' + str(PRNumber) + ': ' + PRTitle + ', head: ' + PRHead + ', base: ' + PRBase + '.')
+                                requestValidation(details, self.log, r, 'warning', 'The pull request body could not be updated for: ' +
+                                                  self.location_github_api_repos + '/pulls/' + str(PRNumber), False)
+                        self.log.info('Updated pull request for the ' + self.location_github_branch_push +
+                                      ' branch to the ' + self.location_github_branch + ' branch:')
+                        self.log.info('#' + str(PRNumber) + ': ' + PRTitle + ', ' + PRURL)
             self.log.debug('File update complete.')
             endTime = time.time()
             totalTime = endTime - startTime

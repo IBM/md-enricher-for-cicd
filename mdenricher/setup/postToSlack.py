@@ -4,6 +4,7 @@ def postToSlack(log, details, payload, type):
     import os
     import requests
     from slack_sdk import WebClient
+    from mdenricher.errorHandling.requestValidation import requestValidation
     log.info('\n\n')
 
     userID = None
@@ -93,7 +94,7 @@ def postToSlack(log, details, payload, type):
         for slack_channel in slack_channel_list:
             try:
                 requestResponse = requests.post(slack_channel, json.dumps({"attachments": payload}), headers={'content-type': 'application/json'})
-                if not requestResponse.status_code == 200:
-                    log.error('The message could not be posted to Slack. Check that the webhook is valid. Error code: ' + str(requestResponse.status_code))
+                requestValidation(details, log, requestResponse, 'warning', 'The message could not be posted to Slack. Check that the webhook is valid.', False)
             except Exception as e:
-                log.error('The message could not be posted to Slack.' + str(e))
+                log.error('The message could not be posted to Slack.\n' + str(e))
+    log.info('\n\n')

@@ -26,7 +26,8 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
 
     def errorFound(folderAndFile, errorTag, topicContentsCheck):
 
-        if not errorTag == '`':
+        if not errorTag == '`' and not errorTag == '<->' and not errorTag == '<-->':
+            # solution-tutorials uses <->
             # Check if the error is a defined tag, if so make it an error, otherwise warning
             errorTagSlim = errorTag.replace('<', '').replace('>', '').replace('/', '')
             if (errorTagSlim in self.tags_show) or (errorTagSlim in self.tags_hide):
@@ -88,9 +89,13 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
     if not ('/' + details["reuse_snippets_folder"] + '/') in folderPath:
 
         (topicContentsCodeCheck, htmlCodeErrors, codeblockErrors, codephraseErrors,
-            htmlCodeList, mdCodeblockList, mdInlineCodeList) = createTestTopicContents(topicContents)
+            htmlCodeList, mdCodeblockList, mdInlineCodeList) = createTestTopicContents(topicContents, file_name)
 
         mdCodeList = mdCodeblockList + mdInlineCodeList
+
+        if file_name.endswith('.md') and topicContentsCodeCheck.count('\n# ') > 1 and not file_name == 'conref.md':
+            addToErrors('Too many H1 headings.', folderAndFile, folderPath + file_name, details, self.log,
+                        self.location_name, '', topicContents)
 
         if htmlCodeErrors > 0:
             topicContentsCodeCheckLines = topicContentsCodeCheck.split('\n')

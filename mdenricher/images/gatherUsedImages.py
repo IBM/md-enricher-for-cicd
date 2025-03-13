@@ -12,32 +12,36 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
 
     def processImageName(self, imageName, imagePathUnique):
         if not imageName.startswith('http'):
-            if (details['ibm_cloud_docs'] is True) and ('../icons' in imageName) and (not os.path.isdir(details["source_dir"] + '/icons')):
-                self.log.debug('Not processing IBM Cloud Docs icons: ' + imageName)
+
+            if imageName == '':
+                imageName = '[]'
+            originalImageName = imageName
+            if '../' in imageName:
+                # ../images in the conref.md file can go outside of the repo
+                # since it can be reused in content that is in a subdirectory
+                if (details['ibm_cloud_docs'] is True) and ('conref.md' in sourceFile) and ('/images/' in imageName):
+                    imageName = imageName.replace('../', '')
+                while '../' in imageName:
+                    imageName = imageName.replace('../', '', 1)
+                    imagePathUnique = imagePathUnique.rsplit('/', 1)[0]
+            if imageName.startswith('./'):
+                imageName = imageName[1:]
+            if imagePathUnique.startswith('./'):
+                imagePathUnique = imagePathUnique[1:]
+            if '?raw=true' in imageName:
+                imageName = imageName.replace('?raw=true', '')
+            if imageName.startswith('/'):
+                imageName = imageName[1:]
+            if not imagePathUnique.startswith('/'):
+                imagePathUnique = '/' + imagePathUnique
+            if not imagePathUnique.endswith('/'):
+                imagePathUnique = imagePathUnique + '/'
+
+            if ((details['ibm_cloud_docs'] is True) and
+                    ('icons' in imagePathUnique) and
+                    (not os.path.isfile(details["source_dir"] + imagePathUnique + imageName))):
+                self.log.debug('Not processing IBM Cloud Docs icons: ' + originalImageName)
             else:
-                if imageName == '':
-                    imageName = '[]'
-                originalImageName = imageName
-                if '../' in imageName:
-                    # ../images in the conref.md file can go outside of the repo
-                    # since it can be reused in content that is in a subdirectory
-                    if (details['ibm_cloud_docs'] is True) and ('conref.md' in sourceFile) and ('/images/' in imageName):
-                        imageName = imageName.replace('../', '')
-                    while '../' in imageName:
-                        imageName = imageName.replace('../', '', 1)
-                        imagePathUnique = imagePathUnique.rsplit('/', 1)[0]
-                if imageName.startswith('./'):
-                    imageName = imageName[1:]
-                if imagePathUnique.startswith('./'):
-                    imagePathUnique = imagePathUnique[1:]
-                if '?raw=true' in imageName:
-                    imageName = imageName.replace('?raw=true', '')
-                if imageName.startswith('/'):
-                    imageName = imageName[1:]
-                if not imagePathUnique.startswith('/'):
-                    imagePathUnique = '/' + imagePathUnique
-                if not imagePathUnique.endswith('/'):
-                    imagePathUnique = imagePathUnique + '/'
 
                 try:
                     self.imagesUsedInThisBuild[imagePathUnique + imageName]
@@ -64,7 +68,8 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
     # /subfolder/a-test.md
     # ../images/icloud.png
 
-    topicContents, htmlCodeErrors, codeblockErrors, codephraseErrors, htmlCodeBlocks, codeblocks, codephrases = createTestTopicContents(topicContents)
+    (topicContents, htmlCodeErrors, codeblockErrors, codephraseErrors,
+     htmlCodeBlocks, codeblocks, codephrases) = createTestTopicContents(topicContents, sourceFile)
 
     if codeblockErrors > 0:
         self.log.debug(sourceFile + ' contains code block errors, so code blocks and phrases cannot be removed before checking images.')
@@ -127,7 +132,7 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
         # Don't check videos that use image markdown styling
         if not markdownImage + '{: video output="iframe"' in topicContents:
             imageName = markdownImage.split('(', 1)[1]
-            if ' "' in imageName:
+            if ' "' in imageName or ' \\"' in imageName:
                 imageName = imageName.split(' ', 1)[0]
             else:
                 imageName = imageName.split(')', 1)[0]

@@ -22,7 +22,11 @@ def checkUsedImages(self, details):
         filesChecked = []
         for (path, dirs, files) in os.walk(self.location_dir):
             for entry in files:
-                if entry.endswith(tuple(details["filetypes"])) and os.path.isfile(path + '/' + entry) and ('.git' not in path):
+                if (entry.endswith(tuple(details["filetypes"])) and
+                        os.path.isfile(path + '/' + entry) and
+                        ('.git' not in path) and
+                        (not entry.startswith('.git')) and
+                        ('.pre-commit-config.yaml' not in entry)):
                     if '/reuse-snippets' in path:
                         pathRevised = path.split('/reuse-snippets')[0]
                     else:
@@ -31,10 +35,6 @@ def checkUsedImages(self, details):
                         topicContentsCheckImages = fileName_open.read()
                     self.imagesUsedInThisBuild = gatherUsedImages(self, details, pathRevised, path + '/' + entry, topicContentsCheckImages)
                     filesChecked.append(path + '/' + entry)
-
-        # import json
-        # self.log.info('Used images:')
-        # self.log.info(json.dumps(self.imagesUsedInThisBuild, indent=2))
 
         if not filesChecked == [] and not filesChecked == [self.location_dir + '/README.md']:
             # Go through the original list of images in the source directory and compare it against the used images list
@@ -47,10 +47,9 @@ def checkUsedImages(self, details):
                     self.log.debug('Image not handled: ' + upstreamImage + ' (upstream)')
                 else:
                     downstreamImage = self.location_dir + downstreamShortName
-
-                    if ((downstreamImage in str(self.imagesUsedInThisBuild) and
-                            self.all_files_dict[upstreamShortName]['locationHandling'] == 'keep-if-used') or
-                            (self.all_files_dict[upstreamShortName]['locationHandling'] == 'keep')):
+                    if (downstreamImage in str(self.imagesUsedInThisBuild) and
+                            ((self.all_files_dict[upstreamShortName]['locationHandling'] == 'keep-if-used') or
+                             (self.all_files_dict[upstreamShortName]['locationHandling'] == 'keep'))):
                         if not os.path.isdir(self.location_dir + self.all_files_dict[upstreamShortName]['folderPath']):
                             try:
                                 os.makedirs(self.location_dir + self.all_files_dict[upstreamShortName]['folderPath'])
@@ -75,7 +74,8 @@ def checkUsedImages(self, details):
                         self.unusedInThisLocation.append(upstreamShortName)
 
                     else:
-                        self.log.debug('Image not handled: ' + upstreamImage + ' (upstream),' + downstreamImage + ' (downstream)')
+                        self.log.debug('Image not included in ' + self.location_name + ': ' + upstreamImage +
+                                       ' (upstream),' + downstreamImage + ' (downstream)')
 
             # Check which downstream images were not found upstream
             for downstreamImage in self.imagesUsedInThisBuild:

@@ -13,12 +13,14 @@ def previousCommitInfo(details, log):
     import subprocess
     import sys
     from subprocess import PIPE, STDOUT
+    import time
 
     from mdenricher.sourceFileList.addToList import addToList
     from mdenricher.errorHandling.errorHandling import addToWarnings
     from mdenricher.errorHandling.errorHandling import addToErrors
     from mdenricher.setup.exitBuild import exitBuild
     from mdenricher.errorHandling.parseSubprocessOutput import parseSubprocessOutput
+    from mdenricher.errorHandling.requestValidation import requestValidation
 
     # Get the previous commit ID with the one that is stored in the file, if that file exists.
     # This is important to do because pull requests include more than one commit, so if possible,
@@ -44,6 +46,8 @@ def previousCommitInfo(details, log):
             log.debug('Getting commits from the API')
             listCommits = requests.get(details["source_github_api_repos"] + '/commits?sha=' + details["current_github_branch"] +
                                        '&per_page=2', auth=(details["username"], details["token"]))
+            requestValidation(details, log, listCommits, 'error', 'The commits could not be retrieved for: ' +
+                              details["source_github_api_repos"] + '/commits?sha=' + details["current_github_branch"] + '&per_page=2', True)
 
             try:
                 commitsJSON = listCommits.json()
@@ -108,6 +112,8 @@ def previousCommitInfo(details, log):
         try:
             commitIDFile = requests.get(details["source_github_api_repos"] + "/contents/" + details["last_commit_id_file"] +
                                         "?ref=" + details["log_branch"], auth=(details["username"], details["token"]))
+            requestValidation(details, log, commitIDFile, 'warning', 'The last_commit_id_file could not be retrieved for: ' +
+                              details["source_github_api_repos"] + "/contents/" + details["last_commit_id_file"] + "?ref=" + details["log_branch"], False)
             commitIDJSON = commitIDFile.json()
             lastCommitIDsEncoded = commitIDJSON['content']
             lastCommitIDsBytes = base64.b64decode(lastCommitIDsEncoded)
@@ -172,6 +178,8 @@ def previousCommitInfo(details, log):
         checkBranchStatus = requests.get(details["source_github_api_repos"] + '/compare/' +
                                          details["source_github_branch"] + '...' + current_commit_id,
                                          auth=(details["username"], details["token"]))
+        requestValidation(details, log, checkBranchStatus, 'error', 'The branch status could not be retrieved for: ' +
+                          details["source_github_api_repos"] + '/compare/' + details["source_github_branch"] + '...' + current_commit_id, False)
         branchStatusJSON = checkBranchStatus.json()
         try:
             branchStatus = branchStatusJSON['status']
@@ -201,6 +209,8 @@ def previousCommitInfo(details, log):
     except Exception:
         try:
             commitDetails = requests.get(details["source_github_api_repos"] + '/commits/' + current_commit_id, auth=(details["username"], details["token"]))
+            requestValidation(details, log, checkBranchStatus, 'error', 'The commit details could not be retrieved for: ' +
+                              details["source_github_api_repos"] + '/commits/' + current_commit_id, False)
             commitDetailsJSON = commitDetails.json()
             current_commit_author = commitDetailsJSON['commit']['author']['name']
             current_commit_summary = commitDetailsJSON['commit']['message']
@@ -232,38 +242,55 @@ def previousCommitInfo(details, log):
         filesJson = {}
         # log.info('Getting a list of files that have changed since the last build ran.')
         # Get a list of files that have changed since the last build ran
-        if details["test_only"] is True:
-            # Compare the upstream branch with the current branch - this accumulates files that are changed from commit to commit
-            compareDiffs = requests.get(details["source_github_api_repos"] + '/compare/' + details["source_github_branch"] +
-                                        '...' + details["current_github_branch"], auth=(details["username"],
-                                        details["token"]))
-        else:
-            # Compare the current ID with the previous ID
-            compareDiffs = requests.get(details["source_github_api_repos"] + '/compare/' + previous_commit_id + '...' +
-                                        current_commit_id + '?per_page=100', auth=(details["username"], details["token"]))
+
         try:
-            # This workaround is needed when the last commit file contains a commit ID that is no longer in the repository.
-            # Could happen when a commit history is blown away or if files are copied into a new repo
-            if 'No common ancestor' in compareDiffs.text:
-                try:
-                    compareDiffs = requests.get(details["source_github_api_repos"] + '/compare/' +
-                                                previous_commit_id + '...' + current_commit_id,
-                                                auth=(details["username"], details["token"]))
-                except Exception:
-                    addToErrors('A diff between the two commit IDs could not be retrieved. ' +
-                                'The problem might be with the previous commit ID: ' + previous_commit_id + '.',
-                                'commits', '', details, log, 'pre-build', '', '')
-                    exitBuild(details, log)
-        except Exception as e:
-            addToErrors('A diff between the two commit IDs could not be retrieved.\n' + str(e), 'commits', '', details, log, 'pre-build', '', '')
-            exitBuild(details, log)
+            attempts = 0
+            diffAttempting = True
+            log.debug('Getting diff between commits.')
+            while diffAttempting is True:
+                attempts = attempts + 1
+                if details["test_only"] is True:
+                    # Compare the upstream branch with the current branch - this accumulates files that are changed from commit to commit
+                    diffURL = details["source_github_api_repos"] + '/compare/' + details["source_github_branch"] + '...' + details["current_github_branch"]
+                else:
+                    # Compare the current ID with the previous ID
+                    diffURL = details["source_github_api_repos"] + '/compare/' + previous_commit_id + '...' + current_commit_id + '?per_page=100'
+                compareDiffs = requests.get(diffURL, auth=(details["username"], details["token"]))
+                log.debug('Attempt ' + str(attempts) + ': ' + str(compareDiffs.status_code) + ' status code for ' + diffURL)
+                if compareDiffs.status_code == 200 or attempts == 6:
+                    diffAttempting = False
+                if (compareDiffs.status_code != 200) and (attempts < 6) and (diffAttempting is True):
+                    log.debug('Sleeping for 10 seconds before trying again.')
+                    time.sleep(10)
+            requestValidation(details, log, compareDiffs, 'error', 'The diff could not be retrieved: ' +
+                              details["source_github_api_repos"] + '/compare/' +
+                              details["source_github_branch"] + '...' + details["current_github_branch"], True)
+        finally:
+            if 'No common ancestor' in compareDiffs.text or not compareDiffs.status_code == 200:
+                log.debug('A diff between the two commit IDs could not be retrieved.\n' + str(compareDiffs.status_code))
+                log.debug(compareDiffs.text)
+                if 'No common ancestor' in compareDiffs.text:
+                    # This workaround is needed when the last commit file contains a commit ID that is no longer in the repository.
+                    # Could happen when a commit history is blown away or if files are copied into a new repo
+                    description = 'The problem might be with the previous commit ID: ' + previous_commit_id + '.'
+                elif compareDiffs.status_code == 404:
+                    description = "Try again later."
+                elif compareDiffs.status_code == 401:
+                    description = "Verify the Github username and token."
+                addToErrors('Github or the https://' +
+                            details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
+                            details["source_github_repo"] + ' repo is not accessible. ' + description, 'commits', '', details, log, 'pre-build', '', '')
+                exitBuild(details, log)
+
         try:
             compareDiffJSON = compareDiffs.json()
         except Exception:
             log.debug('No compareDiffJSON to display.')
-            addToErrors('No JSON was returned to parse. Status code: ' + str(compareDiffs.status_code) +
-                        '. The repo might not be accessible or the ' + details["source_github_domain"] +
-                        ' domain might not be available at the moment.', 'commits', '', details, log, 'pre-build', '', '')
+            log.debug('No JSON was returned to parse. Status code: ' +
+                      str(compareDiffs.status_code) + '.')
+            addToErrors('Github or the https://' +
+                        details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
+                        details["source_github_repo"] + ' repo is not accessible. Try again later.', 'commits', '', details, log, 'pre-build', '', '')
             exitBuild(details, log)
 
         # The difference between each try and except below is whether there is one file changed or more than
@@ -283,8 +310,6 @@ def previousCommitInfo(details, log):
         fileCount = 0
         if filesJson == {}:
             log.debug('No files returned.')
-            source_files_original_list = {}
-
         else:
             try:
                 # Try twice to get the filename, status, and patch from the JSON response of the API request for

@@ -1,4 +1,4 @@
-def createTestTopicContents(topicContents):
+def createTestTopicContents(topicContents, file_name):
 
     import re
 
@@ -6,11 +6,31 @@ def createTestTopicContents(topicContents):
     codephraseErrors = 0
     htmlCodeErrors = 0
 
-    htmlComments1 = re.findall('<!--.*?-->', topicContents, flags=re.DOTALL)
-    htmlComments2 = re.findall('<!--.*-->', topicContents, flags=re.DOTALL)
-    removedSections = htmlComments1 + htmlComments2
-    for removedSection in removedSections:
+    htmlComments1 = re.findall('<!--.*?-->', topicContents)  # inline comments
+    for removedSection in htmlComments1:
         topicContents = topicContents.replace(removedSection, '')
+
+    htmlComments2 = re.findall('<!--.*?-->', topicContents, flags=re.DOTALL)
+    for removedSection in htmlComments2:
+        topicContents = topicContents.replace(removedSection, '')
+
+    htmlComments3 = re.findall('<!--.*-->', topicContents)  # inline comments
+    for removedSection in htmlComments3:
+        topicContents = topicContents.replace(removedSection, '')
+
+    htmlComments4 = re.findall('<!--.*-->', topicContents, flags=re.DOTALL)
+    for removedSection in htmlComments4:
+        topicContents = topicContents.replace(removedSection, '')
+
+    # Replace YAML header in MD if it has comments
+    # Tags will not be checked in this removed section
+    if file_name.endswith('.md'):
+        removeYAMLFromMDs = re.findall('---.*?---', topicContents, flags=re.DOTALL)
+        try:
+            if '#' in removeYAMLFromMDs[0]:
+                topicContents = topicContents.replace(removeYAMLFromMDs[0], '')
+        except Exception:
+            pass
 
     # Remove fours
     codeTickCountFours = topicContents.count('````')

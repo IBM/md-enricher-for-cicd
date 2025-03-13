@@ -14,7 +14,7 @@ def pushUpdatedLogFile(details, log):
     import sys
 
     from mdenricher.errorHandling.errorHandling import addToErrors
-    from mdenricher.errorHandling.errorHandling import addToWarnings
+    # from mdenricher.errorHandling.errorHandling import addToWarnings
     from mdenricher.errorHandling.parseSubprocessOutput import parseSubprocessOutput
 
     def checkout():
@@ -28,7 +28,8 @@ def pushUpdatedLogFile(details, log):
             log.info('Cleaning up unneeded files in the ' + details["source_github_branch"] + ' branch to become the ' + details["log_branch"] + ' branch.')
 
     def clone(branch):
-        subprocessOutput = subprocess.Popen('git clone --depth 1 -b ' + branch + " https://" + details["token"] + '@' +
+        subprocessOutput = subprocess.Popen('git clone --single-branch --depth 1 -b ' + branch +
+                                            " https://" + details["token"] + '@' +
                                             details["source_github_domain"] + '/' + details["source_github_org"] + '/' +
                                             details["source_github_repo"] + ".git " + details["output_dir"] + '/' +
                                             details["log_branch"] + ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
@@ -212,11 +213,10 @@ def pushUpdatedLogFile(details, log):
                     subprocessOutput = subprocess.Popen('git push --set-upstream origin ' + details["log_branch"] +
                                                         ' --quiet', shell=True, stdout=PIPE, stderr=STDOUT)
                     exitCode = parseSubprocessOutput(subprocessOutput, log)
-                    log.info('Completed upstream origin.')
                 except Exception as e:
                     pushErrors(details, e, log)
             if exitCode > 0:
-                addToWarnings('The log files could not be pushed to the repo.', 'logs', '', details, log, 'post-build', '', '')
+                addToErrors('The log files could not be pushed to the repo.', 'logs', '', details, log, 'post-build', '', '')
                 logBranchCommit = ''
             else:
 

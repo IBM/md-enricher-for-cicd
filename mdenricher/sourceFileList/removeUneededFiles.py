@@ -31,7 +31,8 @@ def removeUneededFiles(self, details):
         testExistenceInTOC = True
     except Exception:
         testExistenceInTOC = False
-    ignoredFileList = ['/.build.yaml', '/conref.md', '/ignoreLinks.txt', '/keyref.yaml',
+    ignoredFileList = ['/.build.yaml', '/.pre-commit-config.yaml', '/.travis.yml', '/conref.md',
+                       '/ignoreLinks.txt', '/glossary/glossary.json', '/keyref.yaml',
                        '/landing.json', '/readme.md', '/README.md', '/toc.yaml', '/user-mapping.json',
                        '/utterances.json']
     ignoredFolderList = ['/.github/', '/_include-segments/', '/images/']

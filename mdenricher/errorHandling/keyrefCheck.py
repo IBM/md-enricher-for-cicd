@@ -25,6 +25,10 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
             addToWarnings(str(aIBMCount) + ' ' + instance + ' of "a IBM" in the topic. ', folderAndFile, folderPath + file_name,
                           details, self.log, self.location_name, "a IBM", topicContents)
 
+    if details['ibm_cloud_docs_keyref_check'] is True and details['ibm_cloud_docs_product_names'] == []:
+        addToWarnings('--ibm_cloud_docs_keyref_check is set to true, but no IBM Cloud Docs product names were found.',
+                      folderAndFile, folderPath + file_name, details, self.log, self.location_name, "a IBM", topicContents)
+
     elif details['ibm_cloud_docs_keyref_check'] is True:
 
         # Get all keyref names
@@ -64,27 +68,27 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
 
             # Check first if the keyref is an IBM Cloud Docs product name
             productNameFound = False
-            if not details['ibm_cloud_docs_product_names'] == []:
-                try:
-                    details['ibm_cloud_docs_product_names']
-                except Exception:
-                    addToErrors('ibm_cloud_docs_product_names could not be found.', folderAndFile, folderPath + file_name, details, self.log,
-                                self.location_name, '', topicContents)
-                else:
-                    if keyref in details['ibm_cloud_docs_product_names']:
-                        productNameFound = True
-                        topicContentsAIBM = topicContents.replace('{{site.data.keyword.' + keyref + '}}', details['ibm_cloud_docs_product_names'][keyref])
-                        # Check for instances of " a IBM"
-                        aIBMCount = (topicContentsAIBM.lower()).count(" a ibm")
-                        if aIBMCount > 0:
-                            if aIBMCount == 1:
-                                instance = 'instance'
-                            else:
-                                instance = 'instances'
-                            addToWarnings(str(aIBMCount) + ' ' + instance + ' of "a IBM" created by "a ' +
-                                          '{{site.data.keyword.' + keyref + '}}' + '". ', folderAndFile, folderPath + file_name,
-                                          details, self.log, self.location_name, " a " + '{{site.data.keyword.' + keyref + '}}', topicContents)
+            try:
+                details['ibm_cloud_docs_product_names']
+            except Exception:
+                addToErrors('ibm_cloud_docs_product_names could not be found.', folderAndFile, folderPath + file_name, details, self.log,
+                            self.location_name, '', topicContents)
+            else:
+                if keyref in details['ibm_cloud_docs_product_names']:
+                    productNameFound = True
+                    topicContentsAIBM = topicContents.replace('{{site.data.keyword.' + keyref + '}}', details['ibm_cloud_docs_product_names'][keyref])
+                    # Check for instances of " a IBM"
+                    aIBMCount = (topicContentsAIBM.lower()).count(" a ibm")
+                    if aIBMCount > 0:
+                        if aIBMCount == 1:
+                            instance = 'instance'
+                        else:
+                            instance = 'instances'
+                        addToWarnings(str(aIBMCount) + ' ' + instance + ' of "a IBM" created by "a ' +
+                                      '{{site.data.keyword.' + keyref + '}}' + '". ', folderAndFile, folderPath + file_name,
+                                      details, self.log, self.location_name, " a " + '{{site.data.keyword.' + keyref + '}}', topicContents)
             # Then check if it's in the keyref.yaml file
+            # These need to be warnings and not errors because of the examples in the writing repo
             if os.path.isfile(self.location_dir + '/keyref.yaml') and productNameFound is False:
                 with open(self.location_dir + '/keyref.yaml', "r", encoding="utf8", errors="ignore") as stream:
                     try:
@@ -95,12 +99,13 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
                                       str(exc), folderAndFile, '', details, self.log, self.location_name, '', '')
                     else:
                         keyrefs = keyrefsAll['keyword']
-                        if keyref not in keyrefs and not details['ibm_cloud_docs_product_names'] == []:
+                        if keyref not in keyrefs:
                             addToWarnings('{{site.data.keyword.' + keyref + '}} could not be found in cloudoekeyrefs.yml or in keyref.yaml.',
                                           folderAndFile, folderPath + file_name, details, self.log,
                                           self.location_name, '', topicContents)
+
             # Since it's not in a keyref, it must be a product name error
-            elif productNameFound is False and not details['ibm_cloud_docs_product_names'] == []:
+            elif productNameFound is False:
                 addToWarnings('{{site.data.keyword.' + keyref + '}} could not be found in cloudoekeyrefs.yml.',
                               folderAndFile, folderPath + file_name, details, self.log,
                               self.location_name, '', topicContents)

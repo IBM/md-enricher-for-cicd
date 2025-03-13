@@ -86,14 +86,7 @@ def cleanupEachFile(self, details):
                         self.log.debug('----------------------------------')
                         self.log.debug('(folderAndFile=' + folderAndFile + ',folderPath=' + folderPath + ',file_name=' + file_name +
                                        ',fileStatus=' + fileStatus + ',fileNamePrevious=' + fileNamePrevious + ')')
-
-                        if any(ext in str(self.all_files_dict) for ext in details["filetypes"]):
-                            self.log.debug('Images handled at the end of the build.')
-                        else:
-                            # Icons repo
-                            if os.path.isfile(details['source_dir'] + folderAndFile):
-                                shutil.copyfile(details['source_dir'] + folderAndFile, self.location_dir + folderPath + file_name)
-                                self.log.debug('Copied.')
+                        self.log.debug('Images handled at the end of the build.')
 
                     elif folderAndFile == details['featureFlagFile'] and details['feature_flag_migration'] is True:
                         try:
