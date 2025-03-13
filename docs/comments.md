@@ -1,7 +1,7 @@
 <!--
-# Copyright 2022, 2024 IBM Inc. All rights reserved
+# Copyright 2022, 2025 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2024-12-04
+# Last updated: 2025-03-11
 -->
 
 # Comments
@@ -10,6 +10,5 @@ You can use HTML style comments (<code>&lt;!-- ... --&gt;</code>) in your markdo
 
 
 In cases where there are specific comments you do not want removed, even when `location_comments` remain `off`, you can add `ME_ignore` to a comment to keep it in the output.
-```
-<code><!-- ME_ignore ... --></code>
-```
+
+![example in a comment](images/me-ignore-comment.png)

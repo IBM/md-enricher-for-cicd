@@ -281,7 +281,12 @@ def sourceFilesForThisBranch(self, details):
                                                                 self.remove_all_other_files_folders)
             """
         # Remove travis.yml and gitignore files
-        elif (('.travis.yml' in source_file) or ('.gitignore' in source_file) or ('.DS_Store' in source_file) or ('/.git' in source_file)):
+        elif (('.travis.yml' in source_file) or
+              ('.gitignore' in source_file) or
+              ('.DS_Store' in source_file) or
+              ('/.git' in source_file) or
+              (str(details["locations_file"].rsplit('/', 1)[1]) in source_file) or
+              ('.pre-commit-config.yaml' in source_file)):
             if source_file in source_files:
                 del source_files[source_file]
                 # self.log.debug(source_file + ': Skipping build files')

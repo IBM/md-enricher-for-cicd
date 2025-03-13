@@ -1,6 +1,7 @@
 def tocTagHandling(log, details, all_files_original, tagList):
 
     from mdenricher.errorHandling.errorHandling import addToErrors
+    from mdenricher.errorHandling.errorHandling import addToWarnings
     import copy
     import re
     import string
@@ -79,10 +80,10 @@ def tocTagHandling(log, details, all_files_original, tagList):
                     if tagPossibilityLocationsList == fileList[file]['locations'] or tagPossibilityLocationsList == fileList[file]['locations'].pop(0):
                         applyTag = False
                     else:
-                        applyTag = False
-                        addToErrors('The ' + ','.join(fileList[file]['tagsInTOC']) + ' tag in the toc.yaml and the ' + firstTag + ' tag in the ' +
-                                    file + ' file conflict.', file, '',
-                                    details, log, 'source', '', '')
+                        applyTag = True
+                        addToWarnings('The ' + ','.join(fileList[file]['tagsInTOC']) + ' tag in the toc.yaml conflicts with the ' + firstTag + ' tag in the ' +
+                                      file + ' file. The tag in toc.yaml is taking precedence.', file, '',
+                                      details, log, 'source', '', '')
         except Exception:
             addToErrors(file + ' is referenced in the TOC, but the file does not exist.', 'toc.yaml', '',
                         details, log, 'source', '', '')

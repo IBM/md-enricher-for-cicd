@@ -23,6 +23,7 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
 
         # This wasn't being handled properly in checkLocationsPaths
         filesToRemove = ['.travis.yml',
+                         '.pre-commit-config.yaml',
                          'cloudoekeyrefs.yml',
                          'toc_schema.json',
                          'user-mapping.json',
@@ -59,14 +60,14 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                                        folder_name + file, all_files_dict, location_contents_files,
                                        location_contents_folders, remove_all_other_files_folders)
 
-        elif file.endswith(tuple(details["img_src_filetypes"])):
+        if file.endswith(tuple(details["img_src_filetypes"])):
             # Will be automatically removed
             all_files_dict = addToList('None', details, log, fileNamePrevious, 'None', fileStatus,
                                        folder_name + file, all_files_dict, location_contents_files,
                                        location_contents_folders, remove_all_other_files_folders)
 
         # Changed order to get .drawio.svg before .svg
-        elif file.endswith(tuple(details["img_output_filetypes"])):
+        if file.endswith(tuple(details["img_output_filetypes"])):
             image_files_list.append(path + '/' + file)
             all_files_dict = addToList('None', details, log, fileNamePrevious, 'None', fileStatus,
                                        folder_name + file, all_files_dict, location_contents_files,
@@ -139,18 +140,19 @@ def allFilesGet(details, location_contents_files, location_contents_files_keep, 
                 log.debug('Setting sitemap_file as ' + sitemap_file)
 
             for file in sorted(allFiles):
-                (all_files_dict,
-                 conref_files_list, expected_output_files,
-                 filesForOtherLocations,
-                 image_files_list) = allFileCheck(details, path, file, folder_name,
-                                                  all_files_dict,
-                                                  conref_files_list, expected_output_files,
-                                                  filesForOtherLocations,
-                                                  image_files_list)
+                if not file.startswith('.git'):
+                    (all_files_dict,
+                     conref_files_list, expected_output_files,
+                     filesForOtherLocations,
+                     image_files_list) = allFileCheck(details, path, file, folder_name,
+                                                      all_files_dict,
+                                                      conref_files_list, expected_output_files,
+                                                      filesForOtherLocations,
+                                                      image_files_list)
 
     # Add things that might have been deleted
     for source_file in source_files_original_list:
-        if source_file[1:] not in allFiles:
+        if source_file[1:] not in allFiles and not source_file.startswith('.git'):
             if '/' in source_file[1:]:
                 folder_name, file = source_file[1:].rsplit('/', 1)
                 if not folder_name.endswith('/'):

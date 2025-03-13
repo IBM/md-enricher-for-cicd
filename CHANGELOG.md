@@ -2,6 +2,41 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.9.0.20250311
+
+- Improved image processing speed.
+- In the tag validation, adjusted handling to ignore HTML comments.
+- Added check for multiple level-one headings in markdown.
+- Added ignore for `pre-commit-config.yaml`.
+- Added automatic replacement of `//` in source file paths.
+- Added sleep and retry when diff between commits cannot be retrieved.
+- Removed `.travis.yml` from the list of files to be automatically deleted downstream.
+- Bug fixes:
+    - Missing image warnings on image links that are used and valid.
+    - Editing locations file causes error.
+
+
+## Version 1.2.8.3.20250122
+<ul>
+<li>Bug fixes:</li>
+<ul>
+<li>When the source is cloned without authentication, a branch list cannot be retrieved and subsequent downstream pushes are affected.</li>
+</ul>
+</ul>
+
+## Version 1.2.8.2.20250121
+<ul>
+<li>Improved messaging when Github is not acessible.</li>
+<li>Added check for <code>LAST_UPDATED_DATE</code> and <code>CURRENT_YEAR</code> variables that might have been committed downstream by another user.</li>
+<li>Standardized response validation made with <code>requests</code>.</li>
+<li>Bug fixes:</li>
+<ul>
+<li>New files aren't processed with <code>--unprocessed_update</code>.</li>
+<li>All files are rebuilt even when <code>--rebuild_all_files</code> is not used.</li>
+</ul>
+</ul>
+
+
 ## Version 1.2.8.1.20241204
 <dl>
 <dt>Automatic removal of beginning and ending spaces in headings from corresponding link titles in sitemap.</dt>

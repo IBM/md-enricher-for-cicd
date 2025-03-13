@@ -53,6 +53,12 @@ def writeResult(self, details, file_name, folderAndFile, folderPath, topicConten
                     self.log.debug('Always updating topics with copyright variable.')
                     write = True
 
+                elif ((('[{LAST_UPDATED_DATE}]' in topicContents and '[{LAST_UPDATED_DATE}]' in topicContentsDownstream) or
+                       ('[{CURRENT_YEAR}]' in topicContents and '[{CURRENT_YEAR}]' in topicContentsDownstream)) and
+                      (details['unprocessed'] is False)):
+                    self.log.debug('Always updating topics where it seems like an update was missed in the past or committed downstream.')
+                    write = True
+
                 elif topicContentsDownstream == topicContents:
                     write = False
                     self.log.debug('No changes found to write.')
