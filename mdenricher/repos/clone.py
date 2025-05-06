@@ -11,7 +11,6 @@ def clone(self, details):
 
     import io  # for extracting the archive download of the repo
     import os
-    import requests  # for running curl-like API requests
     import shutil  # for copying files
     import subprocess
     import time
@@ -106,11 +105,12 @@ def clone(self, details):
 
                 # If the clone from the CLI didn't work, try downloading the files via the API
                 try:
-                    self.log.debug('Trying to get a zipball instead: ' + self.location_github_api_repos + '/zipball/' + BRANCH_TO_CLONE)
-                    r = requests.get(self.location_github_api_repos + '/zipball/' + BRANCH_TO_CLONE,
-                                     auth=(str(details["username"]), str(details["token"])), stream=True)
-                    requestValidation(details, self.log, r, 'error', 'The branch could not be cloned: ' +
-                                      self.location_github_api_repos + '/zipball/' + BRANCH_TO_CLONE, True)
+                    call = self.location_github_api_repos + '/zipball/' + BRANCH_TO_CLONE
+                    response = requestValidation(details, self.log, call, 'get', None, 'error',
+                                                 'The branch could not be cloned: ' +
+                                                 self.location_github_api_repos + '/zipball/' +
+                                                 BRANCH_TO_CLONE, True, True, 'Getting zipball: ' +
+                                                 self.location_github_api_repos + '/zipball/' + BRANCH_TO_CLONE)
                 except Exception:
                     self.log.debug('The zipball could not be retrieved either.')
                     addToErrors('The repo could not be cloned: https://' + self.location_github_domain + '/' +
@@ -120,7 +120,7 @@ def clone(self, details):
                         exitBuild(details, self.log)
                 else:
                     try:
-                        z = zipfile.ZipFile(io.BytesIO(r.content))
+                        z = zipfile.ZipFile(io.BytesIO(response.content))
                         z.extractall(path=None)
                     except Exception:
                         self.log.debug('The file that was downloaded is not a zip file. The repo might not be accessible.')
@@ -184,7 +184,7 @@ def clone(self, details):
                         branches.append(line.rsplit('refs/heads/', 1)[1])
                 self.log.debug('Available branches: ' + ', '.join(branches))
         except Exception:
-            self.log.warning('The branch list could not be gathered. Verify that the source was cloned with authentication. Attempting to continue.')
+            self.log.info('The branch list could not be gathered. Attempting to get the branch list by using the API and continuing.')
     # Use the API when the source and downstream repos are not the same
     if branches == []:
         CONTINUE_BRANCH_CHECK_LOOP = True
@@ -195,33 +195,20 @@ def clone(self, details):
             page = page + 1
 
             # Get a list of all the branches in the repo
-            exitCode = 1
-            attempt = 1
+
             try:
-                while attempt < 6 and not exitCode == 200:
-                    self.log.debug('Branch list retrieval attempt #' + str(attempt))
-                    getBranches = requests.get(self.location_github_api_repos + "/branches?per_page=100&page=" +
-                                               str(page), auth=(details["username"], details["token"]))
-                    exitCode = int(getBranches.status_code)
-                    if not exitCode == 200:
-                        self.log.debug('Waiting 5 seconds before trying again.')
-                        time.sleep(5)
-                    attempt = attempt + 1
-                if not exitCode == 200:
-                    self.log.debug('A list of branches could not be retrieved to verify the existence of the branch attempting to be cloned.')
-                    addToErrors('Github or the https://' +
-                                self.location_github_domain + '/' + self.location_github_org + '/' +
-                                self.location_github_repo + ' repo is not accessible. Try again later.',
-                                'cloning', '', details, self.log, self.location_name, '', '')
-                    if not self.location_output_action == 'none':
-                        exitBuild(details, self.log)
+                call = (self.location_github_api_repos + "/branches?per_page=100&page=" + str(page))
+                response = requestValidation(details, self.log, call, 'get', None, 'error',
+                                             'A list of branches could not be retrieved to verify the existence of the branch attempting to be cloned.',
+                                             True, False, 'Getting list of branches')
+
             except Exception:
                 CONTINUE_BRANCH_CHECK_LOOP = False
 
             try:
-                getBranchesJSON = getBranches.json()
+                getBranchesJSON = response.json()
             except Exception:
-                addToErrors('A list of branches could not be retrieved. Review the request result:\n' + str(getBranches.text) +
+                addToErrors('A list of branches could not be retrieved. Review the request result:\n' + str(response.text) +
                             'A list of branches could not be retrieved.', 'cloning', '', details, self.log, self.location_name, '', '')
                 if not self.location_output_action == 'none':
                     exitBuild(details, self.log)
@@ -282,9 +269,10 @@ def clone(self, details):
         # If the URLs are different, use the default branch in the location repo
         else:
             # Get the default branch
-            getRepo = requests.get(self.location_github_api_repos, auth=(details["username"], details["token"]))
-            getRepoJSON = requestValidation(details, self.log, getRepo, 'error', 'The default branch could not be retrieved.', True)
-            LOCATION_DEFAULT_BRANCH_CLONE = getRepoJSON['default_branch']
+            call = self.location_github_api_repos
+            response = requestValidation(details, self.log, call, 'get', None, 'error',
+                                         'The default branch could not be retrieved.', True, False, 'Getting default branch')
+            LOCATION_DEFAULT_BRANCH_CLONE = response['default_branch']
 
         cloneBranch(LOCATION_DEFAULT_BRANCH_CLONE, details)
         os.chdir(self.location_dir)

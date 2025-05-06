@@ -31,10 +31,14 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
             # Check if the error is a defined tag, if so make it an error, otherwise warning
             errorTagSlim = errorTag.replace('<', '').replace('>', '').replace('/', '')
             if (errorTagSlim in self.tags_show) or (errorTagSlim in self.tags_hide):
-                addToErrors(errorTag + ' not removed or handled properly. ', folderAndFile, folderPath + file_name,
+                addToErrors(errorTag + ' tag not removed or handled properly. ', folderAndFile, folderPath + file_name,
                             details, self.log, self.location_name, errorTag, topicContentsCheck)
+            elif '_' in errorTagSlim:
+                self.log.debug('Underscore in tags indicates a variable instead of a tag: ' + errorTagSlim)
+            elif errorTagSlim == 'value' or errorTagSlim == 'username' or errorTagSlim == 'password':
+                self.log.debug('Common variable names used and interpreted as a variable instead of a tag: ' + errorTagSlim)
             else:
-                addToWarnings(errorTag + ' not removed or handled properly. ', folderAndFile, folderPath + file_name,
+                addToWarnings(errorTag + ' appears to be a tag and is not removed or handled properly. ', folderAndFile, folderPath + file_name,
                               details, self.log, self.location_name, errorTag, topicContentsCheck)
 
     def check(topicContents, folderPath, file_name, tag):
@@ -93,9 +97,12 @@ def htmlValidator(self, details, file_name, folderAndFile, folderPath, topicCont
 
         mdCodeList = mdCodeblockList + mdInlineCodeList
 
-        if file_name.endswith('.md') and topicContentsCodeCheck.count('\n# ') > 1 and not file_name == 'conref.md':
-            addToErrors('Too many H1 headings.', folderAndFile, folderPath + file_name, details, self.log,
-                        self.location_name, '', topicContents)
+        if ((file_name.endswith('.md')) and
+                (topicContentsCodeCheck.count('\n# ') > 1) and
+                (not file_name == 'conref.md') and
+                ('content-type: api-docs' not in topicContents)):
+            addToWarnings('Too many H1 headings.', folderAndFile, folderPath + file_name, details, self.log,
+                          self.location_name, '', topicContents)
 
         if htmlCodeErrors > 0:
             topicContentsCodeCheckLines = topicContentsCodeCheck.split('\n')

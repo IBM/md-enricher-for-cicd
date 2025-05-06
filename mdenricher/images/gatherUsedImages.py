@@ -11,7 +11,7 @@ def gatherUsedImages(self, details, imagePath, sourceFile, topicContents):
     from mdenricher.cleanupEachFile.createTestTopicContents import createTestTopicContents
 
     def processImageName(self, imageName, imagePathUnique):
-        if not imageName.startswith('http'):
+        if (not imageName.startswith('http')) and ('non-existent-image' not in imageName):
 
             if imageName == '':
                 imageName = '[]'

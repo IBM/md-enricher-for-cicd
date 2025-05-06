@@ -247,7 +247,7 @@ def cleanupEachFile(self, details):
                 startTime = time.time()
             if '```\n    ```' in topicContents:
                 # Tested 1/6/21
-                addToWarnings('Empty codeblock. This issue will fail the markdown processor and prevent this file and any ' +
+                addToWarnings('Empty codeblock. This issue can fail the markdown processor and prevent this file and any ' +
                               'file after it from being handled by the markdown processor. Verify that the removal of tags in ' +
                               'the codeblock aren\'t leaving behind the empty codeblock.', folderAndFile, folderPath + file_name, details, self.log,
                               self.location_name, '```\n    ```', topicContents)
