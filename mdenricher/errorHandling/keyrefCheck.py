@@ -44,6 +44,7 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
             if not allUsageCount == goodUsageCount:
 
                 topicContentsNoGood = topicContents.replace('{{site.data.keyword.' + keyref + '}}', '')
+                topicContentsNoGood = topicContents.replace('&#123;{site.data.keyword.' + keyref + '}}', '')
 
                 missingEndCount = topicContentsNoGood.count('{{site.data.keyword.' + keyref + '}')
                 topicContentsNoGood = topicContentsNoGood.replace('{{site.data.keyword.' + keyref + '}', '')
@@ -87,6 +88,10 @@ def keyrefCheck(self, details, file_name, folderAndFile, folderPath, topicConten
                         addToWarnings(str(aIBMCount) + ' ' + instance + ' of "a IBM" created by "a ' +
                                       '{{site.data.keyword.' + keyref + '}}' + '". ', folderAndFile, folderPath + file_name,
                                       details, self.log, self.location_name, " a " + '{{site.data.keyword.' + keyref + '}}', topicContents)
+                # Ignore examplings for writing repo
+                elif ('<' in keyref) and ('>' in keyref):
+                    productNameFound = True
+
             # Then check if it's in the keyref.yaml file
             # These need to be warnings and not errors because of the examples in the writing repo
             if os.path.isfile(self.location_dir + '/keyref.yaml') and productNameFound is False:

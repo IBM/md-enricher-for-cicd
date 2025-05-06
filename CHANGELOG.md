@@ -2,6 +2,12 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.9.1.20250505
+
+- Ignore missing image file warnings for images with `non-existent-image` in the name.
+- When checking for mismatched tag possibilities, if the tag is not in the feature flag file, is not a specified location, and includes an underscore, it is not reported. Common example variables (`<username>`, `<password>`, and `<value>`) are also not reported.
+- Bug fix: Images not removed from downstream when removed from source repo.
+
 ## Version 1.2.9.0.20250311
 
 - Improved image processing speed.

@@ -11,10 +11,8 @@ def pushUpdatedFiles(self, details):
 
         import base64  # For encoding & decoding API commits
         # from datetime import datetime
-        import json  # for sending data with and parsing data from requests
         import os  # for running OS commands like changing directories or listing files in directory
         import re
-        import requests  # for running curl-like API requests
         import subprocess
         from subprocess import PIPE, STDOUT
         import time
@@ -134,47 +132,50 @@ def pushUpdatedFiles(self, details):
                             fileName_open.close()
                             try:
                                 # Get the commit ID from the previous commit of this file
-                                t = requests.get(self.location_github_api_prefix + "/contents/" + folderAndFile + '?ref=' +
-                                                 self.location_github_branch_push, auth=(details["username"], details["token"]))
-                                tJSON = requestValidation(details, self.log, t, 'error', 'The commit ID for ' + folderAndFile + ' file in the ' +
-                                                          self.location_github_branch_push + ' branch could not be retrieved.', False)
-                                tJSON = t.json()
-                                lastsha = tJSON['sha']
+                                call = (self.location_github_api_prefix + "/contents/" + folderAndFile + '?ref=' +
+                                        self.location_github_branch_push)
+                                response = requestValidation(details, self.log, call, 'get', None, 'error',
+                                                             'The commit ID for ' + folderAndFile + ' file in the ' +
+                                                             self.location_github_branch_push + ' branch could not be retrieved.', False, False,
+                                                             'Getting the commit ID for ' + folderAndFile)
+                                responseJSON = response.json()
+                                lastsha = responseJSON['sha']
                             except Exception:
                                 # The file didn't exist in the repo before. So create the file rather than update it.
                                 try:
                                     self.log.debug('File does not exist in ' + self.location_name + ' yet.')
-                                    r = requests.put(self.location_github_api_prefix + "/contents/" + folderAndFile,
-                                                     auth=(details["username"], details["token"]),
-                                                     data=json.dumps({"message": self.currentCommitSummary,
-                                                                      "content": fileContentsEncoded.decode("utf-8"),
-                                                                      "branch": self.location_github_branch_push}))
-                                    requestValidation(details, self.log, r, 'error', 'The file could not be put into Github: ' +
-                                                      self.location_github_api_prefix + "/contents/" + folderAndFile + ', ' +
-                                                      self.location_github_branch_push, False)
+                                    call = self.location_github_api_prefix + "/contents/" + folderAndFile
+                                    payload = {"message": self.currentCommitSummary,
+                                               "content": fileContentsEncoded.decode("utf-8"),
+                                               "branch": self.location_github_branch_push}
+                                    response = requestValidation(details, self.log, call, 'put', payload, 'error',
+                                                                 'The file could not be put into Github: ' +
+                                                                 self.location_github_api_prefix + "/contents/" + folderAndFile + ', ' +
+                                                                 self.location_github_branch_push, False, False,
+                                                                 'Putting ' + folderAndFile)
                                 except Exception:
                                     self.log.debug('ERROR. Could not add ' + folderAndFile + ' to ' + self.location_name +
                                                    ' via the API. 1 - File does not exist in the repo or authentication ' +
                                                    'error (bad API request).')
-                                    self.log.debug(r.status_code)
+                                    self.log.debug(response.status_code)
                             else:
                                 # Update the base 64 encoded version of the contents into staging/prod
                                 try:
                                     fileName_open = open(self.location_dir + folderPath + file_name, 'r', encoding="utf8", errors="ignore")
                                     topicContents = fileName_open.read()
                                     fileName_open.close()
-                                    oldContent = tJSON['content']
+                                    oldContent = responseJSON['content']
                                     if not oldContent == topicContents:
-                                        r = requests.put(self.location_github_api_prefix + "/contents/" + folderAndFile,
-                                                         auth=(details["username"], details["token"]),
-                                                         data=json.dumps({"message": self.currentCommitSummary,
-                                                                          "content": fileContentsEncoded.decode("utf-8"),
-                                                                          "sha": lastsha,
-                                                                          "branch": self.location_github_branch_push}))
-                                        requestValidation(details, self.log, r, 'warning', 'The file could not be put into Github: ' +
-                                                          self.location_github_api_prefix + "/contents/" + folderAndFile + ', ' +
-                                                          self.location_github_branch_push, False)
-                                        stringStatusCode = str(r.status_code)
+                                        call = self.location_github_api_prefix + "/contents/" + folderAndFile
+                                        payload = {"message": self.currentCommitSummary,
+                                                   "content": fileContentsEncoded.decode("utf-8"),
+                                                   "sha": lastsha,
+                                                   "branch": self.location_github_branch_push}
+                                        response = requestValidation(details, self.log, call, 'put', payload, 'warning',
+                                                                     'The file could not be put into Github: ' +
+                                                                     self.location_github_api_prefix + "/contents/" + folderAndFile + ', ' +
+                                                                     self.location_github_branch_push, False, False, "Putting " + folderAndFile)
+                                        stringStatusCode = str(response.status_code)
                                     else:
                                         self.log.debug('No changes detected. Not committing this file to ' + self.location_name + '.')
                                         stringStatusCode = 'Not committed'
@@ -182,7 +183,7 @@ def pushUpdatedFiles(self, details):
                                     self.log.debug('ERROR. Could not add ' + folderAndFile + ' to ' + self.location_name +
                                                    ' via the API. 2 - File existed before, ' +
                                                    'but a new version could not be written (bad API request).')
-                            stringStatusCode = str(r.status_code)
+                            stringStatusCode = str(response.status_code)
                             if stringStatusCode.startswith('2'):
                                 self.log.debug('Success! Added ' + folderAndFile + ' to ' + self.location_name + ' via the API.')
                                 self.pushSuccessful = True
@@ -317,13 +318,13 @@ def pushUpdatedFiles(self, details):
                 (self.pushSuccessful is True)):
             startTime = time.time()
             # List PRs
-            listPRs = requests.get(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
-                                   auth=(details["username"], details["token"]))
-            requestValidation(details, self.log, listPRs, 'warning', 'The pull requests could not be retrieved for the repo: ' +
-                              self.location_github_api_repos + '/pulls?head=' + self.location_github_branch, False)
+            call = self.location_github_api_repos + '/pulls?head=' + self.location_github_branch
+            response = requestValidation(details, self.log, call, 'get', None, 'warning',
+                                         'The pull requests could not be retrieved for the repo: ' +
+                                         self.location_github_api_repos + '/pulls?head=' + self.location_github_branch, False, False, 'Getting existing PRs')
             try:
                 PRs = []
-                PRs = listPRs.json()
+                PRs = response.json()
                 PRstring = str(PRs)
             except Exception:
                 PRstring = ''
@@ -384,14 +385,15 @@ def pushUpdatedFiles(self, details):
                 else:
                     PRBody = ("See the Commits and Files changed tabs for more information about what is " +
                               "included in this pull request.")
-                g = {"title": "Next " + self.location_github_branch + " push", "body": PRBody,
-                     "head": self.location_github_branch_push, "base": self.location_github_branch}
-                r = requests.post(self.location_github_api_repos + '/pulls?head=' + self.location_github_branch,
-                                  auth=(details["username"], details["token"]), data=json.dumps(g))
-                requestValidation(details, self.log, r, 'error', 'The pull request could not be created for: ' +
-                                  self.location_github_api_repos + '/pulls?head=' + self.location_github_branch, False)
-                if r.status_code == 201:
-                    responseJson = r.json()
+                payload = {"title": "Next " + self.location_github_branch + " push", "body": PRBody,
+                           "head": self.location_github_branch_push, "base": self.location_github_branch}
+                call = self.location_github_api_repos + '/pulls?head=' + self.location_github_branch
+                response = requestValidation(details, self.log, call, 'post', payload, 'error',
+                                             'The pull request could not be created for: ' +
+                                             self.location_github_api_repos + '/pulls?head=' + self.location_github_branch, False, False,
+                                             'Creating PR')
+                if response.status_code == 201:
+                    responseJson = response.json()
                     prURL = responseJson['html_url']
                     prTitle = responseJson['title']
                     prID = responseJson['number']
@@ -400,11 +402,11 @@ def pushUpdatedFiles(self, details):
                     self.log.info('#' + str(prID) + ': ' + prTitle + ', ' + prURL)
                     self.log.debug('SUCCESS!')
                 else:
-                    if r.status_code == 401:
+                    if response.status_code == 401:
                         addToErrors('The pull request could not be created because of an authentication error. ' +
                                     'Maybe the token expired or the username must be updated.',
                                     self.location_name, '', details, self.log, 'post-build', '', '')
-                    elif r.status_code == 422:
+                    elif response.status_code == 422:
                         addToErrors('The pull request could not be created for one of three potential reasons. ' +
                                     '1. There might be a pull request already created for the ' +
                                     str(self.location_github_branch_push) + ' branch. Close the pull request. ' +
@@ -415,12 +417,12 @@ def pushUpdatedFiles(self, details):
                                     '3. The response from the API call might be empty. ' +
                                     'If Github is accessible, try starting another build.',
                                     self.location_name, '', details, self.log, 'post-build', '', '')
-                    elif r.status_code == 500:
+                    elif response.status_code == 500:
                         addToErrors('The pull request could not be created. The repo or the ' +
                                     details["source_github_domain"] + ' domain might not be accessible.' +
-                                    str(r.status_code), self.location_name, '', details, self.log, 'post-build', '', '')
+                                    str(response.status_code), self.location_name, '', details, self.log, 'post-build', '', '')
                     else:
-                        addToErrors('The pull request could not be created. ' + str(r.status_code),
+                        addToErrors('The pull request could not be created. ' + str(response.status_code),
                                     self.location_name, '', details, self.log, 'post-build', '', '')
                     exitBuild(details, self.log)
             else:
@@ -441,11 +443,11 @@ def pushUpdatedFiles(self, details):
                             PRBodyRevised = PRBodyIntroTip + PRBodyIntro + '\n'.join(existingLinkList)
                             if not PRBodyRevised == PRBody:
                                 self.log.debug('Updating PR body.')
-                                g = {"body": PRBodyRevised}
-                                r = requests.patch(self.location_github_api_repos + '/pulls/' + str(PRNumber),
-                                                   auth=(details["username"], details["token"]), data=json.dumps(g))
-                                requestValidation(details, self.log, r, 'warning', 'The pull request body could not be updated for: ' +
-                                                  self.location_github_api_repos + '/pulls/' + str(PRNumber), False)
+                                payload = {"body": PRBodyRevised}
+                                call = self.location_github_api_repos + '/pulls/' + str(PRNumber)
+                                response = requestValidation(details, self.log, call, 'patch', payload, 'warning',
+                                                             'The pull request body could not be updated for: ' +
+                                                             self.location_github_api_repos + '/pulls/' + str(PRNumber), False, False, 'Updating PR body')
                         self.log.info('Updated pull request for the ' + self.location_github_branch_push +
                                       ' branch to the ' + self.location_github_branch + ' branch:')
                         self.log.info('#' + str(PRNumber) + ': ' + PRTitle + ', ' + PRURL)

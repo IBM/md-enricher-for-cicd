@@ -7,7 +7,7 @@ def removeUneededFiles(self, details):
 
     import os
     import shutil
-    from mdenricher.errorHandling.errorHandling import addToWarnings
+    # from mdenricher.errorHandling.errorHandling import addToWarnings
 
     # Check for these directories and delete them to avoid accidental pushes
     directories_to_delete = ['/source']
@@ -35,7 +35,7 @@ def removeUneededFiles(self, details):
                        '/ignoreLinks.txt', '/glossary/glossary.json', '/keyref.yaml',
                        '/landing.json', '/readme.md', '/README.md', '/toc.yaml', '/user-mapping.json',
                        '/utterances.json']
-    ignoredFolderList = ['/.github/', '/_include-segments/', '/images/']
+    ignoredFolderList = ['/.github/', '/.vscode/', '/_include-segments/']
     for (path, dirs, files) in os.walk(self.location_dir):
         if self.location_dir == path:
             folder = '/'
@@ -46,14 +46,14 @@ def removeUneededFiles(self, details):
             if not folder.startswith('/'):
                 folder = '/' + folder
         for file in files:
-            folderAndFile = folder + file
+            # folderAndFile = folder + file
             try:
                 if (('.git' not in path) and
                         ('.git' not in file) and
                         ((file) not in self.expected_output_files) and
                         ((folder + file) not in self.expected_output_files) and
                         ((folder[1:] + file) not in self.expected_output_files) and
-                        (file.endswith(tuple(details["filetypes"]))) and
+                        ((file.endswith(tuple(details["filetypes"]))) or ((file.endswith(tuple(details["img_output_filetypes"]))))) and
                         (os.path.isfile(path + '/' + file)) and
                         (not folder + file in ignoredFileList) and
                         (not (folder.startswith(tuple(ignoredFolderList)))) and
@@ -75,11 +75,10 @@ def removeUneededFiles(self, details):
                         (not (folder.startswith(tuple(ignoredFolderList))))):
                     for item in self.all_files_dict:
                         if self.all_files_dict[item]['folderPath'] == folder and self.all_files_dict[item]['file_name'] == file:
-                            folderAndFile = item
+                            # folderAndFile = item
                             break
-                    addToWarnings('The file is not used in the ' + self.location_name +
-                                  ' toc.yaml so it is not included downstream: ' + folder + file,
-                                  folderAndFile, folder + file, details, self.log, self.location_name, '', '')
+                    self.log.info('The file is not used in the ' + self.location_name +
+                                  ' toc.yaml so it is not included downstream: ' + folder + file)
                     if os.path.isfile(path + '/' + file):
                         os.remove(path + '/' + file)
                         self.log.debug('Removing undefined file from ' + self.location_name + ': ' + folder + file)
