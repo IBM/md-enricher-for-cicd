@@ -1,7 +1,7 @@
 <!--
 # Copyright 2022, 2025 IBM Inc. All rights reserved
 # SPDX-License-Identifier: Apache2.0
-# Last updated: 2025-05-06
+# Last updated: 2025-07-17
 -->
 
 # Metadata replacements
@@ -37,7 +37,7 @@ Example output:
 
 copyright:
   years: 2014, 2025
-lastupdated: "2025-05-06"
+lastupdated: "2025-07-17"
 
 keywords: keyword1, keyword2
 

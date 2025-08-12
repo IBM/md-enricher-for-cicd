@@ -88,7 +88,7 @@ def sitemapSUMMARY(self, details, topicContents):
 
                 if contentExists is True:
                     # Create a dictionary with an entry for that file name
-                    source[file] = {}
+                    source[file] = {}  # type: ignore[index]
                     h2 = ''
                     h3 = ''
 
@@ -135,7 +135,7 @@ def sitemapSUMMARY(self, details, topicContents):
                                     # self.log.debug('line2 = ' + line2)
                                     title = line2+']'.rstrip()
                                     h3 = h3 + ';' + str(anchorlineString) + '$[' + title + '(' + fileShort
-                                    source[file]['h3'] = h3
+                                    source[file]['h3'] = h3  # type: ignore[index]
 
                                 elif ((line.startswith("## ")) and (H2_ENABLED is True)):
                                     line1 = line.replace("## ", "")
@@ -144,7 +144,7 @@ def sitemapSUMMARY(self, details, topicContents):
                                     # self.log.debug('line2 = ' + line2)
                                     title = line2+']'.rstrip()
                                     h2 = h2 + ';' + str(anchorlineString) + '$[' + title + '(' + fileShort
-                                    source[file]['h2'] = h2
+                                    source[file]['h2'] = h2  # type: ignore[index]
 
                                 elif line.startswith('# '):
                                     count = 0
@@ -156,11 +156,11 @@ def sitemapSUMMARY(self, details, topicContents):
                                         title = line.replace('# ', '')
                                         title = title.rstrip()
                                         title = title + ']'.rstrip()
-                                        h1 = '[' + str(anchorlineString) + '$[' + title + '(' + fileShort
+                                        h1 = '[' + str(anchorlineString) + '$[' + title + '(' + fileShort   # type: ignore[assignment]
                                         try:
-                                            source[file]['draft-h1']
+                                            source[file]['draft-h1']  # type: ignore[index]
                                         except Exception:
-                                            source[file]['draft-h1'] = str(h1)
+                                            source[file]['draft-h1'] = str(h1)  # type: ignore[index]
 
         # get h1s and append anchor
         self.log.debug('Including H1 headers.')

@@ -33,8 +33,7 @@ def removeUneededFiles(self, details):
         testExistenceInTOC = False
     ignoredFileList = ['/.build.yaml', '/.pre-commit-config.yaml', '/.travis.yml', '/conref.md',
                        '/ignoreLinks.txt', '/glossary/glossary.json', '/keyref.yaml',
-                       '/landing.json', '/readme.md', '/README.md', '/toc.yaml', '/user-mapping.json',
-                       '/utterances.json']
+                       '/landing.json', '/readme.md', '/README.md', '/toc.yaml', '/user-mapping.json']
     ignoredFolderList = ['/.github/', '/.vscode/', '/_include-segments/']
     for (path, dirs, files) in os.walk(self.location_dir):
         if self.location_dir == path:
@@ -82,6 +81,16 @@ def removeUneededFiles(self, details):
                     if os.path.isfile(path + '/' + file):
                         os.remove(path + '/' + file)
                         self.log.debug('Removing undefined file from ' + self.location_name + ': ' + folder + file)
+                elif ((not file.endswith(tuple(details["filetypes"]))) and
+                        ((not file.endswith(tuple(details["img_output_filetypes"])))) and
+                        ('.git' not in path) and
+                        (not '/' + file not in ignoredFileList) and
+                        ('.git' not in file) and
+                        (not folder + file in ignoredFileList) and
+                        (not (folder.startswith(tuple(ignoredFolderList))))):
+                    if os.path.isfile(path + '/' + file):
+                        os.remove(path + '/' + file)
+                        self.log.info('Removing file of unsupported type from ' + self.location_name + ': ' + folder + file)
             except Exception as e:
                 self.log.error('Traceback')
                 self.log.error('Could not issue warning for or remove: ' + folder + file)

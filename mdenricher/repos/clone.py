@@ -174,7 +174,7 @@ def clone(self, details):
         self.log.debug('Getting branches from the CLI')
         try:
             # If the clone happens without auth, then this command won't work.
-            branchResponse = subprocess.check_output('git ls-remote --heads --quiet', shell=True)
+            branchResponse = subprocess.check_output(['git ls-remote --heads --quiet'], stderr=subprocess.STDOUT, shell=True)
             branchResponseDecoded = branchResponse.decode("utf-8")
             if '\n' in branchResponseDecoded:
                 branchesList = branchResponseDecoded.split('\n')
@@ -184,7 +184,7 @@ def clone(self, details):
                         branches.append(line.rsplit('refs/heads/', 1)[1])
                 self.log.debug('Available branches: ' + ', '.join(branches))
         except Exception:
-            self.log.info('The branch list could not be gathered. Attempting to get the branch list by using the API and continuing.')
+            self.log.debug('The branch list could not be gathered. Attempting to get the branch list by using the API and continuing.')
     # Use the API when the source and downstream repos are not the same
     if branches == []:
         CONTINUE_BRANCH_CHECK_LOOP = True

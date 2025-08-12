@@ -179,7 +179,7 @@ def previousCommitInfo(details, log):
 
     # If this isn't the source branch, compare it against the source branch and if it matches,
     # it's a new branch and therefore, doesn't need to run on these files. Exit if there's no difference.
-    if details["test_only"] is True:
+    if details["test_only"] is True and not details['rebuild_all_files'] is True:
         call = (details["source_github_api_repos"] + '/compare/' +
                 details["source_github_branch"] + '...' + current_commit_id)
         response = requestValidation(details, log, call, 'get', None, 'error',

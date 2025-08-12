@@ -2,6 +2,17 @@
 
 Notable changes to this project are documented in this file.
 
+## Version 1.2.9.3.20250717
+
+- Bug fix: Files of unsupported file types are not removed downstream.
+
+## Version 1.2.9.2.20250710
+
+- If source clone is in detached mode, all files are processed.
+- Bug fixes
+    - CVE-2024-47081: Python `requests` module minimum version 2.32.4 required.
+    - CVE-2025-50181 and CVE-2025-50182: With the update to the `requests` module, Python `urllib3` module minimum version 2.5.0 is also required.
+
 ## Version 1.2.9.1.20250505
 
 - Ignore missing image file warnings for images with `non-existent-image` in the name.
