@@ -40,6 +40,7 @@ from mdenricher.sourceFileList.locationContentList import locationContentList
 from mdenricher.sourceFileList.sourceFilesForThisBranch import sourceFilesForThisBranch
 from mdenricher.sourceFileList.removeUneededFiles import removeUneededFiles
 # from mdenricher.sourceFileList.runThisBuild import runThisBuild
+from mdenricher.tags.featureFlagListCompile import featureFlagListCompile
 from mdenricher.tags.tagListCompile import tagListCompile
 
 
@@ -644,8 +645,6 @@ def main(
             rebuild_all_files = True
             log.debug('Rebuilding all files because this is the first build.')
 
-        details.update({"rebuild_all_files": rebuild_all_files})
-
         # Create a list out of the rebuild_files values and make sure each entry starts with a slash
         if rebuild_files is None:
             rebuild_files_list: list[str] = []  # type: ignore[misc]
@@ -684,6 +683,7 @@ def main(
             log.debug('Source directory is not a Git clone.')
 
         try:
+
             if details["builder"] == 'travis':
                 current_github_branch = str(os.environ.get('TRAVIS_BRANCH'))
                 current_github_branch = urllib.parse.quote(current_github_branch, encoding="utf-8")
@@ -692,18 +692,23 @@ def main(
             elif os.path.isdir(source_dir + '/.git'):
                 current_github_branch_bytes = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
                 current_github_branch = current_github_branch_bytes.decode("utf-8")
-                current_github_branch = current_github_branch.replace('\n', '')
             else:
                 current_github_branch = 'local'
             # Jenkins pipeline
-            if 'HEAD' == current_github_branch or '' == current_github_branch:
+            if 'HEAD' in current_github_branch or '' == current_github_branch:
                 current_github_branch_bytes = subprocess.check_output(["git", "branch", "--show-current"])
                 current_github_branch = current_github_branch_bytes.decode("utf-8")
-                current_github_branch = current_github_branch.replace('\n', '')
+            if 'HEAD' in current_github_branch or '' == current_github_branch:
+                # Detached mode for Jenkins clone from build itself
+                current_github_branch_bytes = subprocess.check_output(["git", "log", "-n", "1", "--pretty=%d"])
+                current_github_branch = current_github_branch_bytes.decode("utf-8")
+                current_github_branch = current_github_branch.replace('(', '').replace(')', '')
+                rebuild_all_files = True
+                log.info('Rebuilding all files because clone is in detached mode.')
             if 'origin/' in current_github_branch:
                 current_github_branch = current_github_branch.split('origin/')[1]
+            current_github_branch = current_github_branch.replace('\n', '')
             details.update({"current_github_branch": current_github_branch})
-            # log.debug('current_github_branch: ' + current_github_branch)
         except Exception as e:
             addToErrors('The current branch name could not be found.', 'start.py-command', '', details, log, 'pre-build', '', '')
             log.info(str(e))
@@ -769,6 +774,7 @@ def main(
         details.update({"source_github_org": source_github_org})
         details.update({"source_github_repo": source_github_repo})
         details.update({"source_github_url": source_github_url})
+        details.update({"rebuild_all_files": rebuild_all_files})
 
         log.debug('Checking branches.')
 
@@ -910,51 +916,8 @@ def main(
                 exitBuild(details, log)
         details.update({"unprocessed_update": unprocessed_update})
 
-        log.debug('Gathering feature flags.')
-
-        # Get the contents of the feature flags file
-        jsonStaging = {
-            "name": "staging",
-            "location": "draft,review"
-            }
-        jsonStagingAllowlist = {
-            "name": "staging",
-            "location": "draft"
-            }
-        jsonProd = {
-            "name": "prod",
-            "location": "publish"
-            }
-        featureFlags = []
-        if os.path.isfile((details["source_dir"]) + '/feature-flags.json'):
-            details.update({"featureFlagFile": '/feature-flags.json'})
-            with open(details["source_dir"] + details["featureFlagFile"], 'r', encoding="utf8", errors="ignore") as featureFlagJson:
-                try:
-                    featureFlags = json.load(featureFlagJson)
-                except Exception as e:
-                    addToErrors('JSON not formatted properly. ' + str(e),
-                                details["featureFlagFile"], '', details, log, 'pre-build', '', '')
-                else:
-                    if details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in str(details['source_github_org']):
-                        if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in str(details['source_github_org']) and 'draft' in all_tags:
-                            featureFlags.append(jsonStagingAllowlist)
-                        elif '\'staging\'' not in str(featureFlags) and 'draft' in all_tags and 'review' in all_tags:
-                            featureFlags.append(jsonStaging)
-                        if '\'prod\'' not in str(featureFlags) and 'publish' in all_tags:
-                            featureFlags.append(jsonProd)
-                    details.update({"featureFlags": featureFlags})
-        elif details['ibm_cloud_docs'] is True and 'cloud-api-docs' not in str(details['source_github_org']):
-            if '\'staging\'' not in str(featureFlags) and 'cloud-docs-allowlist' in details['source_github_org'] and 'draft' in all_tags:
-                featureFlags.append(jsonStagingAllowlist)
-            elif '\'staging\'' not in str(featureFlags) and 'draft' in all_tags and 'review' in all_tags:
-                featureFlags.append(jsonStaging)
-            if '\'prod\'' not in str(featureFlags) and 'publish' in all_tags:
-                featureFlags.append(jsonProd)
-            details.update({"featureFlags": featureFlags})
-            details.update({"featureFlagFile": 'None'})
-        else:
-            details.update({"featureFlagFile": 'None'})
-            details.update({"featureFlags": 'None'})
+        # Feature flag compile
+        details = featureFlagListCompile(log, details, all_tags)
 
         # Make a list of enricher required JSON files for pre-build check
         enricher_json_files = ['/' + details["reuse_snippets_folder"] + '/' + details["reuse_phrases_file"],

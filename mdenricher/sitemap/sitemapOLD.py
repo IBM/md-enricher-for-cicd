@@ -197,7 +197,7 @@ def sitemapOLD(self, details, topicContents):
 
                 if contentExists is True:
                     # Create a dictionary with an entry for that file name
-                    source[file] = {}
+                    source[file] = {}   # type: ignore[index]
 
                     h2 = ''
                     h3 = ''
@@ -237,7 +237,7 @@ def sitemapOLD(self, details, topicContents):
                         linecount = 0
                         anchorline = 0
                         lines = f.readlines()
-                        source[file]['baseRepo'] = baseRepo
+                        source[file]['baseRepo'] = baseRepo   # type: ignore[index]
                         for line in lines:
                             linecount = linecount + 1
                             anchorline = linecount
@@ -263,7 +263,7 @@ def sitemapOLD(self, details, topicContents):
                                     # self.log.debug('line2 = ' + line2)
                                     title = line2+']'.rstrip()
                                     h3 = h3 + ';' + str(anchorlineStr) + '$[' + title + '(' + str(baseURL)
-                                    source[file]['h3'] = h3
+                                    source[file]['h3'] = h3  # type: ignore[index]
 
                                 elif ((line.startswith("## ")) and (H2_ENABLED is True)):
                                     line1 = line.replace("## ", "")
@@ -272,7 +272,7 @@ def sitemapOLD(self, details, topicContents):
                                     # self.log.debug('line2 = ' + line2)
                                     title = line2+']'.rstrip()
                                     h2 = h2 + ';' + str(anchorlineStr) + '$[' + title + '(' + str(baseURL)
-                                    source[file]['h2'] = h2
+                                    source[file]['h2'] = h2  # type: ignore[index]
 
                                 elif line.startswith('# '):
                                     count = 0
@@ -286,9 +286,9 @@ def sitemapOLD(self, details, topicContents):
                                         title = line2 + ']'.rstrip()
                                         h1 = '[' + str(anchorlineStr) + '$[' + str(title) + '(' + str(baseURL)
                                         try:
-                                            source[file]['draft-h1']
+                                            source[file]['draft-h1']  # type: ignore[index]
                                         except Exception:
-                                            source[file]['draft-h1'] = str(h1)
+                                            source[file]['draft-h1'] = str(h1)  # type: ignore[index]
 
         # get h1s and append anchor
         self.log.debug('Including H1 headers.')
